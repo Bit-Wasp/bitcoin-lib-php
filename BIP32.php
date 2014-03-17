@@ -1,5 +1,7 @@
 <?php
 
+// See tests/test_bip32.php for tests from github.
+
 require_once(dirname(__FILE__).'/ecc-lib/auto_load.php');
 require_once(dirname(__FILE__).'/BitcoinLib.php');
 
