@@ -122,7 +122,7 @@ class Electrum {
 	 * @param	int	$iteration
 	 * @return	string
 	 */
-	public function public_key_from_mpk($mpk, $iteration, $change = 0, $compressed = TRUE) {
+	public function public_key_from_mpk($mpk, $iteration, $change = 0, $compressed = FALSE) {
 		$change = ($change == 0) ? '0' : '1';
 		
 		// Generate the curve, and the generator point.
@@ -158,7 +158,7 @@ class Electrum {
 	 * @param	int	$iteration
 	 * @return	string
 	 */
-	public function address_from_mpk($mpk, $iteration, $magic_byte, $change = 0, $compressed = TRUE) {
+	public function address_from_mpk($mpk, $iteration, $magic_byte, $change = 0, $compressed = FALSE) {
 		$change = ($change == 0) ? 0 : 1;
 		$public_key = self::public_key_from_mpk($mpk, $iteration, $change, $compressed);
 		$address = BitcoinLib::public_key_to_address($public_key, $magic_byte);

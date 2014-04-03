@@ -280,7 +280,7 @@ class BitcoinLib {
 			$key_pair = self::get_new_key_pair();
 			$private_WIF = self::private_key_to_WIF($key_pair['privKey'], $address_version);
 			$public_address = self::public_key_to_address($key_pair['pubKey'], $address_version);
-		} while (!self::check_address($public_address, $address_version));
+		} while (!self::validate_address($public_address, $address_version));
 
 		return array('privKey' => $key_pair['privKey'],
 					 'pubKey' => $key_pair['pubKey'],
@@ -433,9 +433,10 @@ class BitcoinLib {
 					$y2,
 					$curve->getPrime()
 				);
-				
+
 		if($y0 == FALSE)
 			return FALSE;
+
 		$y1 = gmp_strval(gmp_sub($curve->getPrime(), $y0), 10);
 		
 		if($y_byte == '02') {
@@ -483,225 +484,31 @@ class BitcoinLib {
 		}
 	}
 
-	public static function create_redeem_script($m, $public_keys = array()) {
-		if(count($public_keys) == 0)
-			return FALSE;
-		if($m == 0)
-			return FALSE;
-			
-		$redeemScript = dechex(0x50+$m);
-		foreach($public_keys as $public_key) {
-			$redeemScript .= dechex(strlen($public_key)/2).$public_key;
-		}
-		$redeemScript .= dechex(0x50+(count($public_keys))).'ae';
-		return $redeemScript;
-	}
-
 	/**
-	 * Decode Redeem Script
+	 * Validate Address
 	 * 
-	 * This recursive function extracts the m and n values for the 
-	 * multisignature address, as well as the public keys.
+	 * This function accepts a base58check encoded $address, which is
+	 * decoded and checked for validity. Returns FALSE for an invalid 
+	 * address, otherwise returns TRUE;
 	 * 
-	 * @param	string	$redeem_script
-	 * @param	array	$data(should not be set!)
-	 * @return	array
+	 * @param	string	$address
+	 * @param	string	$address_version
+	 * @return	boolean
 	 */
-	public function decode_redeem_script($redeem_script, $data = array()) {
-		// If there is no more work to be done (script is fully parsed, 
-		// return the array)
-		if(strlen($redeem_script) == 0)
-			return $data;
-			
-		// Fail if the redeem_script has an uneven number of characters.
-		if(strlen($redeem_script) % 2 !== 0)
+	public static function validate_address($address, $address_version) {
+		// Check the address is decoded correctly.
+		$decode = self::base58_decode($address); 
+		if(strlen($decode) !== 50) 
 			return FALSE;
-			
-		// First step is to get m, the required number of signatures
-		if(!isset($data['m']) || count($data) == 0) {
-			$data['m'] = gmp_strval(gmp_sub(gmp_init(substr($redeem_script, 0, 2),16),gmp_init('50',16)),10);							
-			$data['keys'] = array();
-			$redeem_script = substr($redeem_script, 2);
-			
-		} else if(count($data['keys']) == 0 && !isset($data['next_key_charlen'])) {
-			// Next is to find out the length of the following public key.
-			$hex = substr($redeem_script, 0, 2);
-			// Set up the length of the following key.
-			$data['next_key_charlen'] = gmp_strval(gmp_mul(gmp_init('2',10),gmp_init($hex, 16)),10);
-			$redeem_script = substr($redeem_script, 2);
-			
-		} else if(isset($data['next_key_charlen'])) {
-			// Extract the key, and work out the next step for the code.
-			$data['keys'][] = substr($redeem_script, 0, $data['next_key_charlen']);
-			$next_op = substr($redeem_script, $data['next_key_charlen'], 2);
-			$redeem_script = substr($redeem_script, ($data['next_key_charlen']+2));
-			unset($data['next_key_charlen']);
-			
-			// If 1 <= $next_op >= 4b
-			if( in_array(gmp_cmp(gmp_init($next_op, 16),gmp_init('1',16)),array('0','1')) 
-			 && in_array(gmp_cmp(gmp_init($next_op, 16),gmp_init('4b', 16)),array('-1','0'))) {
-				// Set the next key character length
-				$data['next_key_charlen'] = gmp_strval(gmp_mul(gmp_init('2',10),gmp_init($next_op, 16)),10);
-			
-			// If 52 <= $next_op >= 60
-			} else if( in_array(gmp_cmp(gmp_init($next_op, 16),gmp_init('52',16)),array('0','1')) 
-					&& in_array(gmp_cmp(gmp_init($next_op, 16),gmp_init('60', 16)),array('-1','0'))) {
-				// Finish the script.
-				$data['n'] = gmp_strval(gmp_sub(gmp_init($next_op, 16),gmp_init('50',16)),10);
-				$redeem_script = '';
-			} else {
-				// Something weird, malformed redeemScript.
-				return FALSE;
-			}
-		} 
-		return self::decode_redeem_script($redeem_script, $data);
-	}
-
-	/**
-	 * Create Multisig
-	 * 
-	 * This function mirrors that of Bitcoind's. It creates a redeemScript
-	 * out of keys given in the given order, creates a redeemScript, and
-	 * creates the address from this. $m must be greater than zero, and 
-	 * public keys are required. 
-	 * 
-	 * @param	int	$m
-	 * @param	array	$public_keys
-	 */
-	public static function create_multisig($m, $public_keys = array()) {
-		if($m == 0)
-			return FALSE;
-		if(count($public_keys) == 0)
-			return FALSE;
-			
-		$redeem_script = self::create_redeem_script($m, $public_keys);
-		if($redeem_script == FALSE)
-			return FALSE;
-			
-		return array('redeemScript' => $redeem_script,
-					 'address' => self::public_key_to_address($redeem_script, '05'));
-	}
-
-	/**
-	 * Decode Signature
-	 * 
-	 * This function extracts the r and s parameters from a DER encoded
-	 * signature. No checking on the validity of the numbers. 
-	 * 
-	 * @param	string	$signature
-	 * @return	array;
-	 */
-	public static function decode_signature($signature) {
-		$r_start = 8;
-		$r_length = hexdec(substr($signature, 6, 2))*2;
-		$r_end = $r_start+$r_length;
-		$r = substr($signature, $r_start, $r_length);
 		
-		$s_start = $r_length+4;
-		$s_length = hexdec(substr($signature, ($r_end+2), 2))*2;
-		$s = substr($signature, $s_start, $s_length);
-		return array('r' => $r, 
-					 's' => $s);
+		// Compare the version.
+		$version = substr($decode, 0, 2);
+		if(hexdec($version) > hexdec($address_version))
+			return FALSE;
+
+		// Finally compare the checksums.
+		return substr($decode, -8) == substr(self::hash256(substr($decode, 0, 42)), 0, 8);
+		
 	}
-
-	/**
-	 * Validate Input
-	 * 
-	 * This function accepts a decoded vin (an array), and performs a 
-	 * number of checks to see if it has been signed correctly. Bitcoind 
-	 * will check that redeemScript is appropriate for the signatures, if 
-	 * any. 
-	 * 1) Extract the signatures and redeemScript from the scriptSig
-	 * 2) Check that at least one signature has been added
-	 * 3) Check that the extracted redeemScript matches the one we have stored.
-	 * 4) Decode the redeemScript, check this is valid.
-	 * It returns an array of information about the input if it's valid,
-	 * otherwise it returns FALSE for any number of reasons.
-	 * 
-	 * @param	array	$input
-	 * @param	string	$orig_redeem_script
-	 * return	array/FALSE
-	 */
-	public function validate_partially_signed_input($input, $orig_redeem_script) {
-		$sig = explode(" ",$input['scriptSig']['asm']);
-		$end_pos = count($sig)-1;
-
-		// Extract signatures and redeemScript string
-		$info['signatures'] = array();
-		foreach($sig as $pos => $data) {
-			// Ignore first position ('0')
-			if($pos == 0)
-				continue;
-			// If it's the final position, it's the redeemScript. Set
-			// this and break.
-			if($pos == $end_pos) {
-				$info['redeemScript'] = $data;
-				break;
-			}	
-			
-			$info['signatures'][] = $data;
-		}
-
-		// Check at least one signature was added.
-		if(count($info['signatures']) == 0)
-			return FALSE;
-
-		// Check the redeem script in the transaction matches what we
-		// have on record. Confirms the public keys.
-		if($info['redeemScript'] !== $orig_redeem_script)
-			return FALSE;
-
-		// Decode redeem script
-		$info['redeem_script_arr'] = self::decode_redeem_script($info['redeemScript']);
-		if($info['redeem_script_arr'] == FALSE)
-			return FALSE;
-		/*
-		 * This is where we actually verify the signatures. 
-		foreach($info['signatures'] as $sig) {
-			$signature = self::decode_signature($sig);
-			$test_signature = new Signature($signature['r'], $signature['s']);
-			$found = FALSE;
-			foreach($info['redeem_script_arr']['keys'] as $key) {
-				$generator = SECcurve::generator_secp256k1();
-				$curve = $generator->getCurve();
-								
-				if(strlen($key) == '66') {
-					$decompress = self::decompress_public_key($key);
-					$public_key_point = $decompress['point'];
-				} else {
-					$x = gmp_strval(gmp_init(substr($key, 2, 64), 16), 10);
-					$y = gmp_strval(gmp_init(substr($key, 66, 64), 16), 10);
-					$public_key_point = new Point($curve, $x, $y, $generator->getOrder());
-				}
-				$public_key = new PublicKey($generator, $public_key_point);
-				if($public_key->verifies(10, $test_signature))
-					$found == TRUE;
-			}
-			if($found !== TRUE)
-				return FALSE;
-		}*/
-
-		// Check the signatures only use keys contained in the redeemScript
-		return $info;
-	}
-
-
-
-	public static function validate_partially_signed_transaction($transaction, $redeemScript) {
-		if(count($transaction['vin']) == 0 || count($transaction['vout']) == 0)
-			return FALSE;
-			
-		$results[] = array();
-		foreach($transaction['vin'] as $vin => $input) {
-			$validate = self::validate_partially_signed_input($input, $redeemScript);
-			
-			if($validate == FALSE)
-				return FALSE;
-			
-			$results[$vin] = $validate;
-		}
-		$results['decoded'] = $transaction;
-		return $results;
-	}
-
+	
 };

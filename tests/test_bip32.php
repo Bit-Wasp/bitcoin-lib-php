@@ -1,7 +1,7 @@
 <?php
 
-require_once(dirname(__FILE__).'/../BitcoinLib.php');
-require_once(dirname(__FILE__).'/../BIP32.php');
+require_once(dirname(__FILE__).'/../application/libraries/BitcoinLib.php');
+require_once(dirname(__FILE__).'/../application/libraries/BIP32.php');
 
 echo "bip32 tests - https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#Test_Vectors \n\n";
 
