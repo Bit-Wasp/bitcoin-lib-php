@@ -1,7 +1,6 @@
 <?php
 
 require_once(dirname(__FILE__).'/../BitcoinLib.php');
-require_once(dirname(__FILE__).'/../BIP32.php');
 require_once(dirname(__FILE__).'/../Raw_transaction.php');
 
 /////////////////////////////

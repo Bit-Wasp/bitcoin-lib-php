@@ -557,7 +557,6 @@ class Raw_transaction {
 	public function _create_txin_signature_hash($raw_transaction, $json_inputs, $specific_input = -1) {
 		$decode = self::decode($raw_transaction);
 		$inputs = (array)json_decode($json_inputs);
-
 		if($specific_input !== -1 && !is_numeric($specific_input))
 			return FALSE;
 			
@@ -569,7 +568,7 @@ class Raw_transaction {
 				$decode['vin'][$i]['vout'] !== $inputs[$i]->vout )
 				return FALSE;
 		}
-
+	
 		$sighashcode = '01000000';
 
 		if( $specific_input == -1) {
@@ -774,8 +773,7 @@ class Raw_transaction {
 				$signature = $scripts[0];
 			
 				$public_key = $scripts[1];
-				$o = self::_check_sig($signature, $message_hash[$i], $public_key);
-				$outcome = $outcome && $o;
+				$outcome = $outcome && self::_check_sig($signature, $message_hash[$i], $public_key);
 				
 			} else if($type_info['type'] == 'scripthash') {
 				// Pay-to-script-hash. Check OP_FALSE <sig> ... <redeemScript>
@@ -1011,4 +1009,3 @@ class Raw_transaction {
 	}
 	
 };
-
