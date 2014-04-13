@@ -30,7 +30,6 @@ class Signature implements SignatureInterface{
     public function  __construct($r, $s) {
         $this->r = $r;
         $this->s = $s;
-
     }
 
 

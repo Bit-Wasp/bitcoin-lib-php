@@ -32,19 +32,23 @@ class PrivateKey implements PrivateKeyInterface {
 
     public function sign($hash, $random_k) {
         if (extension_loaded('gmp') && USE_EXT=='GMP') {
+			
             $G = $this->public_key->getGenerator();
             $n = $G->getOrder();
+            
             $k = gmp_Utils::gmp_mod2($random_k, $n);
+           
             $p1 = Point::mul($k, $G);
+            
             $r = $p1->getX();
 
             if (gmp_cmp($r, 0) == 0) {
-                throw new ErrorException("error: random number R = 0 <br />");
+                return FALSE;
             }
             $s = gmp_Utils::gmp_mod2(gmp_mul(NumberTheory::inverse_mod($k, $n), gmp_Utils::gmp_mod2(gmp_add($hash, gmp_mul($this->secret_multiplier, $r)), $n)), $n);
 
             if (gmp_cmp($s, 0) == 0) {
-                throw new ErrorExcpetion("error: random number S = 0<br />");
+                return FALSE;
             }
 
             return new Signature($r, $s);

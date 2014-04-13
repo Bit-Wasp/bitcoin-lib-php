@@ -10,7 +10,7 @@ echo "Key pair: \n";print_r($keypair); echo "\n";
 $compress = BitcoinLib::compress_public_key($keypair['pubKey']);
 echo "Compressed public key: $compress \n";
 $decompress = BitcoinLib::decompress_public_key($compress);
-echo "decompressed key info: \n";
+echo "Decompressed key info: \n";
 print_r($decompress);
 
 echo "\n";
