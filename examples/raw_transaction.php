@@ -28,14 +28,14 @@ $json_inputs = json_encode(
 						)
 					);
 // Private Key
-$private_keys = array('L2V4QgXVUyWVoMGejTj7PrRUUCEi9D9Y1AhUM8E6f5yJm7gemgN6');
-
+$wallet = array();
+Raw_transaction::private_keys_to_wallet($wallet, array('L2V4QgXVUyWVoMGejTj7PrRUUCEi9D9Y1AhUM8E6f5yJm7gemgN6'), '00');
 
 // Create raw transaction
 $raw_transaction = Raw_transaction::create($inputs, $outputs);
 
 
 // Sign the transaction
-$sign = Raw_transaction::sign($raw_transaction, $json_inputs, $private_keys);
+$sign = Raw_transaction::sign($wallet, $raw_transaction, $json_inputs);
 print_r($sign);echo "\n";
 

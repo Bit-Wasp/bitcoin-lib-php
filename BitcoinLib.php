@@ -38,7 +38,8 @@ class BitcoinLib {
 	 * @return	string
 	 */
 	public static function hex_encode($number) {
-		return gmp_strval(gmp_init($number, 10), 16);
+		$hex = gmp_strval(gmp_init($number, 10), 16);
+		return (strlen($hex)%2 != 0) ? '0'.$hex : $hex;
 	}
 	
 	/**
@@ -262,29 +263,6 @@ class BitcoinLib {
 		return self::public_key_to_address($public_key, $address_version);
 	}
 
-	public static function private_keys_to_receive($wifs, $magic_byte = '00') {
-		$results = array();
-		foreach($wifs as $wif) {
-			$key = self::WIF_to_private_key($wif);
-			$pubkey = self::private_key_to_public_key($key['key'], $key['is_compressed']);
-			
-			$pk_hash = self::hash160($pubkey);
-			
-			if($key['is_compressed'] == TRUE) {
-				$uncompressed_key = self::decompress_public_key($pubkey);
-				$uncompressed_key = $uncompressed_key['public_key'];
-			} else {
-				$uncompressed_key = $pubkey;
-			}
-			$results[$pk_hash] = array(	'private_key' => $key['key'],
-										'public_key' => $pubkey,
-										'uncompressed_key' => $uncompressed_key,
-										'is_compressed' => $key['is_compressed'],
-										'address' => self::hash160_to_address($pk_hash, $magic_byte));
-		}
-		return $results;
-	}
-
 	/**
 	 * Get New Key Pair
 	 * 
@@ -486,7 +464,7 @@ class BitcoinLib {
 		
 		return array('x' => $x_coordinate, 
 					 'y' => $y_coordinate,
-					 'point' => new Point($curve, gmp_init($x_coordinate, 16), gmp_init($y_coordinate, 16), $generator->getOrder()),
+					 'point' => new Point($curve, gmp_strval(gmp_init($x_coordinate, 16),10), gmp_strval(gmp_init($y_coordinate, 16),10), $generator->getOrder()),
 					 'public_key' => '04'.$x_coordinate.$y_coordinate);
 	}
 
@@ -549,4 +527,37 @@ class BitcoinLib {
 		
 	}
 	
+	public static function validate_WIF($wif, $ver) {
+		$hex = self::base58_decode($wif);
+
+		// Learn checksum
+		$crc = substr($hex, -8);
+		$hex = substr($hex, 0, -8);
+		
+		// Learn version
+		$version = substr($hex, 0, 2);
+		$hex = substr($hex, 2);
+		
+		// Determine if pubkey is compressed
+		$compressed = FALSE;
+		if(strlen($hex) == 66 && substr($hex, 64, 2) == '01') {
+			$compressed = TRUE;
+			$hex = substr($hex, 0, 64);
+		}
+
+		// Check private key within limit.
+		$g = SECcurve::generator_secp256k1();
+		$n = $g->getOrder();
+		if (gmp_strval(gmp_init($hex, 16),10) >= $n)
+			return FALSE;
+
+		// Calculate checksum for what we have, see if it matches.
+		$checksum = self::hash256($version.$hex.(($compressed)?'01':''));
+		$checksum = substr($checksum, 0, 8);
+		if($checksum != $crc)
+			return FALSE;
+
+		
+		return true;
+	}
 };
