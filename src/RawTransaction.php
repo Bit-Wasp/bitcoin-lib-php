@@ -750,7 +750,7 @@ class RawTransaction {
 	 * @param	int	$m
 	 * @param	array	$public_keys
 	 */
-	public static function create_multisig($m, $public_keys = array()) {
+	public static function create_multisig($m, $public_keys = array(), $address_version = '05') {
 		if($m == 0)
 			return FALSE;
 		if(count($public_keys) == 0)
@@ -761,7 +761,7 @@ class RawTransaction {
 			return FALSE;
 			
 		return array('redeemScript' => $redeem_script,
-					 'address' => BitcoinLib::public_key_to_address($redeem_script, '05'));
+					 'address' => BitcoinLib::public_key_to_address($redeem_script, $address_version));
 	}
 
 
@@ -1006,7 +1006,7 @@ class RawTransaction {
 	 * the txout being spent, and the relevant key for signing, and
 	 * encodes the signature in DER format.
 	 * 
-	 * @param	Signature	$signature
+	 * @param	\Signature	$signature
 	 * @param	array	$tx_info
 	 * @param	array	$key_info
 	 * @return	string
@@ -1014,8 +1014,8 @@ class RawTransaction {
 	public static function encode_signature(\Signature $signature) {
 		
 		// Pad r and s to 64 characters.
-		$rh = str_pad(BitcoinLib::hex_encode($signature->getR()),64,'0', STR_PAD_LEFT);
-		$sh = str_pad(BitcoinLib::hex_encode($signature->getS()),64,'0', STR_PAD_LEFT);
+		$rh = str_pad(\BitcoinLib::hex_encode($signature->getR()),64,'0', STR_PAD_LEFT);
+		$sh = str_pad(\BitcoinLib::hex_encode($signature->getS()),64,'0', STR_PAD_LEFT);
 		
 		// Check if the first byte of each has its highest bit set, 
 		$t1 = unpack( "H*", (pack( 'H*',substr($rh, 0, 2)) & pack('H*', '80')));
