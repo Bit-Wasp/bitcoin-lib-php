@@ -297,10 +297,14 @@ class BitcoinLib {
 	 * @param	string	$address_version
 	 * @return	array
 	 */
-	public static function get_new_key_set($address_version) {
+	public static function get_new_key_set($address_version, $compressed = FALSE) {
 		do {
 			$key_pair = self::get_new_key_pair();
-			$private_WIF = self::private_key_to_WIF($key_pair['privKey'], $address_version);
+			$private_WIF = self::private_key_to_WIF($key_pair['privKey'], $compressed, $address_version);
+
+			if ($compressed == TRUE)
+				$key_pair['pubKey'] = self::compress_public_key($key_pair['pubKey']);
+				
 			$public_address = self::public_key_to_address($key_pair['pubKey'], $address_version);
 		} while (!self::validate_address($public_address, $address_version));
 
@@ -346,7 +350,7 @@ class BitcoinLib {
 	 */
 	public static function private_key_to_WIF($privKey, $compressed = FALSE, $address_version)
 	{
-		$key = $privKey.(($compressed)?'01':'');
+		$key = $privKey.(($compressed == TRUE)?'01':'');
 		return self::hash160_to_address($key, self::get_private_key_address_version($address_version));
 	}
 	
@@ -378,11 +382,10 @@ class BitcoinLib {
 	public static function import_public_key($public_key) 
 	{
 		$first = substr($public_key, 0, 2);
-		if (($first == '02' || $first == '03') && strlen($public_key)) 
+		if (($first == '02' || $first == '03') && strlen($public_key) == '66') 
 		{
 			// Compressed public key, need to decompress.
-			$x_coordinate = substr($public_key, 2);
-			$decompressed = self::decompress_public_key($first, $x_coordinate);
+			$decompressed = self::decompress_public_key($public_key);
 			return ($decompressed == FALSE) ? FALSE : $decompressed['public_key'];
 		}
 		else if($first == '04')
@@ -428,20 +431,22 @@ class BitcoinLib {
 	{
 		$y_byte = substr($key, 0, 2);
 		$x_coordinate = substr($key, 2);
-		$x = gmp_init($x_coordinate, 16);
+		
+		$x = gmp_strval(gmp_init($x_coordinate, 16),10);
 		$curve = \SECcurve::curve_secp256k1();
 		$generator = \SECcurve::generator_secp256k1();
 
 		try
 		{
 			$x3 = \NumberTheory::modular_exp( $x, 3, $curve->getPrime() );
+			
 			$y2 = gmp_add(
 						$x3,
 						$curve->getB()
 					);
 			
 			$y0 = \NumberTheory::square_root_mod_prime(
-						$y2,
+						gmp_strval($y2, 10),
 						$curve->getPrime()
 					);
 
@@ -454,7 +459,7 @@ class BitcoinLib {
 									? ((\gmp_Utils::gmp_mod2(gmp_init($y0, 10), 2) == '0') ? $y0 : $y1)
 									: ((\gmp_Utils::gmp_mod2(gmp_init($y0, 10), 2) !== '0') ? $y0 : $y1);
 
-			$y_coordinate = gmp_strval($y_coordinate, 16);
+			$y_coordinate = str_pad(gmp_strval($y_coordinate, 16),64,'0',STR_PAD_LEFT);
 			
 			$point = new \Point($curve, gmp_strval(gmp_init($x_coordinate, 16),10), gmp_strval(gmp_init($y_coordinate, 16),10), $generator->getOrder());
 		} 
@@ -494,13 +499,13 @@ class BitcoinLib {
 			$generator = \SECcurve::generator_secp256k1();
 		
 			$x = substr($public_key, 2, 64);
-			$y = substr($public_key, 64, 64);
-			
+			$y = substr($public_key, 66, 64);
+
 			// Attempt to create the point. Point returns false in the 
 			// constructor if anything is invalid.
 			try
 			{
-				$point = new \Point($curve, gmp_init($x, 16), gmp_init($y, 16), $generator->getOrder());
+				$point = new \Point($curve, gmp_strval(gmp_init($x, 16),10), gmp_strval(gmp_init($y, 16),10), $generator->getOrder());
 			}
 			catch (Exception $e) 
 			{

@@ -1014,8 +1014,8 @@ class RawTransaction {
 	public static function encode_signature(\Signature $signature) {
 		
 		// Pad r and s to 64 characters.
-		$rh = str_pad(\BitcoinLib::hex_encode($signature->getR()),64,'0', STR_PAD_LEFT);
-		$sh = str_pad(\BitcoinLib::hex_encode($signature->getS()),64,'0', STR_PAD_LEFT);
+		$rh = str_pad(BitcoinLib::hex_encode($signature->getR()),64,'0', STR_PAD_LEFT);
+		$sh = str_pad(BitcoinLib::hex_encode($signature->getS()),64,'0', STR_PAD_LEFT);
 		
 		// Check if the first byte of each has its highest bit set, 
 		$t1 = unpack( "H*", (pack( 'H*',substr($rh, 0, 2)) & pack('H*', '80')));

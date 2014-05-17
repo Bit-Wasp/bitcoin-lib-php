@@ -51,6 +51,7 @@ function __autoload($f) {
 $seconds = 7200;
 set_time_limit($seconds);
 
+class SquareRootException extends ErrorException {};
 
 //if(!defined('USE_EXT')) define ('USE_EXT', 'BCMATH');
 
