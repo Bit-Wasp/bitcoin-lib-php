@@ -230,13 +230,21 @@ class BitcoinLib {
 	 * format.
 	 * 
 	 * @param	string	$privKey
+	 * @param	boolean	$compressed
 	 * @return	string
 	 */
 	public static function private_key_to_public_key($privKey, $compressed = FALSE) {
 		$g = \SECcurve::generator_secp256k1();
     
 		$privKey = self::hex_decode($privKey);  
-		$secretG = \Point::mul($privKey, $g);
+		try 
+		{
+			$secretG = \Point::mul($privKey, $g);
+		}
+		catch (Exception $e) 
+		{
+			return FALSE;
+		}
 	
 		$xHex = self::hex_encode($secretG->getX());  
 		$yHex = self::hex_encode($secretG->getY());
@@ -245,7 +253,7 @@ class BitcoinLib {
 		$yHex = str_pad($yHex, 64, '0', STR_PAD_LEFT);
 		$public_key = '04'.$xHex.$yHex;
 		
-		return ($compressed == TRUE) ? BitcoinLib::compress_public_key($public_key) : $public_key;
+		return ($compressed == TRUE) ? self::compress_public_key($public_key) : $public_key;
 	}
 
 	/**
@@ -312,7 +320,8 @@ class BitcoinLib {
 	 * @param	string	$address_version
 	 * @return	string
 	 */
-	public static function get_private_key_address_version($address_version) {
+	public static function get_private_key_address_version($address_version)
+	{
 		return gmp_strval(
 					gmp_add(
 						gmp_init($address_version, 16),
@@ -325,12 +334,20 @@ class BitcoinLib {
 	/**
 	 * Private Key To WIF
 	 * 
-	 * Converts a hexadecimal $privKey to an address, using the $address_version.
+	 * Converts a hexadecimal $privKey to WIF key, using the $address_version
+	 * to yield the correct privkey version byte for that network (byte+0x80).
 	 * 
+	 * $compressed = TRUE will yield the private key for the compressed 
+	 * public key address.
+	 * 
+	 * @param	string	$privKey
+	 * @param	boolean	$compressed
 	 * @return string
 	 */
-	public static function private_key_to_WIF($privKey, $address_version) {
-		return self::hash160_to_address($privKey, self::get_private_key_address_version($address_version));
+	public static function private_key_to_WIF($privKey, $compressed = FALSE, $address_version)
+	{
+		$key = $privKey.(($compressed)?'01':'');
+		return self::hash160_to_address($key, self::get_private_key_address_version($address_version));
 	}
 	
 	/**
@@ -341,39 +358,13 @@ class BitcoinLib {
 	 * @param	string	$WIF
 	 * @return	string
 	 */
-	public static function WIF_to_private_key($WIF) {
+	public static function WIF_to_private_key($WIF)
+	{
 		$decode = self::base58_decode($WIF);
 		return array('key' => substr($decode, 2, 64),
 					 'is_compressed' => (( (strlen($decode)-10) == 66 && substr($decode, 66, 2) == '01') ? TRUE : FALSE));		
 	}
 	
-	/**
-	 * Check Address
-	 * 
-	 * This function takes the base58 encoded bitcoin $address, checks
-	 * the length of the decoded string is correct, that the encoded
-	 * version information is allowed, and that the checksum matches.
-	 * Returns TRUE for a valid $address, and FALSE on failure.
-	 * 
-	 * @param	string	$address
-	 * @param	string	$address_version
-	 * @return	boolean
-	 */
-	public static function check_address($address, $address_version) {
-		$address = self::base58_decode($address);
-		if (strlen($address) != 50) {
-			return false;
-		}
-		$version = substr($address, 0, 2);
-		if (hexdec($version) > hexdec($address_version)) {
-			return false;
-		}
-		$check = substr($address, 0, strlen($address) - 8);
-		$check = self::dhash_string($check);
-		$check = substr($check, 0, 8);
-		return $check == substr($address, strlen($address) - 8);
-	}
-
 	/**
 	 * Import Public Key
 	 * 
@@ -384,20 +375,24 @@ class BitcoinLib {
 	 * @param	string	$public_key
 	 * @return	string
 	 */
-	public static function import_public_key($public_key) {
+	public static function import_public_key($public_key) 
+	{
 		$first = substr($public_key, 0, 2);
-		if(($first == '02' || $first == '03') && strlen($public_key)) {
+		if (($first == '02' || $first == '03') && strlen($public_key)) 
+		{
 			// Compressed public key, need to decompress.
 			$x_coordinate = substr($public_key, 2);
 			$decompressed = self::decompress_public_key($first, $x_coordinate);
-			return $decompressed['public_key'];
-		} else if($first == '04') {
+			return ($decompressed == FALSE) ? FALSE : $decompressed['public_key'];
+		}
+		else if($first == '04')
+		{
 			// Regular public key, pass back untreated.
 			return $public_key;
-		} else {
-			// Not a valid public key
-			return FALSE;
-		}
+		} 
+		
+		// Not a valid public key
+		return FALSE;
 	}
 
 	/**
@@ -405,19 +400,16 @@ class BitcoinLib {
 	 * 
 	 * Converts an uncompressed public key to the shorter format. These
 	 * compressed public key's have a prefix of 02 or 03, indicating whether
-	 * Y is odd or even. With this information, and the X coordinate, it
-	 * is possible to regenerate the uncompressed key at a later stage.
-	 * 
+	 * Y is odd or even (tested by gmp_mod2(). With this information, and 
+	 * the X coordinate, it is possible to regenerate the uncompressed key 
+	 * at a later stage.
+	 *  
 	 * @param	string	$public_key
 	 * @return	string
 	 */
-	public static function compress_public_key($public_key) {
-		$x = substr($public_key, 2, 64);
-		$y = substr($public_key, 66, 64);
-		$prefix = '0';
-		$prefix.= ((\gmp_Utils::gmp_mod2(gmp_init($y, 16), 2))==0) ? '2' : '3';
-		
-		return $prefix.$x;
+	public static function compress_public_key($public_key)
+	{
+		return '0'.(((\gmp_Utils::gmp_mod2(gmp_init(substr($public_key, 66, 64), 16), 2))==0) ? '2' : '3').substr($public_key, 2, 64);
 	}
 
 	/**
@@ -432,39 +424,48 @@ class BitcoinLib {
 	 * @param	string	$passpoint
 	 * @return	string
 	 */
-	public static function decompress_public_key($key) {
+	public static function decompress_public_key($key)
+	{
 		$y_byte = substr($key, 0, 2);
 		$x_coordinate = substr($key, 2);
 		$x = gmp_init($x_coordinate, 16);
 		$curve = \SECcurve::curve_secp256k1();
 		$generator = \SECcurve::generator_secp256k1();
-		
-		$x3 = \NumberTheory::modular_exp( $x, 3, $curve->getPrime() );
-		$y2 = gmp_add(
-					$x3,
-					$curve->getB()
-				);
-		
-		$y0 = \NumberTheory::square_root_mod_prime(
-					$y2,
-					$curve->getPrime()
-				);
 
-		if($y0 == FALSE)
+		try
+		{
+			$x3 = \NumberTheory::modular_exp( $x, 3, $curve->getPrime() );
+			$y2 = gmp_add(
+						$x3,
+						$curve->getB()
+					);
+			
+			$y0 = \NumberTheory::square_root_mod_prime(
+						$y2,
+						$curve->getPrime()
+					);
+
+			if($y0 == FALSE)
+				return FALSE;
+
+			$y1 = gmp_strval(gmp_sub($curve->getPrime(), $y0), 10);
+			
+			$y_coordinate = ($y_byte == '02') 
+									? ((\gmp_Utils::gmp_mod2(gmp_init($y0, 10), 2) == '0') ? $y0 : $y1)
+									: ((\gmp_Utils::gmp_mod2(gmp_init($y0, 10), 2) !== '0') ? $y0 : $y1);
+
+			$y_coordinate = gmp_strval($y_coordinate, 16);
+			
+			$point = new \Point($curve, gmp_strval(gmp_init($x_coordinate, 16),10), gmp_strval(gmp_init($y_coordinate, 16),10), $generator->getOrder());
+		} 
+		catch (Exception $e)
+		{
 			return FALSE;
-
-		$y1 = gmp_strval(gmp_sub($curve->getPrime(), $y0), 10);
-		
-		if($y_byte == '02') {
-			$y_coordinate = (\gmp_Utils::gmp_mod2(gmp_init($y0, 10), 2) == '0') ? $y0 : $y1;
-		} else if($y_byte == '03') {
-			$y_coordinate = (\gmp_Utils::gmp_mod2(gmp_init($y0, 10), 2) !== '0') ? $y0 : $y1;
 		}
-		$y_coordinate = gmp_strval($y_coordinate, 16);
 		
 		return array('x' => $x_coordinate, 
 					 'y' => $y_coordinate,
-					 'point' => new \Point($curve, gmp_strval(gmp_init($x_coordinate, 16),10), gmp_strval(gmp_init($y_coordinate, 16),10), $generator->getOrder()),
+					 'point' => $point,
 					 'public_key' => '04'.$x_coordinate.$y_coordinate);
 	}
 
@@ -478,26 +479,37 @@ class BitcoinLib {
 	 * @return	boolean
 	 */
 	public static function validate_public_key($public_key) {
-		if(strlen($public_key) == '66') {
+		if (strlen($public_key) == '66')
+		{
 			// Compressed key
 			// Attempt to decompress the public key. If the point is not
 			// generated, or the function fails, then the key is invalid.
 			$decompressed = self::decompress_public_key($public_key);
-			return ($decompressed == FALSE || $decompressed['point'] == FALSE) ? FALSE : TRUE;
-		} else if(strlen($public_key) == '130') {
+			return $decompressed == TRUE;
+		}
+		else if (strlen($public_key) == '130')
+		{
 			// Uncompressed key, try to create the point
 			$curve = \SECcurve::curve_secp256k1();
 			$generator = \SECcurve::generator_secp256k1();
 		
 			$x = substr($public_key, 2, 64);
 			$y = substr($public_key, 64, 64);
+			
 			// Attempt to create the point. Point returns false in the 
 			// constructor if anything is invalid.
-			$point = new \Point($curve, gmp_init($x, 16), gmp_init($y, 16), $generator->getOrder());
-			return ($point == FALSE) ? FALSE : TRUE;
-		} else {
-			return FALSE;
+			try
+			{
+				$point = new \Point($curve, gmp_init($x, 16), gmp_init($y, 16), $generator->getOrder());
+			}
+			catch (Exception $e) 
+			{
+				return FALSE;
+			}
+			return TRUE;
 		}
+		
+		return FALSE;
 	}
 
 	/**
@@ -511,15 +523,16 @@ class BitcoinLib {
 	 * @param	string	$address_version
 	 * @return	boolean
 	 */
-	public static function validate_address($address, $address_version) {
+	public static function validate_address($address, $address_version)
+	{
 		// Check the address is decoded correctly.
 		$decode = self::base58_decode($address); 
-		if(strlen($decode) !== 50) 
+		if (strlen($decode) !== 50) 
 			return FALSE;
 		
 		// Compare the version.
 		$version = substr($decode, 0, 2);
-		if(hexdec($version) > hexdec($address_version))
+		if (hexdec($version) > hexdec($address_version))
 			return FALSE;
 
 		// Finally compare the checksums.
@@ -527,7 +540,20 @@ class BitcoinLib {
 		
 	}
 	
-	public static function validate_WIF($wif, $ver) {
+	/**
+	 * Validate WIF
+	 * 
+	 * This function validates that a WIFs checksum validates, and that 
+	 * the private key is a valid number within the range 1 - n
+	 * 
+	 * $ver is unused at the moment.
+	 * 
+	 * @param	string	$wif
+	 * @param	string	$ver
+	 * @return	boolean
+	 */
+	public static function validate_WIF($wif, $ver)
+	{
 		$hex = self::base58_decode($wif);
 
 		// Learn checksum
@@ -540,7 +566,8 @@ class BitcoinLib {
 		
 		// Determine if pubkey is compressed
 		$compressed = FALSE;
-		if(strlen($hex) == 66 && substr($hex, 64, 2) == '01') {
+		if (strlen($hex) == 66 && substr($hex, 64, 2) == '01')
+		{
 			$compressed = TRUE;
 			$hex = substr($hex, 0, 64);
 		}
@@ -554,10 +581,6 @@ class BitcoinLib {
 		// Calculate checksum for what we have, see if it matches.
 		$checksum = self::hash256($version.$hex.(($compressed)?'01':''));
 		$checksum = substr($checksum, 0, 8);
-		if($checksum != $crc)
-			return FALSE;
-
-		
-		return true;
+		return $checksum == $crc;
 	}
 };

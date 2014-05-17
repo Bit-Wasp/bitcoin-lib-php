@@ -1,19 +1,24 @@
 <?php
 /***********************************************************************
-Copyright 2010 Matyas Danter
+Copyright (C) 2012 Matyas Danter
 
-This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+Permission is hereby granted, free of charge, to any person obtaining 
+a copy of this software and associated documentation files (the "Software"), 
+to deal in the Software without restriction, including without limitation 
+the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+and/or sell copies of the Software, and to permit persons to whom the 
+Software is furnished to do so, subject to the following conditions:
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+The above copyright notice and this permission notice shall be included 
+in all copies or substantial portions of the Software.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS 
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES 
+OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+OTHER DEALINGS IN THE SOFTWARE.
 *************************************************************************/
 
 
@@ -45,14 +50,14 @@ class Point implements PointInterface {
 
             if (isset($this->curve) && ($this->curve instanceof CurveFp)) {
                 if (!$this->curve->contains($this->x, $this->y)) {
-                    return FALSE;
+                    throw new ErrorException("Curve" . print_r($this->curve, true) . " does not contain point ( " . $x . " , " . $y . " )");
                     
                 }
 
                 if ($this->order != null) {
 
                     if (self::cmp(self::mul($order, $this), self::$infinity) != 0) {
-                        return FALSE;
+                        throw new ErrorException("SELF * ORDER MUST EQUAL INFINITY.");
                     }
                 }
             }
@@ -215,11 +220,13 @@ class Point implements PointInterface {
 
                         $result = self::double($result);
 
-                        if (gmp_cmp(gmp_and($e3, $i), 0) != 0 && gmp_cmp(gmp_and($e, $i), 0) == 0) {
+                        $e3bit = gmp_cmp(gmp_and($e3, $i), 0);
+                        $ebit = gmp_cmp(gmp_and($e, $i), 0);
+                        
+                        if ($e3bit != 0 && $ebit == 0) {
 
                             $result = self::add($result, $p1);
-                        }
-                        if (gmp_cmp(gmp_and($e3, $i), 0) == 0 && gmp_cmp(gmp_and($e, $i), 0) != 0) {
+                        }else if ($e3bit == 0 && $ebit != 0) {
                             $result = self::add($result, $negative_self);
                         }
 
@@ -255,10 +262,12 @@ class Point implements PointInterface {
                     while (bccomp($i, 1) == 1) {
                         $result = self::double($result);
 
-                        if (bccomp(bcmath_Utils::bcand($e3, $i), '0') != 0 && bccomp(bcmath_Utils::bcand($e, $i), '0') == 0) {
+                        $e3bit = bccomp(bcmath_Utils::bcand($e3, $i), '0');
+                        $ebit = bccomp(bcmath_Utils::bcand($e, $i), '0');
+                        
+                        if ($e3bit != 0 && $ebit == 0) {
                             $result = self::add($result, $p1);
-                        }
-                        if (bccomp(bcmath_Utils::bcand($e3, $i), 0) == 0 && bccomp(bcmath_Utils::bcand($e, $i), 0) != 0) {
+                        }else if ($e3bit == 0 && $ebit != 0) {
                             $result = self::add($result, $negative_self);
                         }
 

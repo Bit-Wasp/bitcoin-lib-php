@@ -23,7 +23,7 @@ $address 		= BitcoinLib::hash160_to_address($hash160, '05');
 $c = 0;
 echo "Public Keys\n";
 for ($i = 0; $i < count($public_keys); $i++) {
-	echo "1 : ".$public_keys[$i]."\n";
+	echo "$i : ".$public_keys[$i]."\n";
 }
 
 echo "\nRedeem Script\n";

@@ -126,6 +126,7 @@ class BIP32 {
 		} else if($previous['type'] == 'public') { 
 			$public_key = $previous['key'];
 		} else {
+			// Exception here?
 			return FALSE;
 		}
 				
@@ -136,7 +137,7 @@ class BIP32 {
 		$is_prime = self::check_is_prime_hex($i);
 		if($is_prime == 1) {
 			if($previous['type'] == 'public')
-				return FALSE; // Cannot derive private from public key.
+				return FALSE; // Cannot derive private from public key - Exception here?
 			$data = '00'.$private_key.$i;
 		} else if($is_prime == 0) {
 			$data = $public_key.$i;
@@ -150,6 +151,7 @@ class BIP32 {
 		$I_r = substr($I, 64, 64);
 			
 		if(self::check_valid_hmac_key($I_l) == FALSE) {
+			// Check the key is in a valid range.
 			// calculate the next i in the sequence, and start over with that. 
 			$new_i = self::calc_address_bytes(self::get_address_number($i)+1, $is_prime);
 			array_push($address_definition, $new_i);
@@ -182,7 +184,7 @@ class BIP32 {
 					64, '0', STR_PAD_LEFT);
 		} else if($previous['type'] == 'public') {
 			// newPoint + parentPubkeyPoint
-			$decompressed = BitcoinLib::decompress_public_key($public_key);
+			$decompressed = BitcoinLib::decompress_public_key($public_key); // Can return FALSE. Throw exception?
 			$curve = \SECcurve::curve_secp256k1();
 			
 			// Prepare offset, by multiplying Il by g, and adding this to the previous public key point.
@@ -199,6 +201,7 @@ class BIP32 {
 			$key = BitcoinLib::compress_public_key('04'.$new_x.$new_y);
 			
 		}
+		
 		if(!isset($key)) return FALSE;
 
 		$data = array(
@@ -392,12 +395,12 @@ class BIP32 {
 			$ext_private_key = $input;
 			$generated = FALSE;
 		} else {
-			return FALSE;
+			return FALSE;					// Exception? Not an array, or string?
 		}
 		
 		$pubkey = self::import($ext_private_key);
 		if($pubkey['type'] !== 'private')
-			return FALSE;
+			return FALSE;							// Exception?
 			
 		$pubkey['key'] = BitcoinLib::private_key_to_public_key($pubkey['key'], TRUE);
 		$pubkey['type'] = 'public';
@@ -410,7 +413,16 @@ class BIP32 {
 		}
 	}
 	
-	
+	/**
+	 * Extract Public Key
+	 * 
+	 * This function accepts a BIP32 key, and either calculates the public
+	 * key if it's an extended private key, or just extracts the public 
+	 * key if it's an extended public key.
+	 * 
+	 * @param	array/string	$input
+	 * @return	FALSE/string
+	 */	
 	public static function extract_public_key($input) {
 		if(is_array($input) && count($input) == 2) {
 			$ext_key = $input[0];
@@ -419,7 +431,7 @@ class BIP32 {
 			$ext_key = $input;
 			$generated = FALSE;
 		} else {
-			return FALSE;
+			return FALSE;			// Exception?
 		}
 		
 		$import = self::import($ext_key);
@@ -443,7 +455,7 @@ class BIP32 {
 		} else if($import['type'] == 'private') {
 			$public = BitcoinLib::private_key_to_public_key($import['key'], TRUE);
 		} else {
-			return FALSE;
+			return FALSE;		
 		}
 		
 		// Convert the public key to the address.
@@ -607,7 +619,7 @@ class BIP32 {
 		$_GE_n = gmp_cmp($g_l, $n);
 		
 		if(	$_equal_zero == 0 ||$_GE_n == 1 ||	$_GE_n == 0 )	
-			return FALSE; // Check for invalid data
+			return FALSE; // Check for invalid data			// Exception?
 
 		return TRUE;
 	}

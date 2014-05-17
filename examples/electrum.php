@@ -21,7 +21,7 @@ echo "MPK: $mpk\n";
 for($i = 0; $i < 5; $i++) {
 	$privkey = Electrum::generate_private_key($secexp, $i, 0);
 	echo "Private key: $privkey\n";
-	echo "Private WIF: ".BitcoinLib::private_key_to_WIF($privkey, $magic_byte)."\n";
+	echo "Private WIF: ".BitcoinLib::private_key_to_WIF($privkey, FALSE, $magic_byte)."\n";
 
 	$public_key = Electrum::public_key_from_mpk($mpk, $i);
 	echo "Public Key: $public_key\n";

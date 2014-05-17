@@ -63,9 +63,16 @@ class Electrum {
 		// Multiply the seed by generator point.
 		$g = \SECcurve::generator_secp256k1();
 		$seed = gmp_init($seed, 16);
-		$secretG = \Point::mul($seed, $g);
-		$x =  str_pad(gmp_strval($secretG->getX(), 16), 64, '0', STR_PAD_LEFT);
-		$y =  str_pad(gmp_strval($secretG->getY(), 16), 64, '0', STR_PAD_LEFT);
+		try 
+		{
+			$secretG = \Point::mul($seed, $g);
+			$x =  str_pad(gmp_strval($secretG->getX(), 16), 64, '0', STR_PAD_LEFT);
+			$y =  str_pad(gmp_strval($secretG->getY(), 16), 64, '0', STR_PAD_LEFT);
+		} 
+		catch (Exception $e) 
+		{
+			throw new ErrorException($e->getMessage());		// Exception a good idea?
+		}
 		
 		// Return the master public key.
 		return $x.$y;
@@ -135,14 +142,21 @@ class Electrum {
 		// Generate a scalar from the $iteration and $mpk
 		$z = gmp_init(hash('sha256', hash('sha256', "$iteration:$change:" . pack('H*', $mpk), TRUE)), 16);
 
-		// Add the Point defined by $x and $y, to the result of EC multiplication of $z by $gen
-		$pt = \Point::add(new \Point($curve, $x, $y), \Point::mul($z, $gen));
+		try 
+		{
+			// Add the Point defined by $x and $y, to the result of EC multiplication of $z by $gen
+			$pt = \Point::add(new \Point($curve, $x, $y), \Point::mul($z, $gen));
+			
+			// Generate the uncompressed public key.
+			$keystr = '04'
+					. str_pad(gmp_strval($pt->x, 16), 64, '0', STR_PAD_LEFT)
+					. str_pad(gmp_strval($pt->y, 16), 64, '0', STR_PAD_LEFT);
+		}
+		catch (Exception $e) 
+		{
+			throw new ErrorException($e->getMessage());
+		}
 		
-		// Generate the uncompressed public key.
-		$keystr = '04'
-				. str_pad(gmp_strval($pt->x, 16), 64, '0', STR_PAD_LEFT)
-				. str_pad(gmp_strval($pt->y, 16), 64, '0', STR_PAD_LEFT);
-				
 		return ($compressed == TRUE) ? BitcoinLib::compress_public_key($keystr) : $keystr;
 	}
 

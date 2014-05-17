@@ -1,19 +1,24 @@
 <?php
 /***********************************************************************
-Copyright 2010 Matyas Danter
+Copyright (C) 2012 Matyas Danter
 
-This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+Permission is hereby granted, free of charge, to any person obtaining 
+a copy of this software and associated documentation files (the "Software"), 
+to deal in the Software without restriction, including without limitation 
+the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+and/or sell copies of the Software, and to permit persons to whom the 
+Software is furnished to do so, subject to the following conditions:
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+The above copyright notice and this permission notice shall be included 
+in all copies or substantial portions of the Software.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS 
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES 
+OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+OTHER DEALINGS IN THE SOFTWARE.
 *************************************************************************/
 
 /**
@@ -74,7 +79,7 @@ class TestSuite {
             $start_time = microtime(true);
             echo "<b>BCMATH PHP extension</b> was found performance will tend to <b>SEVERELY LACK USABILITY</b>. Consider installing GMP. <br /><b>Initiating tests.</b><br />\n";
             if (!$verbose) {
-                echo "You selected NONE-VERBOSE mode. <br /><b>ONLY FAILURES and TIME STATISTICS are REPORTED.</b><br />\n";
+                echo "You selected NON-VERBOSE mode. <br /><b>ONLY FAILURES and TIME STATISTICS are REPORTED.</b><br />\n";
             } else {
                 echo "You selected VERBOSE mode. <br /><b>ALL OUTCOMES are REPORTED.</b><br />\n";
             }
@@ -1073,20 +1078,24 @@ class TestSuite {
 
         $pubPointA = $alice->getPublicPoint();
         $pubPointB = $bob->getPublicPoint();
-
+        
         $alice->setPublicPoint($pubPointB);
         $bob->setPublicPoint($pubPointA);
 
         $key_A = $alice->calculateKey();
         $key_B = $bob->calculateKey();
 
-        if ($key_A == $key_B) {
+        
+        if ($key_A == $key_B && !is_null($key_A)) {
             if ($verbose)
                 echo "<br />ECDH key agreement SUCCESS.";
             flush();
-        } else {
-            echo "<br />ECDH key agreement ERROR.";
+        } else if(is_null($key_A) && is_null($key_B)){
+            echo "<br />ECDH key agreement ERROR. One of the keys is null.";
             flush();
+        }else{
+        	echo "<br />ECDH key agreement ERROR.";
+        	flush();
         }
 
         $end_time = microtime(true);
