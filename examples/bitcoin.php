@@ -1,6 +1,8 @@
 <?php
 
-require_once(dirname(__FILE__).'/../BitcoinLib.php');
+use BitWasp\BitcoinLib\BitcoinLib;
+
+require_once(__DIR__. '/../vendor/autoload.php');;
 
 $magic_byte = '00';
 

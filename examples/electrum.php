@@ -1,7 +1,9 @@
 <?php
 
-require_once(dirname(__FILE__).'/../BitcoinLib.php');
-require_once(dirname(__FILE__).'/../Electrum.php');
+use BitWasp\BitcoinLib\BitcoinLib;
+use BitWasp\BitcoinLib\Electrum;
+
+require_once(__DIR__. '/../vendor/autoload.php');
 
 $magic_byte = '00';
 $string = trim('teach start paradise collect blade chill gay childhood creek picture creator branch');

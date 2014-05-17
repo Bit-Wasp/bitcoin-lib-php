@@ -1,7 +1,6 @@
 <?php
 
-require_once(dirname(__FILE__).'/ecc-lib/auto_load.php');
-require_once(dirname(__FILE__).'/BitcoinLib.php');
+namespace BitWasp\BitcoinLib;
 
 /**
  * Raw Transaction Library
@@ -20,7 +19,7 @@ require_once(dirname(__FILE__).'/BitcoinLib.php');
  *  - decode_redeem_script - decodes a redeemScript to obtain the pubkeys, m, and n.
  */
 
-class Raw_transaction {
+class RawTransaction {
 
 	/**
 	 * Some of the defined OP CODES available in Bitcoins script.
@@ -633,8 +632,8 @@ class Raw_transaction {
 	 */
 	public static function _check_sig($sig, $hash, $key) {
 		$signature = self::decode_signature($sig);
-		$test_signature = new Signature(gmp_init($signature['r'],16), gmp_init($signature['s'],16));
-		$generator = SECcurve::generator_secp256k1();
+		$test_signature = new \Signature(gmp_init($signature['r'],16), gmp_init($signature['s'],16));
+		$generator = \SECcurve::generator_secp256k1();
 		$curve = $generator->getCurve();
 			
 		if(strlen($key) == '66') {
@@ -646,7 +645,7 @@ class Raw_transaction {
 			$public_key_point = new Point($curve, $x, $y, $generator->getOrder());
 		}
 		
-		$public_key = new PublicKey($generator, $public_key_point);
+		$public_key = new \PublicKey($generator, $public_key_point);
 		$hash = gmp_init($hash, 16);
 		
 		return $public_key->verifies($hash, $test_signature) == TRUE;
@@ -935,7 +934,7 @@ class Raw_transaction {
 			if(isset($wallet[$tx_info['hash160']])) {	
 				
 				$key_info = $wallet[$tx_info['hash160']];
-				$generator = SECcurve::generator_secp256k1();
+				$generator = \SECcurve::generator_secp256k1();
 				
 				if($key_info['type'] == 'scripthash') {
 
@@ -944,9 +943,9 @@ class Raw_transaction {
 
 					// Create Signature
 					foreach($key_info['keys'] as $key) {
-						$point = new Point($generator->getCurve(), gmp_init(substr($key['uncompressed_key'], 2, 64), 16), gmp_init(substr($key['uncompressed_key'], 66, 64), 16), $generator->getOrder());
-						$_public_key = new PublicKey($generator, $point);
-						$_private_key = new PrivateKey($_public_key, gmp_init($key['private_key'], 16));
+						$point = new \Point($generator->getCurve(), gmp_init(substr($key['uncompressed_key'], 2, 64), 16), gmp_init(substr($key['uncompressed_key'], 66, 64), 16), $generator->getOrder());
+						$_public_key = new \PublicKey($generator, $point);
+						$_private_key = new \PrivateKey($_public_key, gmp_init($key['private_key'], 16));
 						$sign = $_private_key->sign(gmp_init($message_hash[$vin],16),  gmp_init((string)bin2hex(openssl_random_pseudo_bytes(32)), 16));
 						if($sign !== FALSE) {
 							$sign_count++;
@@ -960,9 +959,9 @@ class Raw_transaction {
 				
 				if($key_info['type'] == 'pubkeyhash') {
 					// Create Signature
-					$point = new Point($generator->getCurve(), gmp_init(substr($key_info['uncompressed_key'], 2, 64), 16), gmp_init(substr($key_info['uncompressed_key'], 66, 64), 16), $generator->getOrder());
-					$_public_key = new PublicKey($generator, $point);
-					$_private_key = new PrivateKey($_public_key, gmp_init($key_info['private_key'], 16));
+					$point = new \Point($generator->getCurve(), gmp_init(substr($key_info['uncompressed_key'], 2, 64), 16), gmp_init(substr($key_info['uncompressed_key'], 66, 64), 16), $generator->getOrder());
+					$_public_key = new \PublicKey($generator, $point);
+					$_private_key = new \PrivateKey($_public_key, gmp_init($key_info['private_key'], 16));
 					$sign = $_private_key->sign(gmp_init($message_hash[$vin],16),  gmp_init((string)bin2hex(openssl_random_pseudo_bytes(32)), 16));
 					if($sign !== FALSE) {
 						$sign_count++;
@@ -1012,7 +1011,7 @@ class Raw_transaction {
 	 * @param	array	$key_info
 	 * @return	string
 	 */
-	public static function encode_signature(Signature $signature) {
+	public static function encode_signature(\Signature $signature) {
 		
 		// Pad r and s to 64 characters.
 		$rh = str_pad(BitcoinLib::hex_encode($signature->getR()),64,'0', STR_PAD_LEFT);

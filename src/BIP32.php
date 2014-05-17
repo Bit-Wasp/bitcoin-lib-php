@@ -1,9 +1,8 @@
 <?php
 
-// See tests/test_bip32.php for tests from github.
+namespace BitWasp\BitcoinLib;
 
-require_once(dirname(__FILE__).'/ecc-lib/auto_load.php');
-require_once(dirname(__FILE__).'/BitcoinLib.php');
+// See tests/test_bip32.php for tests from github.
 
 /**
  * BIP32
@@ -164,14 +163,14 @@ class BIP32 {
 			
 		array_push($generated, (self::get_address_number($i, $is_prime).(($is_prime == 1) ? "'" : NULL)));
 		
-		$g = SECcurve::generator_secp256k1();
+		$g = \SECcurve::generator_secp256k1();
 		$n = $g->getOrder();
 		
 		if($previous['type'] == 'private') {
 			// (Il + kpar) mod n
 			$key = str_pad( 
-						gmp_strval(
-							gmp_Utils::gmp_mod2(
+						 gmp_strval(
+							\gmp_Utils::gmp_mod2(
 								gmp_add(
 									gmp_init($I_l, 16),
 									gmp_init($private_key, 16)
@@ -184,13 +183,13 @@ class BIP32 {
 		} else if($previous['type'] == 'public') {
 			// newPoint + parentPubkeyPoint
 			$decompressed = BitcoinLib::decompress_public_key($public_key);
-			$curve = SECcurve::curve_secp256k1();
+			$curve = \SECcurve::curve_secp256k1();
 			
 			// Prepare offset, by multiplying Il by g, and adding this to the previous public key point.
 			// Create a new point by adding the two.
-			$new_point = Point::add(
-										Point::mul(
-											gmp_init($I_l, 16), 
+			$new_point = \Point::add(
+										\Point::mul(
+											gmp_init($I_l, 16),
 											$g
 										), 
 										$decompressed['point']
@@ -306,7 +305,7 @@ class BIP32 {
 	 */
 	public static function build_address($master, $string_def) {
 		$extended_key = self::build_key($master, $string_def);
-		return array(self::key_to_address($extended_key[0]), $extended[1]);
+		return array(self::key_to_address($extended_key[0]), $extended_key[1]);
 	}
 
 	/**
@@ -579,7 +578,7 @@ class BIP32 {
 	public function check_is_prime_hex($hex) {
 		$is_prime = (	gmp_cmp(
 							gmp_init($hex, 16),
-							gmp_init('80000000', 16) 
+							gmp_init('80000000', 16)
 						) == -1 ) ? 0 : 1;
 		return $is_prime;
 	}
@@ -597,7 +596,7 @@ class BIP32 {
 	 * @return	boolean
 	 */
 	public static function check_valid_hmac_key($key) {
-		$g = SECcurve::generator_secp256k1();
+		$g = \SECcurve::generator_secp256k1();
 		$n = $g->getOrder();
 		
 		// initialize the key as a base 16 number.

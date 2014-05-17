@@ -1,8 +1,9 @@
 <?php
 
-require_once(dirname(__FILE__).'/../BitcoinLib.php');
-require_once(dirname(__FILE__).'/../BIP32.php');
-require_once(dirname(__FILE__).'/../Raw_transaction.php');
+use BitWasp\BitcoinLib\BIP32;
+use BitWasp\BitcoinLib\RawTransaction;
+
+require_once(__DIR__. '/../vendor/autoload.php');
 
 echo "Lets start off by generating a wallet for each of the 'users'.\n";
 echo "This will be stored on their machine.\n";
@@ -39,5 +40,5 @@ for($i = 0; $i < 3; $i++) {
 	$pubkey[1] = BIP32::extract_public_key($bip32key[1]);
 	$pubkey[2] = BIP32::extract_public_key($bip32key[2]);
 	print_r($pubkey);
-	print_r(Raw_transaction::create_multisig(2, $pubkey));
+	print_r(RawTransaction::create_multisig(2, $pubkey));
 }

@@ -1,19 +1,21 @@
 <?php
 
-require_once(dirname(__FILE__).'/../BitcoinLib.php');
-require_once(dirname(__FILE__).'/../Raw_transaction.php');
-require_once(dirname(__FILE__).'/../Electrum.php');
+use BitWasp\BitcoinLib\BitcoinLib;
+use BitWasp\BitcoinLib\RawTransaction;
+use BitWasp\BitcoinLib\Electrum;
+
+require_once(__DIR__. '/../vendor/autoload.php');
 
 // Prompt for the redeem script which created the address.
 // Sets $decode_redeem_script, $redeem_script, $address, and $script_hash
 
 //$redeem_script = '522103793882c7025f32d2bbdd07f145fbf16fea83df6352ef42e38d4137f5a24975cc2102e67b93adc52dfdfa181311610244d98811ecd0a26be65a10b720f417cb8997904104492368cd25892f3a6a618ce750e28f4f1c3c9fec4abd67287cb6450356abc0cfef3358cd39b5390c7ea7e053358c97463741d22d1e9cd2c2d3a528d137fb6bf553ae';
-//$decode_redeem_script = Raw_transaction::decode_redeem_script($redeem_script);
+//$decode_redeem_script = RawTransaction::decode_redeem_script($redeem_script);
 //$script_hash = BitcoinLib::hash160($redeem_script);
 //$address = BitcoinLib::hash160_to_address($script_hash, '05');
 
 //$raw_transaction = '0100000001c723ef78f22d8563b2d1d61aee1904ef12e28524b87122db87c00d6ebc057c9600000000d40047304402203432bff2b897fe10291ec8a66449cd09d850729434d75207de6b4be843a6596b02201aeeb571d03165974215e50f8fca0dc05d35febbbc95d312cab3cf5ebc337085014c8952210217e9f0793d77e4af65e7b3c158459d51edc54011d24b3d57b9945ac4a3d377852103f868e850aed9be2513b7194cf14421ad8b6ec98f65dbdb8264d8be63d8f6ff17410400a0702140404c2e90b3a50bdcb47efb80afa8f4f3a5ae3226bf9027c3c644ce839aaad770ca287615d123e962afd1a7266974cb8da5c5468ffe3aa41c41f03453aeffffffff02d8270000000000001976a914b24490dbbd5e0f02e7891786991aadd869b5e75b88ac584d0000000000001976a914163f9c401b613a2bc7d1e331972788da0d66f6cc88ac00000000';
-//$decoded_transaction = Raw_transaction::decode($raw_transaction);
+//$decoded_transaction = RawTransaction::decode($raw_transaction);
 //$json_str = '';
 //$seed = '6f45ad7f901d7421a6d20d9e797bb73b';
 
@@ -22,7 +24,7 @@ while ( ! isset($redeem_script))
 	echo "Enter redeem script: ";
 	
 	$line = trim(fgets(STDIN));
-	$decode_redeem_script = Raw_transaction::decode_redeem_script($line);
+	$decode_redeem_script = RawTransaction::decode_redeem_script($line);
 	
 	if ($decode_redeem_script == FALSE)
 	{
@@ -46,7 +48,7 @@ while ( ! isset($raw_transaction) )
 	
 	$line = trim(fgets(STDIN));
 	$multi = explode(" ", $line);
-	$decoded_transaction = Raw_transaction::decode($multi[0]);
+	$decoded_transaction = RawTransaction::decode($multi[0]);
 	if($decoded_transaction !== FALSE)
 	{
 		$raw_transaction = $multi[0];
@@ -89,7 +91,7 @@ while ( ! isset($json_str) )
 				AND	isset($input->vout) AND $decoded_transaction['vin'][$i]['vout'] == $input->vout
 				AND	isset($input->scriptPubKey))
 				{
-					$tx_info = Raw_transaction::_get_transaction_type(Raw_transaction::_decode_scriptPubKey($input->scriptPubKey));
+					$tx_info = RawTransaction::_get_transaction_type(RawTransaction::_decode_scriptPubKey($input->scriptPubKey));
 					if ($tx_info['hash160'] == $script_hash)
 						$input->redeemScript = $redeem_script;
 
@@ -117,14 +119,14 @@ while ( ! isset($json_str) )
 		foreach ($decoded_transaction['vin'] as $input)
 		{
 			$get = file_get_contents("http://webbtc.com/tx/{$input['txid']}.hex");
-			$dec = Raw_transaction::decode($get);
+			$dec = RawTransaction::decode($get);
 			$pkScript = $dec['vout'][$input['vout']]['scriptPubKey']['hex'];
 
 			$input = array('txid' => $input['txid'],
 							  'vout' => $input['vout'],
 							  'scriptPubKey' => $pkScript);
 
-			$tx_info = Raw_transaction::_get_transaction_type(Raw_transaction::_decode_scriptPubKey($pkScript));
+			$tx_info = RawTransaction::_get_transaction_type(RawTransaction::_decode_scriptPubKey($pkScript));
 			if ($tx_info['hash160'] == $script_hash){
 				$input['redeemScript'] = $redeem_script;
 			}
@@ -150,7 +152,7 @@ while ( ! isset($json_str) )
 				AND	isset($input->vout) AND $decoded_transaction['vin'][$i]['vout'] == $input->vout
 				AND	isset($input->scriptPubKey))
 				{
-					$tx_info = Raw_transaction::_get_transaction_type(Raw_transaction::_decode_scriptPubKey($input->scriptPubKey));
+					$tx_info = RawTransaction::_get_transaction_type(RawTransaction::_decode_scriptPubKey($input->scriptPubKey));
 					if ($tx_info['hash160'] == $script_hash)
 						$input->redeemScript = $redeem_script;
 
@@ -248,9 +250,9 @@ while ($done == FALSE)
 
 // Initialize wallet with known keys.
 $wallet = array();
-Raw_transaction::private_keys_to_wallet($wallet, $private_keys, '00');
-Raw_transaction::redeem_scripts_to_wallet($wallet, array($redeem_script), '05');
+RawTransaction::private_keys_to_wallet($wallet, $private_keys, '00');
+RawTransaction::redeem_scripts_to_wallet($wallet, array($redeem_script), '05');
 
-$sign = Raw_transaction::sign($wallet, $raw_transaction, $json_str);
+$sign = RawTransaction::sign($wallet, $raw_transaction, $json_str);
 print_r($sign);
 

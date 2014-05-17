@@ -1,0 +1,23 @@
+{
+    "name": "bitwasp/bitcoin-lib",
+    "description": "Bitcoin library",
+    "license": "Unlicense",
+    "authors": [
+        {
+            "name": "Thomas Kerin",
+            "email": "thomas.kerin@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "autoload": {
+        "psr-4": {
+            "BitWasp\\BitcoinLib\\": "src/"
+        },
+        "files": ["ecc-lib/auto_load.php"],
+        "classmap": ["ecc-lib/classes/"]
+    },
+    "require": {
+        "php": ">=5.3.3",
+        "ext-gmp": "*"
+    }
+}

@@ -1,7 +1,8 @@
 <?php
 
-require_once(dirname(__FILE__).'/../BitcoinLib.php');
-require_once(dirname(__FILE__).'/../Raw_transaction.php');
+use BitWasp\BitcoinLib\RawTransaction;
+
+require_once(__DIR__. '/../vendor/autoload.php');
 
 /////////////////////////////
 // Parameters for creation..
@@ -29,13 +30,13 @@ $json_inputs = json_encode(
 					);
 // Private Key
 $wallet = array();
-Raw_transaction::private_keys_to_wallet($wallet, array('L2V4QgXVUyWVoMGejTj7PrRUUCEi9D9Y1AhUM8E6f5yJm7gemgN6'), '00');
+RawTransaction::private_keys_to_wallet($wallet, array('L2V4QgXVUyWVoMGejTj7PrRUUCEi9D9Y1AhUM8E6f5yJm7gemgN6'), '00');
 
 // Create raw transaction
-$raw_transaction = Raw_transaction::create($inputs, $outputs);
+$raw_transaction = RawTransaction::create($inputs, $outputs);
 
 
 // Sign the transaction
-$sign = Raw_transaction::sign($wallet, $raw_transaction, $json_inputs);
+$sign = RawTransaction::sign($wallet, $raw_transaction, $json_inputs);
 print_r($sign);echo "\n";
 
