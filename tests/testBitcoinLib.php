@@ -43,7 +43,7 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
 	{
 		for($i = 0; $i < 500; $i++)
 		{
-			$length = mt_rand(1, 64);
+			$length = mt_rand(1, 32);
 			$hex = (string)bin2hex(openssl_random_pseudo_bytes($length));
 			$this->assertTrue(ctype_xdigit($hex));
 		}
@@ -57,21 +57,33 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
 		$this->assertEquals($dec, $real_val);
 	}
 
-	public function testHexDecode()
+	public function testHexDecodeBaseConvert()
 	{
-		
-		for($i = 0; $i < 500; $i++)
+		// Base_Convert handles UP TO 8 bytes.
+		for($i = 0; $i < 1000; $i++)
 		{
-			$length = mt_rand(1, 5);
+			$length = mt_rand(1, 7);
 			// Generate a random length hex string.
 			$hex = (string)bin2hex(openssl_random_pseudo_bytes($length));
 			// Get real decimal result.
 			$dec = base_convert($hex, 16, 10); // handles big ints better than hexdec.
-			
-			$this->_testHexDecode_result($this->bitcoin->hex_decode($hex), $dec);
+			$this->assertEquals($this->bitcoin->hex_decode($hex), $dec);
 		}
-		
 	}
+	
+	public function testHexDecodeGMP()
+	{
+		// GMP has no real upper limit on the number of bytes!
+		for($i = 0; $i < 1000; $i++)
+		{
+			$length = mt_rand(1, 5000);
+			// Generate a random length hex string.
+			$hex = (string)bin2hex(openssl_random_pseudo_bytes($length));
+			// Get real decimal result.
+			$dec = gmp_strval(gmp_init($hex,16),10);
+			$this->assertEquals($this->bitcoin->hex_decode($hex), $dec);
+		}
+	}	
 	///////////////////////////////////////////////////////
 	
 	
@@ -127,7 +139,7 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
 	
 	public function testImportPublicKey()
 	{
-		for($i = 0; $i < 10; $i++)
+		for($i = 0; $i < 100; $i++)
 		{
 			$hex = (string)str_pad(bin2hex(openssl_random_pseudo_bytes(32)),64,'0',STR_PAD_LEFT);
 			$public = $this->bitcoin->private_key_to_public_key($hex, FALSE);
@@ -150,7 +162,7 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
 	
 	public function testPublicKeyCompressionFaultKeys()
 	{
-		for($i = 0; $i < 15; $i++)
+		for($i = 0; $i < 150; $i++)
 		{
 			$hex = (string)str_pad(bin2hex(openssl_random_pseudo_bytes(32)),64,'0',STR_PAD_LEFT);
 			$public = $this->bitcoin->private_key_to_public_key($hex, FALSE);
@@ -163,7 +175,7 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
 	
 	public function testPublicKeyCompression()
 	{
-		for($i = 0; $i < 15; $i++)
+		for($i = 0; $i < 150; $i++)
 		{
 			$key = $this->bitcoin->get_new_private_key();
 			$public = $this->bitcoin->private_key_to_public_key($key, FALSE);
@@ -175,7 +187,7 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
 	}
 	
 	public function testValidatePublicKey() {
-		for($i = 0; $i < 15; $i++)
+		for($i = 0; $i < 150; $i++)
 		{
 			$set = $this->bitcoin->get_new_key_set('00');
 			$this->assertTrue($this->bitcoin->validate_public_key($set['pubKey']));
@@ -185,7 +197,7 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
 	public function testPrivateKeyValidation()
 	{
 		$val = FALSE;
-		for($i = 0; $i < 50; $i++)
+		for($i = 0; $i < 500; $i++)
 		{
 			$key = $this->bitcoin->get_new_key_set('00', $val);
 			$val = ($val == FALSE) ? TRUE : FALSE;
@@ -195,8 +207,8 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
 	
 	public function testImportUncompOrCompPublicKey()
 	{
-		$val = FALSe;
-		for($i = 0; $i < 50; $i++)
+		$val = FALSE;
+		for($i = 0; $i < 500; $i++)
 		{
 			$key = $this->bitcoin->get_new_private_key();
 			$unc = $this->bitcoin->private_key_to_public_key($key, FALSE);

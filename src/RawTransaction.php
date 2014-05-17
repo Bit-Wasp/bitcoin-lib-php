@@ -297,7 +297,7 @@ class RawTransaction {
 	 * This function takes $script (hex) as an argument, and decodes an 
 	 * script hex into an assembled human readable string.
 	 * 
-	 * @param	string
+	 * @param	string	$script
 	 * @return	string
 	 */
 	public static function _decode_scriptPubKey($script) {
@@ -393,10 +393,8 @@ class RawTransaction {
 				// Load predefined info for this transaction type if detected.
 				$return = $define[$tx_type];
 				$return['hash160'] = $data[$define[$tx_type]['data_index_for_hash']];
-				if(class_exists('BitcoinLib')) {
-					$magic_byte = ($return['type'] == 'scripthash') ? str_pad(gmp_strval(gmp_init($address_version+0x05),16), 2, '0', STR_PAD_LEFT) : $address_version;
-					$return['addresses'][0] = BitcoinLib::hash160_to_address($return['hash160'], $magic_byte);
-				}
+				$magic_byte = ($return['type'] == 'scripthash') ? str_pad(gmp_strval(gmp_init($address_version+0x05),16), 2, '0', STR_PAD_LEFT) : $address_version;
+				$return['addresses'][0] = BitcoinLib::hash160_to_address($return['hash160'], $magic_byte);
 				unset($return['data_index_for_hash']);
 			}
 		}
