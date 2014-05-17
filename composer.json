@@ -1,7 +1,7 @@
 {
     "name": "bitwasp/bitcoin-lib",
     "description": "Bitcoin library",
-    "license": "MIT",
+    "license": "Unlicense",
     "authors": [
         {
             "name": "Thomas Kerin",
