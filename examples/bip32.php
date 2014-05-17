@@ -1,8 +1,8 @@
 <?php
 
-require_once(dirname(__FILE__).'/../BitcoinLib.php');
-require_once(dirname(__FILE__).'/../BIP32.php');
+use BitWasp\BitcoinLib\BIP32;
 
+require_once(__DIR__. '/../vendor/autoload.php');
 
 // Load a 128 bit key, and convert this to extended key format.
 $master = BIP32::master_key('41414141414141414141414141414141414141');

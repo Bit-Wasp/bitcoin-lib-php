@@ -1,7 +1,8 @@
 <?php
 
-require_once(dirname(__FILE__).'/../BitcoinLib.php');
-require_once(dirname(__FILE__).'/..//BIP32.php');
+use BitWasp\BitcoinLib\BIP32;
+
+require_once(__DIR__. '/../vendor/autoload.php');
 
 echo "bip32 tests - https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#Test_Vectors \n\n";
 

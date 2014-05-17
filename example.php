@@ -1,6 +1,8 @@
 <?php
-require_once "BitcoinLib.php";
-require_once "Electrum.php";
+
+use BitWasp\BitcoinLib\Electrum;
+
+require_once __DIR__.'/vendor/autoload.php';
 
 $mpk = 'eee6754303a65aa693a459269c8deb55e02e2d03ed427ae4ac498d7ab18f30844e53c10cd84faf2d1cac68da135279a6076c5770934e20651624db6bd72f1670';
 echo "Uncompressed Keys: \n";

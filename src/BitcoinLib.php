@@ -1,6 +1,6 @@
 <?php
 
-require_once(dirname(__FILE__).'/ecc-lib/auto_load.php');
+namespace BitWasp\BitcoinLib;
 
 /**
  * BitcoinLib
@@ -210,7 +210,7 @@ class BitcoinLib {
 	 * @return	string
 	 */
 	public static function get_new_private_key() {
-		$g = SECcurve::generator_secp256k1();
+		$g = \SECcurve::generator_secp256k1();
 		$n = $g->getOrder();
 
 		$privKey = gmp_strval(gmp_init(bin2hex(openssl_random_pseudo_bytes(32)),16));
@@ -233,10 +233,10 @@ class BitcoinLib {
 	 * @return	string
 	 */
 	public static function private_key_to_public_key($privKey, $compressed = FALSE) {
-		$g = SECcurve::generator_secp256k1();
+		$g = \SECcurve::generator_secp256k1();
     
 		$privKey = self::hex_decode($privKey);  
-		$secretG = Point::mul($privKey, $g);
+		$secretG = \Point::mul($privKey, $g);
 	
 		$xHex = self::hex_encode($secretG->getX());  
 		$yHex = self::hex_encode($secretG->getY());
@@ -415,7 +415,7 @@ class BitcoinLib {
 		$x = substr($public_key, 2, 64);
 		$y = substr($public_key, 66, 64);
 		$prefix = '0';
-		$prefix.= ((gmp_Utils::gmp_mod2(gmp_init($y, 16), 2))==0) ? '2' : '3';
+		$prefix.= ((\gmp_Utils::gmp_mod2(gmp_init($y, 16), 2))==0) ? '2' : '3';
 		
 		return $prefix.$x;
 	}
@@ -436,16 +436,16 @@ class BitcoinLib {
 		$y_byte = substr($key, 0, 2);
 		$x_coordinate = substr($key, 2);
 		$x = gmp_init($x_coordinate, 16);
-		$curve = SECcurve::curve_secp256k1();
-		$generator = SECcurve::generator_secp256k1();
+		$curve = \SECcurve::curve_secp256k1();
+		$generator = \SECcurve::generator_secp256k1();
 		
-		$x3 = NumberTheory::modular_exp( $x, 3, $curve->getPrime() );
+		$x3 = \NumberTheory::modular_exp( $x, 3, $curve->getPrime() );
 		$y2 = gmp_add(
 					$x3,
 					$curve->getB()
 				);
 		
-		$y0 = NumberTheory::square_root_mod_prime(
+		$y0 = \NumberTheory::square_root_mod_prime(
 					$y2,
 					$curve->getPrime()
 				);
@@ -456,15 +456,15 @@ class BitcoinLib {
 		$y1 = gmp_strval(gmp_sub($curve->getPrime(), $y0), 10);
 		
 		if($y_byte == '02') {
-			$y_coordinate = (gmp_Utils::gmp_mod2(gmp_init($y0, 10), 2) == '0') ? $y0 : $y1;
+			$y_coordinate = (\gmp_Utils::gmp_mod2(gmp_init($y0, 10), 2) == '0') ? $y0 : $y1;
 		} else if($y_byte == '03') {
-			$y_coordinate = (gmp_Utils::gmp_mod2(gmp_init($y0, 10), 2) !== '0') ? $y0 : $y1;
+			$y_coordinate = (\gmp_Utils::gmp_mod2(gmp_init($y0, 10), 2) !== '0') ? $y0 : $y1;
 		}
 		$y_coordinate = gmp_strval($y_coordinate, 16);
 		
 		return array('x' => $x_coordinate, 
 					 'y' => $y_coordinate,
-					 'point' => new Point($curve, gmp_strval(gmp_init($x_coordinate, 16),10), gmp_strval(gmp_init($y_coordinate, 16),10), $generator->getOrder()),
+					 'point' => new \Point($curve, gmp_strval(gmp_init($x_coordinate, 16),10), gmp_strval(gmp_init($y_coordinate, 16),10), $generator->getOrder()),
 					 'public_key' => '04'.$x_coordinate.$y_coordinate);
 	}
 
@@ -486,14 +486,14 @@ class BitcoinLib {
 			return ($decompressed == FALSE || $decompressed['point'] == FALSE) ? FALSE : TRUE;
 		} else if(strlen($public_key) == '130') {
 			// Uncompressed key, try to create the point
-			$curve = SECcurve::curve_secp256k1();
-			$generator = SECcurve::generator_secp256k1();
+			$curve = \SECcurve::curve_secp256k1();
+			$generator = \SECcurve::generator_secp256k1();
 		
 			$x = substr($public_key, 2, 64);
 			$y = substr($public_key, 64, 64);
 			// Attempt to create the point. Point returns false in the 
 			// constructor if anything is invalid.
-			$point = new Point($curve, gmp_init($x, 16), gmp_init($y, 16), $generator->getOrder());
+			$point = new \Point($curve, gmp_init($x, 16), gmp_init($y, 16), $generator->getOrder());
 			return ($point == FALSE) ? FALSE : TRUE;
 		} else {
 			return FALSE;
@@ -546,7 +546,7 @@ class BitcoinLib {
 		}
 
 		// Check private key within limit.
-		$g = SECcurve::generator_secp256k1();
+		$g = \SECcurve::generator_secp256k1();
 		$n = $g->getOrder();
 		if (gmp_strval(gmp_init($hex, 16),10) >= $n)
 			return FALSE;

@@ -1,7 +1,9 @@
 <?php
 
-require_once(dirname(__FILE__).'/../BitcoinLib.php');
-require_once(dirname(__FILE__).'/../Raw_transaction.php');
+use BitWasp\BitcoinLib\BitcoinLib;
+use BitWasp\BitcoinLib\RawTransaction;
+
+require_once(__DIR__. '/../vendor/autoload.php');
 
 $m				= 2;
 $public_keys 	= array('0379ddc228d8c44a85ae30c877a6b037ec3d627e0507f223a0412790a83a46cd5f',
@@ -9,7 +11,7 @@ $public_keys 	= array('0379ddc228d8c44a85ae30c877a6b037ec3d627e0507f223a0412790a
 						'0258f70f6400aa6f60ff0d21c3aaf1ca236d177877d2b9ad9d2c55280e375ab2d2');
 
 // Create redeem script
-$redeem_script	= Raw_transaction::create_redeem_script($m, $public_keys);
+$redeem_script	= RawTransaction::create_redeem_script($m, $public_keys);
 
 // Obtain 20-byte hash of script
 $hash160		= BitcoinLib::hash160($redeem_script);
