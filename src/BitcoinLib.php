@@ -241,7 +241,7 @@ class BitcoinLib {
 		{
 			$secretG = \Point::mul($privKey, $g);
 		}
-		catch (Exception $e) 
+		catch (\Exception $e) 
 		{
 			return FALSE;
 		}
@@ -463,7 +463,7 @@ class BitcoinLib {
 			
 			$point = new \Point($curve, gmp_strval(gmp_init($x_coordinate, 16),10), gmp_strval(gmp_init($y_coordinate, 16),10), $generator->getOrder());
 		} 
-		catch (Exception $e)
+		catch (\Exception $e)
 		{
 			return FALSE;
 		}
@@ -507,7 +507,7 @@ class BitcoinLib {
 			{
 				$point = new \Point($curve, gmp_strval(gmp_init($x, 16),10), gmp_strval(gmp_init($y, 16),10), $generator->getOrder());
 			}
-			catch (Exception $e) 
+			catch (\Exception $e) 
 			{
 				return FALSE;
 			}
