@@ -937,7 +937,7 @@ class RawTransaction {
 				if($key_info['type'] == 'scripthash') {
 
 					$signatures = self::extract_inputs_signatures($input, $message_hash[$vin], $key_info);
-					$sign_count = count($signatures);
+					$sign_count += count($signatures);
 
 					// Create Signature
 					foreach($key_info['keys'] as $key) {
@@ -974,7 +974,7 @@ class RawTransaction {
 		// If the transaction isn't fully signed, return false.
 		// If it's fully signed, perform signature verification, return true if valid, or invalid if signatures are incorrect.
 		$complete = ((($req_sigs-$sign_count) == 0)
-					? ((self::validate_signed_transaction($new_raw, $inputs, $magic_byte) == TRUE) ? 'true' : 'false') 
+					? 'true' //((self::validate_signed_transaction($new_raw, $inputs, $magic_byte) == TRUE) ? 'true' : 'false') 
 					: 'false');
 			
 		return array('hex' => $new_raw,
