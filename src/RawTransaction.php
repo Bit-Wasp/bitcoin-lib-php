@@ -602,7 +602,7 @@ class RawTransaction {
 
                 foreach ($copy['vin'] as &$copy_input)
                 {
-                    $copy_input['scriptSig']['hex'] = '00';
+                    $copy_input['scriptSig']['hex'] = '';
                 }
 
 				$copy['vin'][$vin]['scriptSig']['hex'] = (isset($inputs[$vin]->redeemScript)) ? $inputs[$vin]->redeemScript : $inputs[$vin]->scriptPubKey;
