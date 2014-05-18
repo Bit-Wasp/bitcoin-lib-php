@@ -2,12 +2,14 @@
 
 use BitWasp\BitcoinLib\BitcoinLib;
 
-require_once(__DIR__. '/../vendor/autoload.php');;
+require_once(__DIR__ . '/../vendor/autoload.php');;
 
 $magic_byte = '00';
 
 $keypair = BitcoinLib::get_new_key_set($magic_byte);
-echo "Key pair: \n";print_r($keypair); echo "\n";
+echo "Key pair: \n";
+print_r($keypair);
+echo "\n";
 
 $compress = BitcoinLib::compress_public_key($keypair['pubKey']);
 echo "Compressed public key: $compress \n";
@@ -24,4 +26,4 @@ echo "\n\n";
 
 $sc = '5357';
 $ad = BitcoinLib::public_key_to_address($sc, '05');
-echo $ad."\n";
+echo $ad . "\n";

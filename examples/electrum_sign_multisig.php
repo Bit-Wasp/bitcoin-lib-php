@@ -4,7 +4,7 @@ use BitWasp\BitcoinLib\BitcoinLib;
 use BitWasp\BitcoinLib\RawTransaction;
 use BitWasp\BitcoinLib\Electrum;
 
-require_once(__DIR__. '/../vendor/autoload.php');
+require_once(__DIR__ . '/../vendor/autoload.php');
 
 // Prompt for the redeem script which created the address.
 // Sets $decode_redeem_script, $redeem_script, $address, and $script_hash
@@ -19,233 +19,211 @@ require_once(__DIR__. '/../vendor/autoload.php');
 //$json_str = '';
 //$seed = '6f45ad7f901d7421a6d20d9e797bb73b';
 
-while ( ! isset($redeem_script))
-{
-	echo "Enter redeem script: ";
-	
-	$line = trim(fgets(STDIN));
-	$decode_redeem_script = RawTransaction::decode_redeem_script($line);
-	
-	if ($decode_redeem_script == FALSE)
-	{
-		echo "Not a valid script!\n\n";
-		unset($decode_redeem_script);
-	}
-	else
-	{
-		$redeem_script = $line;
-		$script_hash = BitcoinLib::hash160($redeem_script);
-		$address = BitcoinLib::hash160_to_address($script_hash,'05');
-		echo "Learned about {$decode_redeem_script['m']} of {$decode_redeem_script['n']} address: ".$address."\n\n";
-	}
+while (!isset($redeem_script)) {
+    echo "Enter redeem script: ";
+
+    $line = trim(fgets(STDIN));
+    $decode_redeem_script = RawTransaction::decode_redeem_script($line);
+
+    if ($decode_redeem_script == false) {
+        echo "Not a valid script!\n\n";
+        unset($decode_redeem_script);
+    } else {
+        $redeem_script = $line;
+        $script_hash = BitcoinLib::hash160($redeem_script);
+        $address = BitcoinLib::hash160_to_address($script_hash, '05');
+        echo "Learned about {$decode_redeem_script['m']} of {$decode_redeem_script['n']} address: " . $address . "\n\n";
+    }
 }
 
 // Prompt for raw transaction.
 // Sets $raw_transaction, and $decoded_transaction
-while ( ! isset($raw_transaction) )
-{
-	echo "Enter a raw transaction to sign: ";
-	
-	$line = trim(fgets(STDIN));
-	$multi = explode(" ", $line);
-	$decoded_transaction = RawTransaction::decode($multi[0]);
-	if($decoded_transaction !== FALSE)
-	{
-		$raw_transaction = $multi[0];
-	}
-	else
-	{
-		echo "Not a valid raw transaction, or unable to decode.\n\n";
-		unset($decoded_transaction);
-	}
-	
-	// Try to set the JSON inputs from the given transaction.
-	if (isset($multi[1]))
-	{
-		$dec = json_decode(str_replace("'", "", $multi[1]));
-		$test = TRUE;
-		array_walk($dec, function($e) use (&$test) {
-			if(!is_object($e))
-				$test = FALSE;
-		});
-		
-		if($test == TRUE)
-			$json_maybe = str_replace("'", "", $multi[1]);
-	}
-	
+while (!isset($raw_transaction)) {
+    echo "Enter a raw transaction to sign: ";
+
+    $line = trim(fgets(STDIN));
+    $multi = explode(" ", $line);
+    $decoded_transaction = RawTransaction::decode($multi[0]);
+    if ($decoded_transaction !== false) {
+        $raw_transaction = $multi[0];
+    } else {
+        echo "Not a valid raw transaction, or unable to decode.\n\n";
+        unset($decoded_transaction);
+    }
+
+    // Try to set the JSON inputs from the given transaction.
+    if (isset($multi[1])) {
+        $dec = json_decode(str_replace("'", "", $multi[1]));
+        $test = true;
+        array_walk($dec, function ($e) use (&$test) {
+            if (!is_object($e)) {
+                $test = false;
+            }
+        });
+
+        if ($test == true) {
+            $json_maybe = str_replace("'", "", $multi[1]);
+        }
+    }
+
 }
 
 // Prompt for JSON inputs
 // Sets $json_inputs.
-while ( ! isset($json_str) )
-{
-	if(isset($json_maybe)) {
-		$try = json_decode($json_maybe);
-		if ( is_array($try)  )
-		{
-			$to_check	= count($try);
-			$i			= 0; 
-			foreach ($try as &$input)
-			{
-				if (isset($input->txid) AND $decoded_transaction['vin'][$i]['txid'] == $input->txid
-				AND	isset($input->vout) AND $decoded_transaction['vin'][$i]['vout'] == $input->vout
-				AND	isset($input->scriptPubKey))
-				{
-					$tx_info = RawTransaction::_get_transaction_type(RawTransaction::_decode_scriptPubKey($input->scriptPubKey));
-					if ($tx_info['hash160'] == $script_hash)
-						$input->redeemScript = $redeem_script;
+while (!isset($json_str)) {
+    if (isset($json_maybe)) {
+        $try = json_decode($json_maybe);
+        if (is_array($try)) {
+            $to_check = count($try);
+            $i = 0;
+            foreach ($try as &$input) {
+                if (isset($input->txid) AND $decoded_transaction['vin'][$i]['txid'] == $input->txid
+                    AND isset($input->vout) AND $decoded_transaction['vin'][$i]['vout'] == $input->vout
+                    AND isset($input->scriptPubKey)
+                ) {
+                    $tx_info = RawTransaction::_get_transaction_type(RawTransaction::_decode_scriptPubKey($input->scriptPubKey));
+                    if ($tx_info['hash160'] == $script_hash) {
+                        $input->redeemScript = $redeem_script;
+                    }
 
-					$to_check--; 
-				}
-				$i++;
-			}
-			if ($to_check == 0)
-			{
-				$json_str = json_encode($try);
-				break;
-			}
-		}
-	}
-	
-	
-	echo "\nEnter input data as JSON string (or 'x' to load this from webbtc.com): ";
-	
-	$line = trim(fgets(STDIN));
-	if ($line == 'x' )
-	{
-		$inputs = array();
-		
-		// Loop through inputs:
-		foreach ($decoded_transaction['vin'] as $input)
-		{
-			$get = file_get_contents("http://webbtc.com/tx/{$input['txid']}.hex");
-			$dec = RawTransaction::decode($get);
-			$pkScript = $dec['vout'][$input['vout']]['scriptPubKey']['hex'];
+                    $to_check--;
+                }
+                $i++;
+            }
+            if ($to_check == 0) {
+                $json_str = json_encode($try);
+                break;
+            }
+        }
+    }
 
-			$input = array('txid' => $input['txid'],
-							  'vout' => $input['vout'],
-							  'scriptPubKey' => $pkScript);
 
-			$tx_info = RawTransaction::_get_transaction_type(RawTransaction::_decode_scriptPubKey($pkScript));
-			if ($tx_info['hash160'] == $script_hash){
-				$input['redeemScript'] = $redeem_script;
-			}
-				
-			$inputs[] = $input;
-		}
-		unset($input);			unset($tx_info);
-		unset($dec);			unset($get);
-		
-		$json_str = json_encode($inputs);
-	}
-	else
-	{
-		$try = @json_decode($line);
-		if ( is_object($try) AND count($try) == count($decoded_transaction['vin']) )
-		 {
-			
-			$to_check	= count($try);
-			$i			= 0; 
-			foreach ($try as &$input)
-			{
-				if (isset($input->txid) AND $decoded_transaction['vin'][$i]['txid'] == $input->txid
-				AND	isset($input->vout) AND $decoded_transaction['vin'][$i]['vout'] == $input->vout
-				AND	isset($input->scriptPubKey))
-				{
-					$tx_info = RawTransaction::_get_transaction_type(RawTransaction::_decode_scriptPubKey($input->scriptPubKey));
-					if ($tx_info['hash160'] == $script_hash)
-						$input->redeemScript = $redeem_script;
+    echo "\nEnter input data as JSON string (or 'x' to load this from webbtc.com): ";
 
-					$to_check--; 
-				}
-				$i++;
-			}
-			if($to_check == 0)
-				$json_str = json_encode($try);
-		}
-	}
+    $line = trim(fgets(STDIN));
+    if ($line == 'x') {
+        $inputs = array();
+
+        // Loop through inputs:
+        foreach ($decoded_transaction['vin'] as $input) {
+            $get = file_get_contents("http://webbtc.com/tx/{$input['txid']}.hex");
+            $dec = RawTransaction::decode($get);
+            $pkScript = $dec['vout'][$input['vout']]['scriptPubKey']['hex'];
+
+            $input = array('txid' => $input['txid'],
+                'vout' => $input['vout'],
+                'scriptPubKey' => $pkScript);
+
+            $tx_info = RawTransaction::_get_transaction_type(RawTransaction::_decode_scriptPubKey($pkScript));
+            if ($tx_info['hash160'] == $script_hash) {
+                $input['redeemScript'] = $redeem_script;
+            }
+
+            $inputs[] = $input;
+        }
+        unset($input);
+        unset($tx_info);
+        unset($dec);
+        unset($get);
+
+        $json_str = json_encode($inputs);
+    } else {
+        $try = @json_decode($line);
+        if (is_object($try) AND count($try) == count($decoded_transaction['vin'])) {
+
+            $to_check = count($try);
+            $i = 0;
+            foreach ($try as &$input) {
+                if (isset($input->txid) AND $decoded_transaction['vin'][$i]['txid'] == $input->txid
+                    AND isset($input->vout) AND $decoded_transaction['vin'][$i]['vout'] == $input->vout
+                    AND isset($input->scriptPubKey)
+                ) {
+                    $tx_info = RawTransaction::_get_transaction_type(RawTransaction::_decode_scriptPubKey($input->scriptPubKey));
+                    if ($tx_info['hash160'] == $script_hash) {
+                        $input->redeemScript = $redeem_script;
+                    }
+
+                    $to_check--;
+                }
+                $i++;
+            }
+            if ($to_check == 0) {
+                $json_str = json_encode($try);
+            }
+        }
+    }
 }
 
 
-while (!isset($seed))
-{
-	echo "\nEnter electrum seed or mnemonic: ";
-	$line = trim(fgets(STDIN));
-	
-	if ( ctype_xdigit($line) AND strlen($line) >= 32 )
-	{
-		$seed = $line;
-		continue;
-	}
-		
-	$decode_mnemonic = Electrum::decode_mnemonic($line);
-	if (strlen($decode_mnemonic) > 29)
-	{
-		$seed = $decode_mnemonic;
-		continue;
-	}
-	
-	echo "Not a valid seed, or too weak ( < 128 bit)\n\n";
+while (!isset($seed)) {
+    echo "\nEnter electrum seed or mnemonic: ";
+    $line = trim(fgets(STDIN));
+
+    if (ctype_xdigit($line) AND strlen($line) >= 32) {
+        $seed = $line;
+        continue;
+    }
+
+    $decode_mnemonic = Electrum::decode_mnemonic($line);
+    if (strlen($decode_mnemonic) > 29) {
+        $seed = $decode_mnemonic;
+        continue;
+    }
+
+    echo "Not a valid seed, or too weak ( < 128 bit)\n\n";
 }
 
 echo "Seed accepted.\n\n";
 
 // Learn how many keys we put into the redeem script.
-$seed 				= Electrum::stretch_seed($seed);
-$seed				= $seed['seed'];
-$master_public_key 	= Electrum::generate_mpk($seed);
-$private_keys 		= array();
-$have_keys			= 0;
-$done 				= FALSE;
+$seed = Electrum::stretch_seed($seed);
+$seed = $seed['seed'];
+$master_public_key = Electrum::generate_mpk($seed);
+$private_keys = array();
+$have_keys = 0;
+$done = false;
 
 // Loop until the user is satisfied they have found all keys.
-$j 					= 0;
-$offset				= 30;
-while ($done == FALSE)
-{
-	$start = $offset*$j;
-	echo "Trying keys {$start} to ".($start+$offset)."\n";
-	
-	// Do public derivation to learn which private keys to derive.
-	for ($i = $start; $i < ($start+$offset); $i++)
-	{
-		$pubkey = Electrum::public_key_from_mpk($master_public_key, $i);
-		if (in_array($pubkey, $decode_redeem_script['keys']))
-		{
-			$private_keys[] = BitcoinLib::private_key_to_WIF(Electrum::generate_private_key($seed, $i),'00');
-			$have_keys++;
-		}
-			
-		if ($have_keys == $decode_redeem_script['m'])
-		{
-			$done = TRUE;
-			break;
-		}
-	}
-	$j++;
-	
-	// See if we should continue searching.
-	$ask = FALSE;
-	if ($done == FALSE)
-	{
-		echo "Have ".count($private_keys)." private keys we can sign with. Look for more? (y/n) ";
-		while ($ask == FALSE) 
-		{
-			switch(trim(fgets(STDIN)))
-			{
-				case 'y':
-						$ask = TRUE;
-						break;
-				case 'n':
-						$ask = TRUE;
-						$done = TRUE;
-						break;
-				default :
-						echo "Please enter y or n :";
-						break;
-			}
-		}
-	}
+$j = 0;
+$offset = 30;
+while ($done == false) {
+    $start = $offset * $j;
+    echo "Trying keys {$start} to " . ($start + $offset) . "\n";
+
+    // Do public derivation to learn which private keys to derive.
+    for ($i = $start; $i < ($start + $offset); $i++) {
+        $pubkey = Electrum::public_key_from_mpk($master_public_key, $i);
+        if (in_array($pubkey, $decode_redeem_script['keys'])) {
+            $private_keys[] = BitcoinLib::private_key_to_WIF(Electrum::generate_private_key($seed, $i), '00');
+            $have_keys++;
+        }
+
+        if ($have_keys == $decode_redeem_script['m']) {
+            $done = true;
+            break;
+        }
+    }
+    $j++;
+
+    // See if we should continue searching.
+    $ask = false;
+    if ($done == false) {
+        echo "Have " . count($private_keys) . " private keys we can sign with. Look for more? (y/n) ";
+        while ($ask == false) {
+            switch (trim(fgets(STDIN))) {
+                case 'y':
+                    $ask = true;
+                    break;
+                case 'n':
+                    $ask = true;
+                    $done = true;
+                    break;
+                default :
+                    echo "Please enter y or n :";
+                    break;
+            }
+        }
+    }
 }
 
 // Initialize wallet with known keys.
