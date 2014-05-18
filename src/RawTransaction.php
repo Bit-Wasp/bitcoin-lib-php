@@ -232,8 +232,8 @@ class RawTransaction {
 			// Script is prefixed with a varint that must be decoded.
 			$script_length = self::_get_vint($raw_transaction); 		// decimal number of bytes.
 			$script = self::_return_bytes($raw_transaction, $script_length);
+
 			// Build input body depending on whether the TxIn is coinbase.
-			$input_body = array();
 			if($txid == '0000000000000000000000000000000000000000000000000000000000000000') 	// coinbase
 				$input_body = array(	'coinbase' => $script);
 			else 
@@ -265,23 +265,23 @@ class RawTransaction {
 	public static function _encode_inputs($vin, $input_count) {
 		$inputs = '';
 		for($i = 0; $i < $input_count; $i++) {
-			
-			if(isset($vin[$i]['txid'])) {
-				// Regular transaction
-				$txid = self::_flip_byte_order($vin[$i]['txid']);
-				$vout = self::_dec_to_bytes($vin[$i]['vout'], 4, TRUE);
-				
-				$script_size = strlen($vin[$i]['scriptSig']['hex'])/2;  // decimal number of bytes
-				$script_varint = self::_encode_vint($script_size);		// Create the varint encoding scripts length
-				$scriptSig = $script_varint.$vin[$i]['scriptSig']['hex'];
-			} else if( isset($vin[$i]['coinbase'])) {
+
+			if( isset($vin[$i]['coinbase'])) {
 				// Coinbase
 				$txid = '0000000000000000000000000000000000000000000000000000000000000000';
 				$vout = 'ffffffff';
 				$script_size = strlen($vin[$i]['coinbase'])/2;			// Decimal number of bytes
 				$script_varint = self::_encode_vint($script_size);		// Varint
 				$scriptSig = $script_varint.$vin[$i]['coinbase'];
-			}
+			} else {
+                // Regular transaction
+                $txid = self::_flip_byte_order($vin[$i]['txid']);
+                $vout = self::_dec_to_bytes($vin[$i]['vout'], 4, TRUE);
+
+                $script_size = strlen($vin[$i]['scriptSig']['hex'])/2;  // decimal number of bytes
+                $script_varint = self::_encode_vint($script_size);		// Create the varint encoding scripts length
+                $scriptSig = $script_varint.$vin[$i]['scriptSig']['hex'];
+            }
 			// Add the sequence number.
 			$sequence = self::_dec_to_bytes($vin[$i]['sequence'], TRUE);
 			
@@ -393,7 +393,8 @@ class RawTransaction {
 				// Load predefined info for this transaction type if detected.
 				$return = $define[$tx_type];
 				$return['hash160'] = $data[$define[$tx_type]['data_index_for_hash']];
-				$magic_byte = ($return['type'] == 'scripthash') ? str_pad(gmp_strval(gmp_init($address_version+0x05),16), 2, '0', STR_PAD_LEFT) : $address_version;
+
+				$magic_byte = ($return['type'] == 'scripthash') ? str_pad(gmp_strval(gmp_add(gmp_init($address_version),gmp_init('05',16))), 2, '0', STR_PAD_LEFT) : $address_version;
 				$return['addresses'][0] = BitcoinLib::hash160_to_address($return['hash160'], $magic_byte);
 				unset($return['data_index_for_hash']);
 			}
@@ -493,8 +494,9 @@ class RawTransaction {
 	 * Accepts an optional $address_version for creating the addresses 
 	 * - defaults to bitcoins version byte.
 	 * 
-	 * @param	string	$raw_tranasction
+	 * @param	string	$raw_transaction
 	 * @param	string	$address_version
+     * @return  array/FALSE
 	 */
 	public static function decode($raw_transaction, $address_version = '00') {
 		$raw_transaction = trim($raw_transaction);
@@ -570,6 +572,9 @@ class RawTransaction {
 	 * during another script.
 	 * 
 	 * @param	string	$raw_transaction
+     * @param   string  $json_inputs
+     * @param   int     $specific_input
+     * @param   array   $e
 	 * @return	string
 	 */
 	public static function _create_txin_signature_hash($raw_transaction, $json_inputs, $specific_input = -1, $e = NULL) {
@@ -607,7 +612,6 @@ class RawTransaction {
 				$hash[] = hash('sha256', hash('sha256', pack("H*", self::encode($copy).$sighashcode), TRUE));
 			}
 		} else {
-			$hash = '';
 			// Return a message hash for the specified output.
 			$copy = $decode;
 			$copy['vin'][$specific_input]['scriptSig']['hex'] = (isset($inputs[$specific_input]->redeemScript)) ? $inputs[$specific_input]->redeemScript : $inputs[$specific_input]->scriptPubKey;
@@ -747,8 +751,10 @@ class RawTransaction {
 	 * creates the address from this. $m must be greater than zero, and 
 	 * public keys are required. 
 	 * 
-	 * @param	int	$m
+	 * @param	int	    $m
 	 * @param	array	$public_keys
+     * @param   string  $address_version
+     * @return  array/FALSE
 	 */
 	public static function create_multisig($m, $public_keys = array(), $address_version = '05') {
 		if($m == 0)
@@ -776,7 +782,7 @@ class RawTransaction {
 	 * @param	string	$raw_tx
 	 * @param	string	$json_string
 	 * @param	string	$address_version.
-	 * @param	boolean
+	 * @return	boolean
 	 */
 	public static function validate_signed_transaction( $raw_tx, $json_string, $address_version = '00' ) {
 		$decode = self::decode($raw_tx, $address_version);
@@ -817,7 +823,6 @@ class RawTransaction {
 
 				// Extract signatures, remove the "0" byte, and redeemScript.
 				// Loop through the remaining values - the signatures
-				$pubkey_found = FALSE;
 				foreach($scripts as $signature) {
 					// Test each signature with the public keys in the redeemScript.
 					foreach($redeemScript['keys'] as $public_key) {
@@ -843,13 +848,14 @@ class RawTransaction {
 	 * 
 	 * @param	array	$inputs
 	 * @param	array	$outputs
+     * @param   string  $magic_byte
 	 * @return	string/FALSE
 	 */
 	public static function create($inputs, $outputs, $magic_byte = '00') {
 
 		// Generate the p2sh byte from the regular byte.
 		$regular_byte = $magic_byte;
-		$p2sh_byte = (string)($magic_byte+0x5); 		$p2sh_byte = ((strlen($p2sh_byte) == '1') ? '0' : '').$p2sh_byte;
+		$p2sh_byte = str_pad(gmp_strval(gmp_add(gmp_init($magic_byte,16),gmp_init('05',16))),2,'0',STR_PAD_LEFT);
 		
 		$tx_array = array('version' => '1');
 		
@@ -877,17 +883,17 @@ class RawTransaction {
 			$decode_address = BitcoinLib::base58_decode($address);
 			$version = substr($decode_address, 0, 2);
 			$hash = substr($decode_address, 2, 40);
-			
-			if($version == $regular_byte) {
+
+            if($version == $p2sh_byte) {
+                // OP_HASH160 <scriptHash> OP_EQUAL
+                $scriptPubKey = "a914{$hash}87";
+            } else {
 				// OP_DUP OP_HASH160 <pubKeyHash> OP_EQUALVERIFY OP_CHECKSIG 
-				$scriptPubKey['hex'] = "76a914{$hash}88ac"; 
-			} else if($version == $p2sh_byte) {
-				// OP_HASH160 <scriptHash> OP_EQUAL
-				$scriptPubKey['hex'] = "a914{$hash}87";
-			} 
+				$scriptPubKey = "76a914{$hash}88ac";
+			}
 			
 			$tx_array['vout'][] = array('value' => $value,
-										'scriptPubKey' => array('hex' => $scriptPubKey['hex'])
+										'scriptPubKey' => array('hex' => $scriptPubKey)
 										);
 		}
 		
@@ -906,14 +912,14 @@ class RawTransaction {
 	 * 
 	 * The function looks at each TxIn and tries to sign, if the hash160
 	 * belongs to a key specified in the wallet.
-	 * 
+	 *
+     * @param   array   $wallet
 	 * @param	string	$raw_transaction
 	 * @param	array	$inputs
-	 * @param	array	$priv_keys
 	 * @param	string	$magic_byte
 	 * @return	array
 	 */
-	public static function sign($wallet, $raw_transaction, $inputs, array $priv_keys = array(), $magic_byte = '00')
+	public static function sign($wallet, $raw_transaction, $inputs, $magic_byte = '00')
 	{
 		// Generate digests of inputs to sign.
 		$message_hash = self::_create_txin_signature_hash($raw_transaction, $inputs);
@@ -938,7 +944,7 @@ class RawTransaction {
 				
 				if($key_info['type'] == 'scripthash') {
 
-					$signatures = self::extract_inputs_signatures($input, $message_hash[$vin], $key_info);
+					$signatures = self::extract_input_signatures_p2sh($input, $message_hash[$vin], $key_info);
 					$sign_count += count($signatures);
 
 					// Create Signature
@@ -983,21 +989,30 @@ class RawTransaction {
 					 'complete' => $complete);
 	}
 
-	public static function extract_inputs_signatures($input, $message_hash, $key_info) {
+    /**
+     * Extract Input Signatures: P2SH
+     *
+     * This function accepts an array $input (a decoded input array), a $message_hash,
+     * with which the signature is checked against, and $script_info - the
+     * @param $input
+     * @param $message_hash
+     * @param $script_info
+     * @return array
+     */
+    public static function extract_input_signatures_p2sh($input, $message_hash, $script_info) {
 		// May already be signatures there. 
 		$decodeSigs = explode(" ", self::_decode_script($input['scriptSig']['hex']));
 		$signatures = array();
 		if(count($decodeSigs) > 0) 
 			foreach($decodeSigs as $sig) {
 				if(self::is_canonical_signature($sig)) 
-					foreach($key_info['public_keys'] as $key) {
+					foreach($script_info['public_keys'] as $key) {
 						if(self::_check_sig($sig, $message_hash, $key) == TRUE)
 							$signatures[$key] = $sig;
 					}
 			}
 		return $signatures;
 	}
-
 
 	/**
 	 * Encode Signature
@@ -1007,8 +1022,6 @@ class RawTransaction {
 	 * encodes the signature in DER format.
 	 * 
 	 * @param	\Signature	$signature
-	 * @param	array	$tx_info
-	 * @param	array	$key_info
 	 * @return	string
 	 */
 	public static function encode_signature(\Signature $signature) {
@@ -1037,8 +1050,18 @@ class RawTransaction {
 		
 		return $der_sig;
 	}
-	
-	public static function _apply_sig_pubkeyhash($sig, $public_key)
+
+    /**
+     * Apply Sig: PubKeyHash
+     *
+     * This function simply takes a signature, $sig, and a $public_key,
+     * and serializes them into a pay-to-pubkey-hash scriptSig.
+     *
+     * @param   string  $sig
+     * @param   string  $public_key
+     * @return  string
+     */
+    public static function _apply_sig_pubkeyhash($sig, $public_key)
 	{
 		
 		// Prepend the length of the signature.
@@ -1050,8 +1073,22 @@ class RawTransaction {
 					. self::_dec_to_bytes( strlen($public_key)/2, 1)
 					. $public_key;
 	}
-	
-	public static function _apply_sig_scripthash_multisig($sig_array, $script_info) {
+
+    /**
+     * Apply Sig: ScriptHash Multisig
+     *
+     * This function applies, or generates, a sigScript for a multisig script hash
+     * transaction. It uses the $script_info array, containing information about the
+     * redeem Script, and $sig_array.
+     * It loops through the keys in the script, checking if there exists a signature
+     * by that key, applying them in the correct order. Finally serializes redeem
+     * script into the scriptSig.
+     *
+     * @param   array   $sig_array
+     * @param   array   $script_info
+     * @return  string
+     */
+    public static function _apply_sig_scripthash_multisig($sig_array, $script_info) {
 		$generated = '00';
 		
 		// Sig array is in order of the redeem script
@@ -1088,8 +1125,17 @@ class RawTransaction {
 					 'hash_type' => substr($signature, -2),
 					 'last_byte_s' => substr($s, -2));
 	}
-	
-	public static function is_canonical_signature($signature) 
+
+    /**
+     * Is Canonical Signature
+     *
+     * Performs some checking on the given $signature to see if it
+     * it conforms to the standard.
+     *
+     * @param   string  $signature
+     * @return  bool
+     */
+    public static function is_canonical_signature($signature)
 	{
 		$loud = FALSE;
 		$length = strlen($signature);
@@ -1113,7 +1159,6 @@ class RawTransaction {
 			if($loud == TRUE) echo "Non-canonical signature: wrong length marker\n";
 			return FALSE;
 		}
-
 
 		$len_r_bytes = hexdec(substr($signature, 6, 2));
 		$r = substr($signature, 8, $len_r_bytes*2);
@@ -1182,57 +1227,86 @@ class RawTransaction {
 		return TRUE;
 		
 	}
-	
-	
-	public static function private_keys_to_wallet(&$wallet, $wifs, $magic_byte = '00') {
-		foreach($wifs as $wif) {
-			$key = BitcoinLib::WIF_to_private_key($wif);
-			$pubkey = BitcoinLib::private_key_to_public_key($key['key'], $key['is_compressed']);
-			
-			$pk_hash = BitcoinLib::hash160($pubkey);
-			
-			if($key['is_compressed'] == TRUE) {
-				$uncompressed_key = BitcoinLib::decompress_public_key($pubkey);
-				$uncompressed_key = $uncompressed_key['public_key'];
-			} else {
-				$uncompressed_key = $pubkey;
-			}
-			$wallet[$pk_hash] = array( 'type' => 'pubkeyhash',
-										'private_key' => $key['key'],
-										'public_key' => $pubkey,
-										'uncompressed_key' => $uncompressed_key,
-										'is_compressed' => $key['is_compressed'],
-										'address' => BitcoinLib::hash160_to_address($pk_hash, $magic_byte));
-		}
+
+    /**
+     * Private Keys To Wallet
+     *
+     * This function accepts $wallet - a reference to an array containing
+     * wallet info, indexed by hash160 of expected address.
+     * It will attempt to add each key to this wallet, as well as all the
+     * details that could be needed later on: public key, uncompressed key,
+     * address, an indicator for address compression. Type is always set
+     * to pubkeyhash for private key entries in the wallet.
+     *
+     * @param array     $wallet
+     * @param array     $wifs
+     * @param string    $magic_byte
+     */
+    public static function private_keys_to_wallet(&$wallet, array $wifs, $magic_byte = '00')
+    {
+        if (count($wifs) > 0)
+            foreach ($wifs as $wif)
+            {
+                $key = BitcoinLib::WIF_to_private_key($wif);
+                $pubkey = BitcoinLib::private_key_to_public_key($key['key'], $key['is_compressed']);
+
+                $pk_hash = BitcoinLib::hash160($pubkey);
+
+                if ($key['is_compressed'] == TRUE)
+                {
+                    $uncompressed_key = BitcoinLib::decompress_public_key($pubkey);
+                    $uncompressed_key = $uncompressed_key['public_key'];
+                }
+                else
+                {
+                    $uncompressed_key = $pubkey;
+                }
+                $wallet[$pk_hash] = array( 'type' => 'pubkeyhash',
+                                            'private_key' => $key['key'],
+                                            'public_key' => $pubkey,
+                                            'uncompressed_key' => $uncompressed_key,
+                                            'is_compressed' => $key['is_compressed'],
+                                            'address' => BitcoinLib::hash160_to_address($pk_hash, $magic_byte));
+            }
 	}
 
-	public static function redeem_scripts_to_wallet(&$wallet, array $redeem_scripts = array(), $magic_byte = '05') {
-		if(count($redeem_scripts) == 0)
-			return $wallet;
-			
-		foreach($redeem_scripts as $script) {
-			$decode = self::decode_redeem_script($script);
-			if($decode == FALSE)
-				continue;
-				
-			$scripthash = BitcoinLib::hash160($script);
-			$keys = array();
-			foreach ($decode['keys'] as $key) {
-				$keyhash = BitcoinLib::hash160($key);
-				if (isset($wallet[$keyhash])) 
-					$keys[] = $wallet[$keyhash];
-				
-			}
-			
-			$wallet[$scripthash] = array(	'type' => 'scripthash',
-											'script' => $script,
-											'required_signature_count' => $decode['m'],
-											'address' => BitcoinLib::hash160_to_address($scripthash, $magic_byte),
-											'public_keys' => $decode['keys'],
-											'keys' => $keys
-											
-									);
-		}
+    /**
+     * Redeem Scripts To Wallet
+     *
+     * This function extends on whatever data is in the $wallet array, by
+     * adding script hash addresses to the wallet, and linking keys in the
+     * multisignature address with keys in the wallet.
+     * Adds each redeemScript to the referenced $wallet.
+     *
+     * @param array $wallet
+     * @param array $redeem_scripts
+     * @param string $magic_byte
+     */
+    public static function redeem_scripts_to_wallet(&$wallet, array $redeem_scripts = array(), $magic_byte = '05') {
+		if(count($redeem_scripts) > 0)
+            foreach($redeem_scripts as $script) {
+                $decode = self::decode_redeem_script($script);
+                if($decode == FALSE)
+                    continue;
+
+                $scripthash = BitcoinLib::hash160($script);
+                $keys = array();
+                foreach ($decode['keys'] as $key) {
+                    $keyhash = BitcoinLib::hash160($key);
+                    if (isset($wallet[$keyhash]))
+                        $keys[] = $wallet[$keyhash];
+
+                }
+
+                $wallet[$scripthash] = array(	'type' => 'scripthash',
+                                                'script' => $script,
+                                                'required_signature_count' => $decode['m'],
+                                                'address' => BitcoinLib::hash160_to_address($scripthash, $magic_byte),
+                                                'public_keys' => $decode['keys'],
+                                                'keys' => $keys
+
+                                        );
+            }
 	}
 };
 
