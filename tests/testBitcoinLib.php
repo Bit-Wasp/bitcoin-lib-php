@@ -10,11 +10,16 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
 	public $testHexEncode_i;
 	
 	public function __construct() {
-		$this->bitcoin = new BitcoinLib();
+
 	}
 	
-	public function setup() {}
-	public function tearDown() {}
+	public function setup() {
+        $this->bitcoin = new BitcoinLib();
+    }
+    
+	public function tearDown() {
+        $this->bitcoin = null;
+    }
 	
 	//////////////////////////////////////////////////////
 	// hex_encode() test functions
