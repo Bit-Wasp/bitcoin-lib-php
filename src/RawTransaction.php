@@ -145,7 +145,7 @@ class RawTransaction {
 		} else if($hex < 4294967295) {
 			$hint = 'fe';
 			$num_bytes = 4;
-		} else if($hex == 18446744073709551615) {
+		} else if($hex < 18446744073709551615) {
 			$hint = 'ff';
 			$num_bytes = 8;
 		} else {
@@ -594,10 +594,12 @@ class RawTransaction {
 			$hash = array();
 			foreach($decode['vin'] as $vin => $input) {
 				$copy = $decode;
-				// Substitute the input script with the outpoints script.
-				$script = $copy['vin'][$vin]['scriptSig']['hex'];
-				unset($copy['vin'][$vin]['scriptSig']['asm']);
-				
+
+                foreach ($copy['vin'] as &$copy_input)
+                {
+                    $copy_input['scriptSig']['hex'] = '00';
+                }
+
 				$copy['vin'][$vin]['scriptSig']['hex'] = (isset($inputs[$vin]->redeemScript)) ? $inputs[$vin]->redeemScript : $inputs[$vin]->scriptPubKey;
 				
 				// Encode the transaction, convert to a raw byte sting, 
@@ -608,7 +610,7 @@ class RawTransaction {
 			$hash = '';
 			// Return a message hash for the specified output.
 			$copy = $decode;
-			$copy['vin'][$specific_input]['scriptSig']['hex'] = (isset($inputs[$specific_input]->redeemScript)) ? $inputs[$specific_input]->redeemScript : $inputs[$vin]->scriptPubKey;
+			$copy['vin'][$specific_input]['scriptSig']['hex'] = (isset($inputs[$specific_input]->redeemScript)) ? $inputs[$specific_input]->redeemScript : $inputs[$specific_input]->scriptPubKey;
 			$hash = hash('sha256', hash('sha256', pack("H*", self::encode($copy).$sighashcode), TRUE));
 		}
 		return $hash;
@@ -974,7 +976,7 @@ class RawTransaction {
 		// If the transaction isn't fully signed, return false.
 		// If it's fully signed, perform signature verification, return true if valid, or invalid if signatures are incorrect.
 		$complete = ((($req_sigs-$sign_count) == 0)
-					? 'true' //((self::validate_signed_transaction($new_raw, $inputs, $magic_byte) == TRUE) ? 'true' : 'false') 
+					? ((self::validate_signed_transaction($new_raw, $inputs, $magic_byte) == TRUE) ? 'true' : 'false')
 					: 'false');
 			
 		return array('hex' => $new_raw,
