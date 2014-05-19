@@ -473,7 +473,7 @@ class BIP32 {
 	 * @param	string	$magic_bytes
 	 * @return	array/FALSE
 	 */
-	public function describe_magic_bytes($magic_bytes) {
+	public static function describe_magic_bytes($magic_bytes) {
 		$key = array();
 		switch($magic_bytes){
 			case self::$bitcoin_mainnet_public :
@@ -570,7 +570,7 @@ class BIP32 {
 	 * @param	int	$address_number
 	 * @return	string
 	 */
-	public function calc_address_bytes($address_number, $set_prime = 0) {
+	public static function calc_address_bytes($address_number, $set_prime = 0) {
 		$and_result = ($set_prime == 1) ? $address_number | 0x80000000 : $address_number;
 		$hex = unpack("H*", pack("N", $and_result)); 
 		return $hex[1];
@@ -587,7 +587,7 @@ class BIP32 {
 	 * @param	string	$hex
 	 * @return	int
 	 */
-	public function check_is_prime_hex($hex) {
+	public static function check_is_prime_hex($hex) {
 		$is_prime = (	gmp_cmp(
 							gmp_init($hex, 16),
 							gmp_init('80000000', 16)
@@ -633,7 +633,7 @@ class BIP32 {
 	 * @param	string	$hex
 	 * @param	int
 	 */
-	public function get_address_number($hex, $is_prime = 0) {
+	public static function get_address_number($hex, $is_prime = 0) {
 		if($is_prime == 1)
 			$hex = str_pad(
 						gmp_strval(
