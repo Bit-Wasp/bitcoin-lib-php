@@ -196,8 +196,8 @@ class BIP32 {
 										), 
 										$decompressed['point']
 								);
-			$new_x = str_pad(gmp_strval($new_point->getX(), 16), 32, '0', STR_PAD_LEFT);
-			$new_y = str_pad(gmp_strval($new_point->getY(), 16), 32, '0', STR_PAD_LEFT);
+			$new_x = str_pad(gmp_strval($new_point->getX(), 16), 64, '0', STR_PAD_LEFT);
+			$new_y = str_pad(gmp_strval($new_point->getY(), 16), 64, '0', STR_PAD_LEFT);
 			$key = BitcoinLib::compress_public_key('04'.$new_x.$new_y);
 			
 		}
