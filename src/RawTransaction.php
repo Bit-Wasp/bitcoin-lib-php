@@ -474,8 +474,6 @@ class RawTransaction {
 			$satoshis = $vout_arr[$i]['value']*1e8;
 			$amount = self::_dec_to_bytes($satoshis, 8);
 			$amount = self::_flip_byte_order($amount);
-			if($amount > 0xFFFFFFFFFFFFFFFF)
-				return FALSE;
 				
 			$script_size = strlen($vout_arr[$i]['scriptPubKey']['hex'])/2; // number of bytes
 			$script_varint = self::_encode_vint($script_size);
