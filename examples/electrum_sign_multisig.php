@@ -212,7 +212,7 @@ while ($done == FALSE)
 		$pubkey = Electrum::public_key_from_mpk($master_public_key, $i);
 		if (in_array($pubkey, $decode_redeem_script['keys']))
 		{
-			$private_keys[] = BitcoinLib::private_key_to_WIF(Electrum::generate_private_key($seed, $i),'00');
+			$private_keys[] = BitcoinLib::private_key_to_WIF(Electrum::generate_private_key($seed, $i),FALSE,'00');
 			$have_keys++;
 		}
 			
