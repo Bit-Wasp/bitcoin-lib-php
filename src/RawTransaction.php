@@ -1194,7 +1194,7 @@ class RawTransaction {
 			return FALSE;
 		}
 
-		/*$r1_and = unpack( "H*", (pack('H*',substr($s, 0, 2)) & pack('H*', '80')));
+		/*$r1_and = unpack( "H*", (pack('H*',substr($r, 0, 2)) & pack('H*', '80')));
 		if($r_first == '00' && !($r1_and[1] == '80')) {
 			if($loud == TRUE) echo "Non-canonical signature: R value excessively padded\n";
 			return FALSE;
