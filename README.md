@@ -3,6 +3,24 @@ bitcoin-lib-php
 
 PHP libraries implementing bitcoin key functions, as well as BIP32 and electrum.
 
+The library intends to expose a lot of general functionality which isn't 
+available using the RPC (like deterministic addresses). 
+
+It also allows you to reduce the number of queries that are made to bitcoind,
+such as createrawtransaction/signrawtransaction/decoderawtransaction. As such,
+such, use of bitcoin RPC functionality can be kept to a minimum.
+
+Libraries
+===
+- Raw Transactions: create, sign, validate, with support for P2SH. 
+- Create multi-signature addresses, create redeeming transactions. 
+- BIP32: Functions for generating BIP32 deterministic keys.
+- Electrum: Create seed from mnemonic, create MPK from seed, derive public keys from MPK, or private keys from seed.
+- BitcoinLib: The core class, with key functionality, encoding/decoding & validation functions, etc. 
+
+
+If this library powers your project and you're feeling tipsy, buy me lunch some day! 1sCVtkEhQmvp3D4K22Pw9xhFPTDWFh8SZ
+
 Installation
 ------------
 
