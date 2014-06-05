@@ -679,33 +679,38 @@ class RawTransaction {
 			$data['m'] = gmp_strval(gmp_sub(gmp_init(substr($redeem_script, 0, 2),16),gmp_init('50',16)),10);							
 			$data['keys'] = array();
 			$redeem_script = substr($redeem_script, 2);
-			
+
 		} else if(count($data['keys']) == 0 && !isset($data['next_key_charlen'])) {
 			// Next is to find out the length of the following public key.
 			$hex = substr($redeem_script, 0, 2);
 			// Set up the length of the following key.
 			$data['next_key_charlen'] = gmp_strval(gmp_mul(gmp_init('2',10),gmp_init($hex, 16)),10);
+
 			$redeem_script = substr($redeem_script, 2);
-			
 		} else if(isset($data['next_key_charlen'])) {
 			// Extract the key, and work out the next step for the code.
 			$data['keys'][] = substr($redeem_script, 0, $data['next_key_charlen']);
 			$next_op = substr($redeem_script, $data['next_key_charlen'], 2);
 			$redeem_script = substr($redeem_script, ($data['next_key_charlen']+2));
+
 			unset($data['next_key_charlen']);
 			
-			// If 1 <= $next_op >= 4b
-			if( in_array(gmp_cmp(gmp_init($next_op, 16),gmp_init('1',16)),array('0','1')) 
+			// If 1 <= $next_op >= 4b : A key is coming up next. This if block runs again.
+			if( in_array (gmp_cmp(gmp_init($next_op, 16),gmp_init('1',16)), array('0','1'))
 			 && in_array(gmp_cmp(gmp_init($next_op, 16),gmp_init('4b', 16)),array('-1','0'))) {
 				// Set the next key character length
 				$data['next_key_charlen'] = gmp_strval(gmp_mul(gmp_init('2',10),gmp_init($next_op, 16)),10);
 			
-			// If 52 <= $next_op >= 60
-			} else if( in_array(gmp_cmp(gmp_init($next_op, 16),gmp_init('52',16)),array('0','1')) 
+			// If 52 <= $next_op >= 60 : End of keys, now have n.
+			} else if( in_array(gmp_cmp(gmp_init($next_op, 16),gmp_init('51',16)),array('0','1'))
 					&& in_array(gmp_cmp(gmp_init($next_op, 16),gmp_init('60', 16)),array('-1','0'))) {
-				// Finish the script.
+
+				// Finish the script - obtain n
 				$data['n'] = gmp_strval(gmp_sub(gmp_init($next_op, 16),gmp_init('50',16)),10);
-				$redeem_script = '';
+                if($redeem_script !== 'ae')
+                    return FALSE;
+
+                $redeem_script = '';
 			} else {
 				// Something weird, malformed redeemScript.
 				return FALSE;

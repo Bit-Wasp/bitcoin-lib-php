@@ -60,11 +60,11 @@ class BitcoinLib {
 	 * This function accepts a base58 encoded string, and decodes the 
 	 * string into a number, which is converted to hexadecimal. It is then
 	 * padded with zero's.
-	 * 
-	 * @param	string	$base58
-	 * @return	string
-	 */
-	public static function base58_decode($base58) {
+
+     * @param $base58
+     * @return string
+     */
+    public static function base58_decode($base58) {
 		$origbase58 = $base58;
 		$return = "0";
 		
@@ -85,22 +85,33 @@ class BitcoinLib {
 
 	/**
 	 * Base58 Encode
-	 * 
+	 *
 	 * Encodes a $hex string in base58 format. Borrowed from prusnaks
-	 * addrgen code: https://github.com/prusnak/addrgen/blob/master/php/addrgen.php 
-	 * 
+	 * addrgen code: https://github.com/prusnak/addrgen/blob/master/php/addrgen.php
+	 *
 	 * @param	string	$hex
 	 * @return	string
 	 * @author	Pavel Rusnak
 	 */
 	public static function base58_encode($hex) {
-		$num = gmp_strval(gmp_init($hex, 16), 58);
-		$num = strtr($num
-		, '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuv'
-		, self::$base58chars);
+        if(strlen($hex) == 0)
+            return '';
 
-		$pad = ''; $n = 0;
-		while ($hex[$n] == '0' && $hex[$n+1] == '0') {
+        // Convert the hex string to a base10 integer
+		$num = gmp_strval(gmp_init($hex, 16), 58);
+
+        // Check that number isn't just 0 - which would be all padding.
+        if($num != '0') {
+		    $num = strtr($num
+    		, '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuv'
+    		, self::$base58chars);
+        } else {
+            $num = '';
+        }
+
+        // Pad the leading 1's
+        $pad = ''; $n = 0;
+		while (substr($hex, $n, 2) == '00') {
 			$pad .= '1';
 			$n += 2;
 		}
@@ -261,12 +272,13 @@ class BitcoinLib {
 	 * 
 	 * Converts a $privKey to the corresponding public key, and then 
 	 * converts to the bitcoin address, using the $address_version.
-	 * 
-	 * @param	string	$private_key
-	 * @param	string	$address_versionh
-	 * @return	string
-	 */
-	public static function private_key_to_address($private_key, $address_version) {
+	 *
+     * @param $private_key
+     * @param $address_version
+     * @return string
+     */
+    public static function private_key_to_address($private_key, $address_version) {
+
 		$public_key = self::private_key_to_public_key($private_key);
 		return self::public_key_to_address($public_key, $address_version);
 	}
@@ -293,11 +305,12 @@ class BitcoinLib {
 	 * to generate the correct privateWIF and pubAddress. It returns an 
 	 * array containing the hex private key, WIF private key, public key,
 	 * and bitcoin address
-	 * 
-	 * @param	string	$address_version
-	 * @return	array
-	 */
-	public static function get_new_key_set($address_version, $compressed = FALSE) {
+	 *
+     * @param $address_version
+     * @param bool $compressed
+     * @return array
+     */
+    public static function get_new_key_set($address_version, $compressed = FALSE) {
 		do {
 			$key_pair = self::get_new_key_pair();
 			$private_WIF = self::private_key_to_WIF($key_pair['privKey'], $compressed, $address_version);
@@ -343,12 +356,13 @@ class BitcoinLib {
 	 * 
 	 * $compressed = TRUE will yield the private key for the compressed 
 	 * public key address.
-	 * 
-	 * @param	string	$privKey
-	 * @param	boolean	$compressed
-	 * @return string
-	 */
-	public static function private_key_to_WIF($privKey, $compressed = FALSE, $address_version)
+	 *
+     * @param $privKey
+     * @param bool $compressed
+     * @param $address_version
+     * @return string
+     */
+    public static function private_key_to_WIF($privKey, $compressed = FALSE, $address_version)
 	{
 		$key = $privKey.(($compressed == TRUE)?'01':'');
 		return self::hash160_to_address($key, self::get_private_key_address_version($address_version));
@@ -422,12 +436,11 @@ class BitcoinLib {
 	 * odd or even, and $passpoint, which is simply a hexadecimal X coordinate.
 	 * Using this data, it is possible to deconstruct the original 
 	 * uncompressed public key.
-	 * 
-	 * @param	string	$y_byte
-	 * @param	string	$passpoint
-	 * @return	string
-	 */
-	public static function decompress_public_key($key)
+	 *
+     * @param $key
+     * @return array|bool
+     */
+    public static function decompress_public_key($key)
 	{
 		$y_byte = substr($key, 0, 2);
 		$x_coordinate = substr($key, 2);
@@ -557,7 +570,7 @@ class BitcoinLib {
 	 * @param	string	$ver
 	 * @return	boolean
 	 */
-	public static function validate_WIF($wif, $ver)
+	public static function validate_WIF($wif, $ver = null)
 	{
 		$hex = self::base58_decode($wif);
 
@@ -568,7 +581,10 @@ class BitcoinLib {
 		// Learn version
 		$version = substr($hex, 0, 2);
 		$hex = substr($hex, 2);
-		
+
+        if($ver !== NULL && $ver !== $version)
+            return FALSE;
+
 		// Determine if pubkey is compressed
 		$compressed = FALSE;
 		if (strlen($hex) == 66 && substr($hex, 64, 2) == '01')
