@@ -13,8 +13,8 @@ class testAgainstRPC extends PHPUnit_Framework_TestCase {
         $this->magic_byte = '00';
         $this->c = array('url' => 'http://bitcoinrpc:6Wk1SYL7JmPYoUeWjYRSdqij4xrM5rGBvC4kbJipLVJK@127.0.0.1:8332');
         $this->client = new Jsonrpcclient($this->c);
-	if($this->client->getinfo() == null)
-		die("Can't connect to bitcoind");
+        if($this->client->getinfo() == null)
+            die("Can't connect to bitcoind");
     }
 
     public function setup() {
@@ -91,6 +91,4 @@ class testAgainstRPC extends PHPUnit_Framework_TestCase {
         }
     }
 
-
 };
-

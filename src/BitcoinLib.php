@@ -544,10 +544,10 @@ class BitcoinLib {
 	public static function validate_address($address, $address_version)
 	{
 		// Check the address is decoded correctly.
-		$decode = self::base58_decode($address); 
+		$decode = self::base58_decode($address);
 		if (strlen($decode) !== 50) 
 			return FALSE;
-		
+
 		// Compare the version.
 		$version = substr($decode, 0, 2);
 		if (hexdec($version) > hexdec($address_version))
