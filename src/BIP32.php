@@ -353,7 +353,7 @@ class BIP32 {
 	 * @param	string	$ext_public_key
 	 * @return	array
 	 */
-	public function import($ext_key) {
+	public static function import($ext_key) {
 		$hex = BitcoinLib::base58_decode($ext_key);
 		$key['magic_bytes'] = substr($hex, 0, 8);
 
