@@ -356,7 +356,12 @@ class BIP32 {
 	public function import($ext_key) {
 		$hex = BitcoinLib::base58_decode($ext_key);
 		$key['magic_bytes'] = substr($hex, 0, 8);
+
 		$magic_byte_info = self::describe_magic_bytes($key['magic_bytes']);
+		// Die if key type isn't supported by this library. 
+		if($magic_byte_info == FALSE) 
+			return FALSE;
+			
 		$key['type'] = $magic_byte_info['type'];
 		$key['testnet'] = $magic_byte_info['testnet'];
 		$key['network'] = $magic_byte_info['network'];
@@ -375,7 +380,13 @@ class BIP32 {
 			$offset = 64;
 		}
 		$key['key'] = substr($hex, $key_start_position, $offset);
-		return $key;
+		
+		// Validate obtained key:
+		$validation = ($key['type'] == 'public')
+					? BitcoinLib::validate_public_key($key['key'])
+					: self::check_valid_hmac_key($key['key']);
+					
+		return ($validation) ? $key : FALSE;
 	}
 
 	/**
