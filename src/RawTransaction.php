@@ -796,7 +796,40 @@ class RawTransaction
             'address' => BitcoinLib::public_key_to_address($redeem_script, $address_version));
     }
 
-
+	/**
+	 * Sort Multisig Keys
+	 * 
+	 * Accepts an array of public keys for multisig, and returns them sorted
+	 * by length and by lexicographic order.
+	 * 
+	 * @param	array	$public_keys
+	 * @return	array
+	 */
+	public function sort_multisig_keys($public_keys) {
+		$sorted_keys = $public_keys;
+		usort($sorted_keys, function ($a, $b) {
+			$len_a = strlen($a);
+			$len_b = strlen($b);
+			
+			$length = $len_a > $len_b ? $len_a : $len_b;
+			for($i = 0; $i < $length; $i++) {
+				if(!isset($a[$i])) {
+					return -1;
+				} else if(!isset($b[$i])) {
+					return 1;
+				} else if((int)$a[$i] < (int)$b[$i]) {
+					return -1;
+				} else if((int)$a[$i] > (int)$b[$i]) {
+					return 1;
+				} else {
+					continue;
+				}	
+			}
+			return 0;
+		});
+		return $sorted_keys;
+	}
+	
     /**
      * Validate Signed Transaction
      *
