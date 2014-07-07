@@ -805,7 +805,7 @@ class RawTransaction
 	 * @param	array	$public_keys
 	 * @return	array
 	 */
-	public function sort_multisig_keys($public_keys) {
+	public static function sort_multisig_keys($public_keys) {
 		$sorted_keys = $public_keys;
 		usort($sorted_keys, function ($a, $b) {
 			$len_a = strlen($a);
