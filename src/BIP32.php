@@ -175,12 +175,14 @@ class BIP32 {
 			// (Il + kpar) mod n
 			$key = str_pad( 
 						 gmp_strval(
-							\gmp_Utils::gmp_mod2(
-								gmp_add(
-									gmp_init($I_l, 16),
-									gmp_init($private_key, 16)
-								),
-								$n	
+							gmp_init(
+								gmp_Utils::gmp_mod2(
+									gmp_add(
+										gmp_init($I_l, 16),
+										gmp_init($private_key, 16)
+									),
+									$n
+								)
 							),
 							16
 						), 

@@ -107,12 +107,14 @@ class Electrum {
 		// Generate the private key by calculating: 
 		// ($seed + (sha256(sha256($iteration:$change:$binary_mpk))) % $n)h
 		$private_key = gmp_strval(
-			\gmp_Utils::gmp_mod2(
-				gmp_add(
-					gmp_init($seed, 16),
-					gmp_init(hash('sha256', hash('sha256', "$iteration:$change:".pack('H*', $mpk), TRUE)), 16)
-				),
-				$n
+			gmp_init(
+				gmp_Utils::gmp_mod2(
+					gmp_add(
+						gmp_init($seed, 16),
+						gmp_init(hash('sha256', hash('sha256', "$iteration:$change:".pack('H*', $mpk), TRUE)), 16)
+					),
+					$n
+				)
 			),
 			16
 		);

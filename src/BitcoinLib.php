@@ -477,7 +477,7 @@ class BitcoinLib {
 									? ((gmp_Utils::gmp_mod2(gmp_init($y0, 10), 2) == '0') ? $y0 : $y1)
 									: ((gmp_Utils::gmp_mod2(gmp_init($y0, 10), 2) !== '0') ? $y0 : $y1);
 
-			$y_coordinate = str_pad(gmp_strval($y_coordinate, 16),64,'0',STR_PAD_LEFT);
+			$y_coordinate = str_pad(gmp_strval(gmp_init($y_coordinate), 16),64,'0',STR_PAD_LEFT);
 			
 			$point = new Point($curve, gmp_strval(gmp_init($x_coordinate, 16),10), gmp_strval(gmp_init($y_coordinate, 16),10), $generator->getOrder());
 		} 
