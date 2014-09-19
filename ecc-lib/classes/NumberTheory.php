@@ -451,7 +451,7 @@ class NumberTheory {
                 }
 
                 if ($n > end(self::$smallprimes)) {
-                    if (is_prime($n)) {
+                    if (self::is_prime($n)) {
                         array_push($result, array($n, 1));
                     } else {
                         $d = end(self::$smallprimes);
@@ -509,7 +509,7 @@ class NumberTheory {
                 }
 
                 if ($n > end(self::$smallprimes)) {
-                    if (is_prime($n)) {
+                    if (self::is_prime($n)) {
                         array_push($result, array($n, 1));
                     } else {
                         $d = end(self::$smallprimes);
