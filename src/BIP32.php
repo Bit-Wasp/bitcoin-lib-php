@@ -558,7 +558,7 @@ class BIP32 {
 				$key['network'] = 'litecoin';
 				$key['version'] = self::$litecoin_testnet_version;
 				break;				
-			case self::$dogecoin_testnet_private :
+			case self::$litecoin_testnet_private :
 				$key['type'] = 'private';
 				$key['testnet'] = true;
 				$key['network'] = 'litecoin';
