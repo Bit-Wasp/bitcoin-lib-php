@@ -16,6 +16,8 @@ This program is free software: you can redistribute it and/or modify
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *************************************************************************/
 
+namespace ECCLib;
+
 /**
  * This class encapsulates the SEC recommended curves
  *

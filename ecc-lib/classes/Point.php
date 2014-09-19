@@ -21,6 +21,7 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 *************************************************************************/
 
+namespace ECCLib;
 
 /*
  * This class is where the elliptic curve arithmetic takes place.
@@ -50,14 +51,14 @@ class Point implements PointInterface {
 
             if (isset($this->curve) && ($this->curve instanceof CurveFp)) {
                 if (!$this->curve->contains($this->x, $this->y)) {
-                    throw new ErrorException("Curve" . print_r($this->curve, true) . " does not contain point ( " . $x . " , " . $y . " )");
-                    
+                    throw new \ErrorException("Curve" . print_r($this->curve, true) . " does not contain point ( " . $x . " , " . $y . " )");
+
                 }
 
                 if ($this->order != null) {
 
                     if (self::cmp(self::mul($order, $this), self::$infinity) != 0) {
-                        throw new ErrorException("SELF * ORDER MUST EQUAL INFINITY.");
+                        throw new \ErrorException("SELF * ORDER MUST EQUAL INFINITY.");
                     }
                 }
             }
@@ -105,7 +106,7 @@ class Point implements PointInterface {
                     return 1;
                 }
             } else {
-                throw new ErrorException("Please install BCMATH or GMP");
+                throw new \ErrorException("Please install BCMATH or GMP");
             }
         }
 
@@ -150,7 +151,7 @@ class Point implements PointInterface {
 
                     return $p3;
                 } else {
-                    throw new ErrorException("The Elliptic Curves do not match.");
+                    throw new \ErrorException("The Elliptic Curves do not match.");
                 }
             } else if (extension_loaded('bcmath') && USE_EXT=='BCMATH') {
 
@@ -183,10 +184,10 @@ class Point implements PointInterface {
 
                     return $p3;
                 }else {
-                    throw new ErrorException("The Elliptic Curves do not match.");
+                    throw new \ErrorException("The Elliptic Curves do not match.");
                 }
             } else {
-                throw new ErrorException("Please install BCMATH or GMP");
+                throw new \ErrorException("Please install BCMATH or GMP");
             }
         }
 
@@ -276,7 +277,7 @@ class Point implements PointInterface {
                     return $result;
                 }
             } else {
-                throw new ErrorException("Please install BCMATH or GMP");
+                throw new \ErrorException("Please install BCMATH or GMP");
             }
         }
 
@@ -298,7 +299,7 @@ class Point implements PointInterface {
                     return bcdiv($result, 2);
                 }
             } else {
-                throw new ErrorException("Please install BCMATH or GMP");
+                throw new \ErrorException("Please install BCMATH or GMP");
             }
         }
 
@@ -359,7 +360,7 @@ class Point implements PointInterface {
 
                 return $p3;
             } else {
-                throw new ErrorException("Please install BCMATH or GMP");
+                throw new \ErrorException("Please install BCMATH or GMP");
             }
         }
 

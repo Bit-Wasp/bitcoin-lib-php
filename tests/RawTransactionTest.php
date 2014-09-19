@@ -1,6 +1,8 @@
 <?php
 
 use BitWasp\BitcoinLib\RawTransaction as RawTransaction;
+use ECCLib\Point;
+use ECCLib\SECcurve;
 
 require_once(__DIR__. '/../vendor/autoload.php');
 

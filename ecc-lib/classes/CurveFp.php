@@ -21,6 +21,8 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 *************************************************************************/
 
+namespace ECCLib;
+
 /**
  * This class is a representation of an EC over a field modulo a prime number
  *
@@ -64,7 +66,7 @@ class CurveFp implements CurveFpInterface {
                 return false;
             }
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -97,7 +99,7 @@ class CurveFp implements CurveFpInterface {
                 return 1;
             }
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 

@@ -21,6 +21,8 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 *************************************************************************/
 
+namespace ECCLib;
+
 /**
  * This class is the implementation of ECDH.
  * EcDH is safe key exchange and achieves
@@ -70,7 +72,7 @@ class EcDH implements EcDHInterface {
 
             return $this->pubPoint;
         } else {
-            throw new ErrorException("Please Install BCMATH or GMP.");
+            throw new \ErrorException("Please Install BCMATH or GMP.");
         }
     }
 

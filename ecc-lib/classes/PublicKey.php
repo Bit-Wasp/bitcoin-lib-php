@@ -21,6 +21,8 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 *************************************************************************/
 
+namespace ECCLib;
+
 /**
  * This class serves as public- private key exchange for signature verification
  */
@@ -38,22 +40,22 @@ class PublicKey implements PublicKeyInterface {
         $n = $generator->getOrder();
 
         if ($n == null) {
-            throw new ErrorExcpetion("Generator Must have order.");
+            throw new \ErrorException("Generator Must have order.");
         }
         if (Point::cmp(Point::mul($n, $point), Point::$infinity) != 0) {
-            throw new ErrorException("Generator Point order is bad.");
+            throw new \ErrorException("Generator Point order is bad.");
         }
 
         if (extension_loaded('gmp') && USE_EXT=='GMP') {
             if (gmp_cmp($point->getX(), 0) < 0 || gmp_cmp($n, $point->getX()) <= 0 || gmp_cmp($point->getY(), 0) < 0 || gmp_cmp($n, $point->getY()) <= 0) {
-                throw new ErrorException("Generator Point has x and y out of range.");
+                throw new \ErrorException("Generator Point has x and y out of range.");
             }
         } else if (extension_loaded('bcmath') && USE_EXT=='BCMATH') {
             if (bccomp($point->getX(), 0) == -1 || bccomp($n, $point->getX()) != 1 || bccomp($point->getY(), 0) == -1 || bccomp($n, $point->getY()) != 1) {
-                throw new ErrorException("Generator Point has x and y out of range.");
+                throw new \ErrorException("Generator Point has x and y out of range.");
             }
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -107,7 +109,7 @@ class PublicKey implements PublicKeyInterface {
                 return false;
             }
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 

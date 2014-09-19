@@ -21,6 +21,8 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 *************************************************************************/
 
+namespace ECCLib;
+
 /**
  * Implementation of some number theoretic algorithms
  *
@@ -36,20 +38,20 @@ class NumberTheory {
     public static function modular_exp($base, $exponent, $modulus) {
         if (extension_loaded('gmp') && USE_EXT=='GMP') {
             if ($exponent < 0) {
-                return new ErrorException("Negative exponents (" . $exponent . ") not allowed");
+                return new \ErrorException("Negative exponents (" . $exponent . ") not allowed");
             } else {
                 $p = gmp_strval(gmp_powm($base, $exponent, $modulus));
                 return $p;
             }
         } else if (extension_loaded('bcmath') && USE_EXT=='BCMATH') {
             if ($exponent < 0) {
-                return new ErrorException("Negative exponents (" . $exponent . ") not allowed");
+                return new \ErrorException("Negative exponents (" . $exponent . ") not allowed");
             } else {
                 $p = bcpowmod($base, $exponent, $modulus);
                 return $p;
             }
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -87,7 +89,7 @@ class NumberTheory {
                 return $poly;
             }
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -121,7 +123,7 @@ class NumberTheory {
 
             return self::polynomial_reduce_mod($prod, $polymod, $p);
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -183,7 +185,7 @@ class NumberTheory {
                 return $s;
             }
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -220,7 +222,7 @@ class NumberTheory {
                 return bcmul($s, self::jacobi(bcmod($n, $a1), $a1));
             }
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -236,7 +238,7 @@ class NumberTheory {
                 $jac = self::jacobi($a, $p);
 
                 if ($jac == -1)
-                    throw new SquareRootException($a . " has no square root modulo " . $p);
+                    throw new \SquareRootException($a . " has no square root modulo " . $p);
 
                 if (gmp_strval(gmp_Utils::gmp_mod2($p, 4)) == 3)
                     return self::modular_exp($a, gmp_strval(gmp_div(gmp_add($p, 1), 4)), $p);
@@ -272,7 +274,7 @@ class NumberTheory {
                 $jac = self::jacobi($a, $p);
 
                 if ($jac == -1)
-                    throw new SquareRootException($a . " has no square root modulo " . $p);
+                    throw new \SquareRootException($a . " has no square root modulo " . $p);
 
                 if (bcmod($p, 4) == 3)
                     return self::modular_exp($a, bcdiv(bcadd($p, 1), 4), $p);
@@ -299,7 +301,7 @@ class NumberTheory {
                 }
             }
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -346,12 +348,12 @@ class NumberTheory {
                 else
                     $result = bcadd($ud, $m);
             }else {
-                throw new ErrorException("ERROR: $a and $m are NOT relatively prime.");
+                throw new \ErrorException("ERROR: $a and $m are NOT relatively prime.");
             }
 
             return $result;
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -373,7 +375,7 @@ class NumberTheory {
 
             return $b;
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -385,7 +387,7 @@ class NumberTheory {
             if (count($a) > 1)
                 return array_reduce($a, "self::gcd2", $a[0]);
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -405,7 +407,7 @@ class NumberTheory {
 
             return $lcm;
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -417,7 +419,7 @@ class NumberTheory {
             if (count($a) > 1)
                 return array_reduce($a, "self::lcm2", $a[0]);
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -539,7 +541,7 @@ class NumberTheory {
                 return $result;
             }
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -585,7 +587,7 @@ class NumberTheory {
                 return $result;
             }
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -595,7 +597,7 @@ class NumberTheory {
         } else if (extension_loaded('bcmath') && USE_EXT=='BCMATH') {
             return self::carmichael_of_factorized(self::factorization($n));
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -623,7 +625,7 @@ class NumberTheory {
 
             return $result;
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -645,7 +647,7 @@ class NumberTheory {
             else
                 return bcmul(($p - 1), bcpow($p, ($a - 1)));
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -681,7 +683,7 @@ class NumberTheory {
                 return $result;
             }
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -721,7 +723,7 @@ class NumberTheory {
 
             return $a;
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -731,7 +733,7 @@ class NumberTheory {
         } else if (extension_loaded('bcmath') && USE_EXT=='BCMATH') {
             return self::order_mod($x, self::largest_factor_relatively_prime($m, $x));
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -785,7 +787,7 @@ class NumberTheory {
 
             return true;
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -805,7 +807,7 @@ class NumberTheory {
 
             return $result;
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 

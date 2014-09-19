@@ -21,6 +21,8 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 *************************************************************************/
 
+namespace ECCLib;
+
 /**
  * The bcmath extension in PHP does not implement certain operations
  * for elliptic curve encryption
@@ -41,7 +43,7 @@ class bcmath_Utils {
 
             return bcadd(bcmul(bcdiv(mt_rand(0, mt_getrandmax()), mt_getrandmax(), strlen($max)), bcsub(bcadd($max, 1), $min)), $min);
         } else {
-            throw new ErrorException("Please install BCMATH");
+            throw new \ErrorException("Please install BCMATH");
         }
     }
 
@@ -54,7 +56,7 @@ class bcmath_Utils {
 
             return $dec;
         } else {
-            throw new ErrorException("Please install BCMATH");
+            throw new \ErrorException("Please install BCMATH");
         }
     }
 
@@ -79,7 +81,7 @@ class bcmath_Utils {
                 $hex[$i] = dechex(hexdec($hex[$i]) + 1);
             return strrev($hex);
         } else {
-            throw new ErrorException("Please install BCMATH");
+            throw new \ErrorException("Please install BCMATH");
         }
     }
 
@@ -87,7 +89,7 @@ class bcmath_Utils {
         if (extension_loaded('bcmath') && USE_EXT=='BCMATH') {
             return self::_bcbitwise_internal($x, $y, 'bcmath_Utils::_bcand');
         } else {
-            throw new ErrorException("Please install BCMATH");
+            throw new \ErrorException("Please install BCMATH");
         }
     }
 
@@ -97,7 +99,7 @@ class bcmath_Utils {
         if (extension_loaded('bcmath') && USE_EXT=='BCMATH') {
             return self::_bcbitwise_internal($x, $y, 'self::_bcor');
         } else {
-            throw new ErrorException("Please install BCMATH");
+            throw new \ErrorException("Please install BCMATH");
         }
     }
 
@@ -107,7 +109,7 @@ class bcmath_Utils {
         if (extension_loaded('bcmath') && USE_EXT=='BCMATH') {
             return self::_bcbitwise_internal($x, $y, 'self::_bcxor');
         } else {
-            throw new ErrorException("Please install BCMATH");
+            throw new \ErrorException("Please install BCMATH");
         }
     }
 
@@ -118,7 +120,7 @@ class bcmath_Utils {
             bcscale(0);
             return bcmul($num, bcpow(2, $shift));
         } else {
-            throw new ErrorException("Please install BCMATH");
+            throw new \ErrorException("Please install BCMATH");
         }
     }
 
@@ -129,7 +131,7 @@ class bcmath_Utils {
             bcscale(0);
             return bcdiv($num, bcpow(2, $shift));
         } else {
-            throw new ErrorException("Please install BCMATH");
+            throw new \ErrorException("Please install BCMATH");
         }
     }
 
@@ -209,7 +211,7 @@ class bcmath_Utils {
             $value = $digits[intval($dec)] . $value;
             return (string) $value;
         } else {
-            throw new ErrorException("Please install BCMATH");
+            throw new \ErrorException("Please install BCMATH");
         }
     }
 
@@ -231,7 +233,7 @@ class bcmath_Utils {
             }
             return (string) $dec;
         } else {
-            throw new ErrorException("Please install BCMATH");
+            throw new \ErrorException("Please install BCMATH");
         }
     }
 

@@ -1,6 +1,9 @@
 <?php
 
 namespace BitWasp\BitcoinLib;
+use ECCLib\gmp_Utils;
+use ECCLib\Point;
+use ECCLib\SECcurve;
 
 /**
  * Electrum Library
@@ -61,17 +64,17 @@ class Electrum {
 			$seed = $seed['seed'];
 		}
 		// Multiply the seed by generator point.
-		$g = \SECcurve::generator_secp256k1();
+		$g = SECcurve::generator_secp256k1();
 		$seed = gmp_init($seed, 16);
 		try 
 		{
-			$secretG = \Point::mul($seed, $g);
+			$secretG = Point::mul($seed, $g);
 			$x =  str_pad(gmp_strval($secretG->getX(), 16), 64, '0', STR_PAD_LEFT);
 			$y =  str_pad(gmp_strval($secretG->getY(), 16), 64, '0', STR_PAD_LEFT);
 		} 
-		catch (Exception $e) 
+		catch (\Exception $e) 
 		{
-			throw new ErrorException($e->getMessage());		// Exception a good idea?
+			throw new \ErrorException($e->getMessage());		// Exception a good idea?
 		}
 		
 		// Return the master public key.
@@ -99,7 +102,7 @@ class Electrum {
 
 		$mpk = self::generate_mpk($seed);
 
-		$g = \SECcurve::generator_secp256k1();
+		$g = SECcurve::generator_secp256k1();
 		$n = $g->getOrder();
 		// Generate the private key by calculating: 
 		// ($seed + (sha256(sha256($iteration:$change:$binary_mpk))) % $n)h
@@ -132,8 +135,8 @@ class Electrum {
 		$change = ($change == 0) ? '0' : '1';
 		
 		// Generate the curve, and the generator point.
-		$curve = \SECcurve::curve_secp256k1();
-		$gen = \SECcurve::generator_secp256k1();
+		$curve = SECcurve::curve_secp256k1();
+		$gen = SECcurve::generator_secp256k1();
 			
 		// Prepare the input values, by converting the MPK to X and Y coordinates
 		$x = gmp_init(substr($mpk, 0, 64), 16);
@@ -145,16 +148,16 @@ class Electrum {
 		try 
 		{
 			// Add the Point defined by $x and $y, to the result of EC multiplication of $z by $gen
-			$pt = \Point::add(new \Point($curve, $x, $y), \Point::mul($z, $gen));
+			$pt = Point::add(new Point($curve, $x, $y), Point::mul($z, $gen));
 			
 			// Generate the uncompressed public key.
 			$keystr = '04'
 					. str_pad(gmp_strval($pt->x, 16), 64, '0', STR_PAD_LEFT)
 					. str_pad(gmp_strval($pt->y, 16), 64, '0', STR_PAD_LEFT);
 		}
-		catch (Exception $e) 
+		catch (\Exception $e)
 		{
-			throw new ErrorException($e->getMessage());
+			throw new \ErrorException($e->getMessage());
 		}
 		
 		return ($compressed == TRUE) ? BitcoinLib::compress_public_key($keystr) : $keystr;
@@ -199,7 +202,7 @@ class Electrum {
 			$index_w1 = array_search($word1, self::$words); 
 			$index_w2 = array_search($word2, self::$words)%$n; 
 			$index_w3 = array_search($word3, self::$words)%$n;
-			$x = $index_w1+$n*(\gmp_Utils::gmp_mod2($index_w2-$index_w1,$n))+$n*$n*(\gmp_Utils::gmp_mod2($index_w3-$index_w2,$n));
+			$x = $index_w1+$n*(gmp_Utils::gmp_mod2($index_w2-$index_w1,$n))+$n*$n*(gmp_Utils::gmp_mod2($index_w3-$index_w2,$n));
 			$out .= BitcoinLib::hex_encode($x);
 		}
 		return $out;

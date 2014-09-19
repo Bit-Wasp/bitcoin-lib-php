@@ -21,6 +21,8 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 *************************************************************************/
 
+namespace ECCLib;
+
 /**
  * This class serves as public- private key exchange for signature verification.
  */
@@ -44,12 +46,12 @@ class PrivateKey implements PrivateKeyInterface {
             $r = $p1->getX();
 
             if (gmp_cmp($r, 0) == 0) {
-                throw new ErrorException("error: random number R = 0 <br />");
+                throw new \ErrorException("error: random number R = 0 <br />");
             }
             $s = gmp_Utils::gmp_mod2(gmp_mul(NumberTheory::inverse_mod($k, $n), gmp_Utils::gmp_mod2(gmp_add($hash, gmp_mul($this->secret_multiplier, $r)), $n)), $n);
 
             if (gmp_cmp($s, 0) == 0) {
-                throw new ErrorException("error: random number S = 0<br />");
+                throw new \ErrorException("error: random number S = 0<br />");
             }
 
             return new Signature($r, $s);
@@ -61,17 +63,17 @@ class PrivateKey implements PrivateKeyInterface {
             $r = $p1->getX();
 
             if (bccomp($r, 0) == 0) {
-                throw new ErrorException("error: random number R = 0 <br />");
+                throw new \ErrorException("error: random number R = 0 <br />");
             }
             $s = bcmod(bcmul(NumberTheory::inverse_mod($k, $n), bcmod(bcadd($hash, bcmul($this->secret_multiplier, $r)), $n)), $n);
 
             if (bccomp($s, 0) == 0) {
-                throw new ErrorExcpetion("error: random number S = 0<br />");
+                throw new \ErrorException("error: random number S = 0<br />");
             }
 
             return new Signature($r, $s);
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -109,7 +111,7 @@ class PrivateKey implements PrivateKeyInterface {
                 return $result;
             }
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -129,7 +131,7 @@ class PrivateKey implements PrivateKeyInterface {
             }
             return $result;
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 
@@ -186,7 +188,7 @@ class PrivateKey implements PrivateKeyInterface {
             }
             return true;
         } else {
-            throw new ErrorException("Please install BCMATH or GMP");
+            throw new \ErrorException("Please install BCMATH or GMP");
         }
     }
 

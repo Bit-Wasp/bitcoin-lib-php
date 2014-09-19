@@ -21,6 +21,8 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 *************************************************************************/
 
+namespace ECCLib;
+
 /**
  * This suite tests point validity, x9.x.x etc. for EC, ECDSA,ECDH
  * This class also demonstrates how to use the EC classes.

@@ -11,7 +11,8 @@
     "minimum-stability": "dev",
     "autoload": {
         "psr-4": {
-            "BitWasp\\BitcoinLib\\": "src/"
+            "BitWasp\\BitcoinLib\\": "src/",
+            "EccLib\\": ["ecc-lib/classes", "ecc-lib/classes/interface"]
         },
         "files": ["ecc-lib/auto_load.php"],
         "classmap": ["ecc-lib/classes/"]
