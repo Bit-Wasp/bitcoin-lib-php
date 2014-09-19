@@ -4,6 +4,7 @@
       <file>tests/BitcoinLibTest.php</file>
       <file>tests/RawTransactionTest.php</file>
       <file>tests/ElectrumTest.php</file>
+      <file>tests/BIP32CoreTest.php</file>
       <file>tests/BIP32Test.php</file>
     </testsuite>
   </testsuites>
