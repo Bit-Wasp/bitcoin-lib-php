@@ -1053,6 +1053,7 @@ class RawTransaction
                 if ($key_info['type'] == 'scripthash') {
 
                     $signatures = self::extract_input_signatures_p2sh($input, $message_hash[$vin], $key_info);
+
                     $sign_count += count($signatures);
 
                     // Create Signature
@@ -1100,12 +1101,16 @@ class RawTransaction
 
         // If the transaction isn't fully signed, return false.
         // If it's fully signed, perform signature verification, return true if valid, or invalid if signatures are incorrect.
-        $complete = ((($req_sigs - $sign_count) == 0)
+	    $complete = ((($req_sigs - $sign_count) <= 0)
             ? ((self::validate_signed_transaction($new_raw, $inputs, $magic_byte, $magic_p2sh_byte) == TRUE) ? 'true' : 'false')
             : 'false');
 
-        return array('hex' => $new_raw,
-            'complete' => $complete);
+	    return array(
+		    'hex' => $new_raw,
+		    'complete' => $complete,
+		    'sign_count' => $sign_count,
+		    'req_sigs' => $req_sigs
+	    );
     }
 
     /**
@@ -1375,7 +1380,12 @@ class RawTransaction
 
         if (count($wifs) > 0)
             foreach ($wifs as $wif) {
-                $key = BitcoinLib::WIF_to_private_key($wif);
+                if (is_array($wif) && isset($wif['key'], $wif['is_compressed'])) {
+                    $key = $wif;
+                } else {
+                    $key = BitcoinLib::WIF_to_private_key($wif);
+                }
+
                 $pubkey = BitcoinLib::private_key_to_public_key($key['key'], $key['is_compressed']);
                 $pk_hash = BitcoinLib::hash160($pubkey);
 

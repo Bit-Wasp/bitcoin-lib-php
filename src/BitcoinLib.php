@@ -447,7 +447,8 @@ class BitcoinLib {
      * @param $address_version
      * @return string
      */
-    public static function private_key_to_address($private_key, $address_version) {
+	public static function private_key_to_address($private_key, $address_version = null) {
+		$address_version = self::magicByte($address_version);
 
 		$public_key = self::private_key_to_public_key($private_key);
 		return self::public_key_to_address($public_key, self::magicByte($address_version));
