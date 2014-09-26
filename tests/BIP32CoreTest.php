@@ -1,7 +1,6 @@
 <?php
 
-use BitWasp\BitcoinLib\BIP32 as BIP32;
-use ECCLib\gmp_Utils;
+use Mdanter\Ecc\GmpUtils;
 
 require_once(__DIR__ . '/../vendor/autoload.php');
 
@@ -36,12 +35,12 @@ class BIP32CoreTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals("114707950473724689011738672834614641175224213254516740956669650297796849798169", gmp_strval($gmp_add));
 		$this->assertEquals("114707950473724689011738672834614641175224213254516740956669650297796849798169", gmp_strval(gmp_div_r($gmp_add, gmp_init($n))));
 
-		// tests for internal working of gmp_Utils::gmp_mod2
+		// tests for internal working of GmpUtils::gmpMod2
 		$this->assertEquals("-4", gmp_strval(gmp_cmp(0, gmp_div_r($gmp_add, $n))));
 		$this->assertEquals("230500039711040884435309657843302549028061777533591645339274813439315011292506", gmp_strval(gmp_add(gmp_init($n), gmp_div_r($gmp_add, gmp_init($n)))));
 
 
-		$gmp_mod2 = gmp_Utils::gmp_mod2($gmp_add, $n);
+		$gmp_mod2 = GmpUtils::gmpMod2($gmp_add, $n);
 
 		$this->assertTrue(is_string($gmp_mod2));
 		$this->assertEquals("114707950473724689011738672834614641175224213254516740956669650297796849798169", $gmp_mod2);

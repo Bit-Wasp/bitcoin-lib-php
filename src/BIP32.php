@@ -2,10 +2,14 @@
 
 namespace BitWasp\BitcoinLib;
 
-// See tests/test_bip32.php for tests from github.
-use ECCLib\gmp_Utils;
-use ECCLib\Point;
-use ECCLib\SECcurve;
+use Mdanter\Ecc\SECcurve;
+use Mdanter\Ecc\GmpUtils;
+use Mdanter\Ecc\Point;
+
+/*
+ * for the usage of GMP over BcMath because we rely on GMP almost everywhere
+ */
+\Mdanter\Ecc\ModuleConfig::useGmp();
 
 /**
  * BIP32
@@ -85,7 +89,7 @@ class BIP32 {
 		$I = hash_hmac('sha512', pack("H*", $seed), "Bitcoin seed");
 		$I_l = substr($I, 0, 64);
 		$I_r = substr($I, 64, 64);
-		
+
 		// Error checking!
 		if(self::check_valid_hmac_key($I_l) == FALSE)
 			return FALSE;
@@ -176,7 +180,7 @@ class BIP32 {
 			$key = str_pad( 
 						 gmp_strval(
 							gmp_init(
-								gmp_Utils::gmp_mod2(
+								GmpUtils::gmpMod2(
 									gmp_add(
 										gmp_init($I_l, 16),
 										gmp_init($private_key, 16)

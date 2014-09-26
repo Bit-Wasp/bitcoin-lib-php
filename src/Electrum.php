@@ -1,9 +1,15 @@
 <?php
 
 namespace BitWasp\BitcoinLib;
-use ECCLib\gmp_Utils;
-use ECCLib\Point;
-use ECCLib\SECcurve;
+
+use Mdanter\Ecc\SECcurve;
+use Mdanter\Ecc\GmpUtils;
+use Mdanter\Ecc\Point;
+
+/*
+ * for the usage of GMP over BcMath because we rely on GMP almost everywhere
+ */
+\Mdanter\Ecc\ModuleConfig::useGmp();
 
 /**
  * Electrum Library
@@ -108,7 +114,7 @@ class Electrum {
 		// ($seed + (sha256(sha256($iteration:$change:$binary_mpk))) % $n)h
 		$private_key = gmp_strval(
 			gmp_init(
-				gmp_Utils::gmp_mod2(
+				GmpUtils::gmpMod2(
 					gmp_add(
 						gmp_init($seed, 16),
 						gmp_init(hash('sha256', hash('sha256', "$iteration:$change:".pack('H*', $mpk), TRUE)), 16)
@@ -204,7 +210,7 @@ class Electrum {
 			$index_w1 = array_search($word1, self::$words); 
 			$index_w2 = array_search($word2, self::$words)%$n; 
 			$index_w3 = array_search($word3, self::$words)%$n;
-			$x = $index_w1+$n*(gmp_Utils::gmp_mod2($index_w2-$index_w1,$n))+$n*$n*(gmp_Utils::gmp_mod2($index_w3-$index_w2,$n));
+			$x = $index_w1+$n*(GmpUtils::gmpMod2($index_w2-$index_w1,$n))+$n*$n*(GmpUtils::gmpMod2($index_w3-$index_w2,$n));
 			$out .= BitcoinLib::hex_encode($x);
 		}
 		return $out;

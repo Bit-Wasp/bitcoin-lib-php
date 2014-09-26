@@ -1,11 +1,17 @@
 <?php
 
 namespace BitWasp\BitcoinLib;
-use ECCLib\Point;
-use ECCLib\PrivateKey;
-use ECCLib\PublicKey;
-use ECCLib\SECcurve;
-use ECCLib\Signature;
+
+use Mdanter\Ecc\SECcurve;
+use Mdanter\Ecc\Point;
+use Mdanter\Ecc\PrivateKey;
+use Mdanter\Ecc\PublicKey;
+use Mdanter\Ecc\Signature;
+
+/*
+ * for the usage of GMP over BcMath because we rely on GMP almost everywhere
+ */
+\Mdanter\Ecc\ModuleConfig::useGmp();
 
 /**
  * Raw Transaction Library
@@ -1090,7 +1096,7 @@ class RawTransaction
      * the txout being spent, and the relevant key for signing, and
      * encodes the signature in DER format.
      *
-     * @param    \Signature $signature
+     * @param    Signature $signature
      * @return    string
      */
     public static function encode_signature(Signature $signature)

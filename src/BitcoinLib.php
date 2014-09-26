@@ -1,10 +1,16 @@
 <?php
 
 namespace BitWasp\BitcoinLib;
-use ECCLib\gmp_Utils;
-use ECCLib\NumberTheory;
-use ECCLib\Point;
-use ECCLib\SECcurve;
+
+use Mdanter\Ecc\SECcurve;;
+use Mdanter\Ecc\NumberTheory;
+use Mdanter\Ecc\Point;
+use Mdanter\Ecc\GmpUtils;
+
+/*
+ * for the usage of GMP over BcMath because we rely on GMP almost everywhere
+ */
+\Mdanter\Ecc\ModuleConfig::useGmp();
 
 /**
  * BitcoinLib
@@ -16,7 +22,6 @@ use ECCLib\SECcurve;
  * 
  * Thomas Kerin
  */
-
 class BitcoinLib {
 	
 	/**
@@ -430,7 +435,7 @@ class BitcoinLib {
 	 */
 	public static function compress_public_key($public_key)
 	{
-		return '0'.(((gmp_Utils::gmp_mod2(gmp_init(substr($public_key, 66, 64), 16), 2))==0) ? '2' : '3').substr($public_key, 2, 64);
+		return '0'.(((GmpUtils::gmpMod2(gmp_init(substr($public_key, 66, 64), 16), 2))==0) ? '2' : '3').substr($public_key, 2, 64);
 	}
 
 	/**
@@ -456,14 +461,14 @@ class BitcoinLib {
 
 		try
 		{
-			$x3 = NumberTheory::modular_exp( $x, 3, $curve->getPrime() );
+			$x3 = NumberTheory::modularExp( $x, 3, $curve->getPrime() );
 			
 			$y2 = gmp_add(
 						$x3,
 						$curve->getB()
 					);
 			
-			$y0 = NumberTheory::square_root_mod_prime(
+			$y0 = NumberTheory::squareRootModPrime(
 						gmp_strval($y2, 10),
 						$curve->getPrime()
 					);
@@ -474,8 +479,8 @@ class BitcoinLib {
 			$y1 = gmp_strval(gmp_sub($curve->getPrime(), $y0), 10);
 			
 			$y_coordinate = ($y_byte == '02') 
-									? ((gmp_Utils::gmp_mod2(gmp_init($y0, 10), 2) == '0') ? $y0 : $y1)
-									: ((gmp_Utils::gmp_mod2(gmp_init($y0, 10), 2) !== '0') ? $y0 : $y1);
+									? ((GmpUtils::gmpMod2(gmp_init($y0, 10), 2) == '0') ? $y0 : $y1)
+									: ((GmpUtils::gmpMod2(gmp_init($y0, 10), 2) !== '0') ? $y0 : $y1);
 
 			$y_coordinate = str_pad(gmp_strval(gmp_init($y_coordinate), 16),64,'0',STR_PAD_LEFT);
 			
