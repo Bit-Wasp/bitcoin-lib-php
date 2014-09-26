@@ -70,7 +70,7 @@ class Electrum {
 			$seed = $seed['seed'];
 		}
 		// Multiply the seed by generator point.
-		$g = SECcurve::generator_secp256k1();
+		$g = SECcurve::generatorSecp256k1();
 		$seed = gmp_init($seed, 16);
 		try 
 		{
@@ -108,7 +108,7 @@ class Electrum {
 
 		$mpk = self::generate_mpk($seed);
 
-		$g = SECcurve::generator_secp256k1();
+		$g = SECcurve::generatorSecp256k1();
 		$n = $g->getOrder();
 		// Generate the private key by calculating: 
 		// ($seed + (sha256(sha256($iteration:$change:$binary_mpk))) % $n)h
@@ -143,8 +143,8 @@ class Electrum {
 		$change = ($change == 0) ? '0' : '1';
 		
 		// Generate the curve, and the generator point.
-		$curve = SECcurve::curve_secp256k1();
-		$gen = SECcurve::generator_secp256k1();
+		$curve = SECcurve::curveSecp256k1();
+		$gen = SECcurve::generatorSecp256k1();
 			
 		// Prepare the input values, by converting the MPK to X and Y coordinates
 		$x = gmp_init(substr($mpk, 0, 64), 16);

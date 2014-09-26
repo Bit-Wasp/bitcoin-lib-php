@@ -230,7 +230,7 @@ class BitcoinLib {
 	 * @return	string
 	 */
 	public static function get_new_private_key() {
-		$g = SECcurve::generator_secp256k1();
+		$g = SECcurve::generatorSecp256k1();
 		$n = $g->getOrder();
 
 		$privKey = gmp_strval(gmp_init(bin2hex(openssl_random_pseudo_bytes(32)),16));
@@ -254,7 +254,7 @@ class BitcoinLib {
 	 * @return	string
 	 */
 	public static function private_key_to_public_key($privKey, $compressed = FALSE) {
-		$g = SECcurve::generator_secp256k1();
+		$g = SECcurve::generatorSecp256k1();
     
 		$privKey = self::hex_decode($privKey);  
 		try 
@@ -456,8 +456,8 @@ class BitcoinLib {
 		
 		$x = gmp_strval(gmp_init($x_coordinate, 16),10);
 
-		$curve = SECcurve::curve_secp256k1();
-		$generator = SECcurve::generator_secp256k1();
+		$curve = SECcurve::curveSecp256k1();
+		$generator = SECcurve::generatorSecp256k1();
 
 		try
 		{
@@ -518,8 +518,8 @@ class BitcoinLib {
 		else if (strlen($public_key) == '130')
 		{
 			// Uncompressed key, try to create the point
-			$curve = SECcurve::curve_secp256k1();
-			$generator = SECcurve::generator_secp256k1();
+			$curve = SECcurve::curveSecp256k1();
+			$generator = SECcurve::generatorSecp256k1();
 		
 			$x = substr($public_key, 2, 64);
 			$y = substr($public_key, 66, 64);
@@ -604,7 +604,7 @@ class BitcoinLib {
 		}
 
 		// Check private key within limit.
-		$g = SECcurve::generator_secp256k1();
+		$g = SECcurve::generatorSecp256k1();
 		$n = $g->getOrder();
 		if (gmp_strval(gmp_init($hex, 16),10) >= $n)
 			return FALSE;

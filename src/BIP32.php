@@ -172,7 +172,7 @@ class BIP32 {
 			
 		array_push($generated, (self::get_address_number($i, $is_prime).(($is_prime == 1) ? "'" : NULL)));
 		
-		$g = SECcurve::generator_secp256k1();
+		$g = SECcurve::generatorSecp256k1();
 		$n = $g->getOrder();
 		
 		if($previous['type'] == 'private') {
@@ -194,7 +194,7 @@ class BIP32 {
 		} else if($previous['type'] == 'public') {
 			// newPoint + parentPubkeyPoint
 			$decompressed = BitcoinLib::decompress_public_key($public_key); // Can return FALSE. Throw exception?
-			$curve = SECcurve::curve_secp256k1();
+			$curve = SECcurve::curveSecp256k1();
 			
 			// Prepare offset, by multiplying Il by g, and adding this to the previous public key point.
 			// Create a new point by adding the two.
@@ -628,7 +628,7 @@ class BIP32 {
 	 * @return	boolean
 	 */
 	public static function check_valid_hmac_key($key) {
-		$g = SECcurve::generator_secp256k1();
+		$g = SECcurve::generatorSecp256k1();
 		$n = $g->getOrder();
 		
 		// initialize the key as a base 16 number.
