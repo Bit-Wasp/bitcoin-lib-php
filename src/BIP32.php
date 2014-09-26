@@ -588,8 +588,9 @@ class BIP32 {
 	 * This function is used to convert the $address_number, i, into a 32
 	 * bit unsigned integer. If $set_prime = 1, then it will flip the left-most
 	 * bit, indicating a prime derivation must be used.
-	 * 
+	 *
 	 * @param	int	$address_number
+	 * @param   int $set_prime
 	 * @return	string
 	 */
 	public static function calc_address_bytes($address_number, $set_prime = 0) {
