@@ -1163,7 +1163,7 @@ class RawTransaction
                 $generated .= self::_dec_to_bytes(strlen($sig_array[$key]) / 2, 1)
                     . $sig_array[$key];
         }
-        $generated .= '4c' . self::_dec_to_bytes(strlen($script_info['script']) / 2, 1)
+        $generated .= self::_dec_to_bytes(strlen($script_info['script']) / 2, 1)
             . $script_info['script'];
         return $generated;
     }
