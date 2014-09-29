@@ -2,7 +2,7 @@
 
 namespace BitWasp\BitcoinLib;
 
-use Mdanter\Ecc\SECcurve;
+use Mdanter\Ecc\SECGcurve;
 use Mdanter\Ecc\Point;
 use Mdanter\Ecc\PrivateKey;
 use Mdanter\Ecc\PublicKey;
@@ -664,7 +664,7 @@ class RawTransaction
     {
         $signature = self::decode_signature($sig);
         $test_signature = new Signature(gmp_init($signature['r'], 16), gmp_init($signature['s'], 16));
-        $generator = SECcurve::generatorSecp256k1();
+        $generator = SECGcurve::generator256k1();
         $curve = $generator->getCurve();
 
 	    if (strlen($key) == '66') {
@@ -1014,7 +1014,7 @@ class RawTransaction
             if (isset($wallet[$tx_info['hash160']])) {
 
                 $key_info = $wallet[$tx_info['hash160']];
-                $generator = SECcurve::generatorSecp256k1();
+                $generator = SECGcurve::generator256k1();
 
                 if ($key_info['type'] == 'scripthash') {
 

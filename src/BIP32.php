@@ -2,7 +2,7 @@
 
 namespace BitWasp\BitcoinLib;
 
-use Mdanter\Ecc\SECcurve;
+use Mdanter\Ecc\SECGcurve;
 use Mdanter\Ecc\GmpUtils;
 use Mdanter\Ecc\Point;
 
@@ -172,7 +172,7 @@ class BIP32 {
 			
 		array_push($generated, (self::get_address_number($i, $is_prime).(($is_prime == 1) ? "'" : NULL)));
 		
-		$g = SECcurve::generatorSecp256k1();
+		$g = SECGcurve::generator256k1();
 		$n = $g->getOrder();
 		
 		if($previous['type'] == 'private') {
@@ -194,7 +194,7 @@ class BIP32 {
 		} else if($previous['type'] == 'public') {
 			// newPoint + parentPubkeyPoint
 			$decompressed = BitcoinLib::decompress_public_key($public_key); // Can return FALSE. Throw exception?
-			$curve = SECcurve::curveSecp256k1();
+			$curve = SECGcurve::curve256k1();
 			
 			// Prepare offset, by multiplying Il by g, and adding this to the previous public key point.
 			// Create a new point by adding the two.
@@ -620,7 +620,7 @@ class BIP32 {
 	 * 
 	 * This function checks that the generated private keys meet the standard
 	 * for private keys, as imposed by the secp256k1 curve. The key can't
-	 * be zero, nor can it >= $n, which is the order of the secp256k1 
+	 * be zero, nor can it >= $n, which is the order of the secp256k1
 	 * curve. Returning false trigger an error, or cause the program to
 	 * increase the address number and rerun the CKD function.
 	 * 
@@ -628,7 +628,7 @@ class BIP32 {
 	 * @return	boolean
 	 */
 	public static function check_valid_hmac_key($key) {
-		$g = SECcurve::generatorSecp256k1();
+		$g = SECGcurve::generator256k1();
 		$n = $g->getOrder();
 		
 		// initialize the key as a base 16 number.
