@@ -14,15 +14,13 @@
             "BitWasp\\BitcoinLib\\": "src/"
         }
     },
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/blocktrail/phpecc"
-        }
-    ],
     "require": {
         "mdanter/ecc": "dev-master",
         "php": ">=5.3.3",
         "ext-gmp": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit":"~3.7",
+        "squizlabs/php_codesniffer":"~1.5"
     }
 }
