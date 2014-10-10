@@ -2,7 +2,14 @@
 
 namespace BitWasp\BitcoinLib;
 
-// See tests/test_bip32.php for tests from github.
+use Mdanter\Ecc\SECGcurve;
+use Mdanter\Ecc\GmpUtils;
+use Mdanter\Ecc\Point;
+
+/*
+ * for the usage of GMP over BcMath because we rely on GMP almost everywhere
+ */
+\Mdanter\Ecc\ModuleConfig::useGmp();
 
 /**
  * BIP32
@@ -82,7 +89,7 @@ class BIP32 {
 		$I = hash_hmac('sha512', pack("H*", $seed), "Bitcoin seed");
 		$I_l = substr($I, 0, 64);
 		$I_r = substr($I, 64, 64);
-		
+
 		// Error checking!
 		if(self::check_valid_hmac_key($I_l) == FALSE)
 			return FALSE;
@@ -165,19 +172,21 @@ class BIP32 {
 			
 		array_push($generated, (self::get_address_number($i, $is_prime).(($is_prime == 1) ? "'" : NULL)));
 		
-		$g = \SECcurve::generator_secp256k1();
+		$g = SECGcurve::generator256k1();
 		$n = $g->getOrder();
 		
 		if($previous['type'] == 'private') {
 			// (Il + kpar) mod n
 			$key = str_pad( 
 						 gmp_strval(
-							\gmp_Utils::gmp_mod2(
-								gmp_add(
-									gmp_init($I_l, 16),
-									gmp_init($private_key, 16)
-								),
-								$n	
+							gmp_init(
+								GmpUtils::gmpMod2(
+									gmp_add(
+										gmp_init($I_l, 16),
+										gmp_init($private_key, 16)
+									),
+									$n
+								)
 							),
 							16
 						), 
@@ -185,12 +194,12 @@ class BIP32 {
 		} else if($previous['type'] == 'public') {
 			// newPoint + parentPubkeyPoint
 			$decompressed = BitcoinLib::decompress_public_key($public_key); // Can return FALSE. Throw exception?
-			$curve = \SECcurve::curve_secp256k1();
+			$curve = SECGcurve::curve256k1();
 			
 			// Prepare offset, by multiplying Il by g, and adding this to the previous public key point.
 			// Create a new point by adding the two.
-			$new_point = \Point::add(
-										\Point::mul(
+			$new_point = Point::add(
+										Point::mul(
 											gmp_init($I_l, 16),
 											$g
 										), 
@@ -558,7 +567,7 @@ class BIP32 {
 				$key['network'] = 'litecoin';
 				$key['version'] = self::$litecoin_testnet_version;
 				break;				
-			case self::$dogecoin_testnet_private :
+			case self::$litecoin_testnet_private :
 				$key['type'] = 'private';
 				$key['testnet'] = true;
 				$key['network'] = 'litecoin';
@@ -611,7 +620,7 @@ class BIP32 {
 	 * 
 	 * This function checks that the generated private keys meet the standard
 	 * for private keys, as imposed by the secp256k1 curve. The key can't
-	 * be zero, nor can it >= $n, which is the order of the secp256k1 
+	 * be zero, nor can it >= $n, which is the order of the secp256k1
 	 * curve. Returning false trigger an error, or cause the program to
 	 * increase the address number and rerun the CKD function.
 	 * 
@@ -619,7 +628,7 @@ class BIP32 {
 	 * @return	boolean
 	 */
 	public static function check_valid_hmac_key($key) {
-		$g = \SECcurve::generator_secp256k1();
+		$g = SECGcurve::generator256k1();
 		$n = $g->getOrder();
 		
 		// initialize the key as a base 16 number.

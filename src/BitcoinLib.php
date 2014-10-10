@@ -2,6 +2,16 @@
 
 namespace BitWasp\BitcoinLib;
 
+use Mdanter\Ecc\SECGcurve;
+use Mdanter\Ecc\NumberTheory;
+use Mdanter\Ecc\Point;
+use Mdanter\Ecc\GmpUtils;
+
+/*
+ * for the usage of GMP over BcMath because we rely on GMP almost everywhere
+ */
+\Mdanter\Ecc\ModuleConfig::useGmp();
+
 /**
  * BitcoinLib
  * 
@@ -12,7 +22,6 @@ namespace BitWasp\BitcoinLib;
  * 
  * Thomas Kerin
  */
-
 class BitcoinLib {
 	
 	/**
@@ -221,7 +230,7 @@ class BitcoinLib {
 	 * @return	string
 	 */
 	public static function get_new_private_key() {
-		$g = \SECcurve::generator_secp256k1();
+		$g = SECGcurve::generator256k1();
 		$n = $g->getOrder();
 
 		$privKey = gmp_strval(gmp_init(bin2hex(openssl_random_pseudo_bytes(32)),16));
@@ -245,12 +254,12 @@ class BitcoinLib {
 	 * @return	string
 	 */
 	public static function private_key_to_public_key($privKey, $compressed = FALSE) {
-		$g = \SECcurve::generator_secp256k1();
+		$g = SECGcurve::generator256k1();
     
 		$privKey = self::hex_decode($privKey);  
 		try 
 		{
-			$secretG = \Point::mul($privKey, $g);
+			$secretG = Point::mul($privKey, $g);
 		}
 		catch (\Exception $e) 
 		{
@@ -426,7 +435,7 @@ class BitcoinLib {
 	 */
 	public static function compress_public_key($public_key)
 	{
-		return '0'.(((\gmp_Utils::gmp_mod2(gmp_init(substr($public_key, 66, 64), 16), 2))==0) ? '2' : '3').substr($public_key, 2, 64);
+		return '0'.(((GmpUtils::gmpMod2(gmp_init(substr($public_key, 66, 64), 16), 2))==0) ? '2' : '3').substr($public_key, 2, 64);
 	}
 
 	/**
@@ -446,19 +455,20 @@ class BitcoinLib {
 		$x_coordinate = substr($key, 2);
 		
 		$x = gmp_strval(gmp_init($x_coordinate, 16),10);
-		$curve = \SECcurve::curve_secp256k1();
-		$generator = \SECcurve::generator_secp256k1();
+
+		$curve = SECGcurve::curve256k1();
+		$generator = SECGcurve::generator256k1();
 
 		try
 		{
-			$x3 = \NumberTheory::modular_exp( $x, 3, $curve->getPrime() );
+			$x3 = NumberTheory::modularExp( $x, 3, $curve->getPrime() );
 			
 			$y2 = gmp_add(
 						$x3,
 						$curve->getB()
 					);
 			
-			$y0 = \NumberTheory::square_root_mod_prime(
+			$y0 = NumberTheory::squareRootModPrime(
 						gmp_strval($y2, 10),
 						$curve->getPrime()
 					);
@@ -469,12 +479,12 @@ class BitcoinLib {
 			$y1 = gmp_strval(gmp_sub($curve->getPrime(), $y0), 10);
 			
 			$y_coordinate = ($y_byte == '02') 
-									? ((\gmp_Utils::gmp_mod2(gmp_init($y0, 10), 2) == '0') ? $y0 : $y1)
-									: ((\gmp_Utils::gmp_mod2(gmp_init($y0, 10), 2) !== '0') ? $y0 : $y1);
+									? ((GmpUtils::gmpMod2(gmp_init($y0, 10), 2) == '0') ? $y0 : $y1)
+									: ((GmpUtils::gmpMod2(gmp_init($y0, 10), 2) !== '0') ? $y0 : $y1);
 
-			$y_coordinate = str_pad(gmp_strval($y_coordinate, 16),64,'0',STR_PAD_LEFT);
+			$y_coordinate = str_pad(gmp_strval(gmp_init($y_coordinate), 16),64,'0',STR_PAD_LEFT);
 			
-			$point = new \Point($curve, gmp_strval(gmp_init($x_coordinate, 16),10), gmp_strval(gmp_init($y_coordinate, 16),10), $generator->getOrder());
+			$point = new Point($curve, gmp_strval(gmp_init($x_coordinate, 16),10), gmp_strval(gmp_init($y_coordinate, 16),10), $generator->getOrder());
 		} 
 		catch (\Exception $e)
 		{
@@ -508,8 +518,8 @@ class BitcoinLib {
 		else if (strlen($public_key) == '130')
 		{
 			// Uncompressed key, try to create the point
-			$curve = \SECcurve::curve_secp256k1();
-			$generator = \SECcurve::generator_secp256k1();
+			$curve = SECGcurve::curve256k1();
+			$generator = SECGcurve::generator256k1();
 		
 			$x = substr($public_key, 2, 64);
 			$y = substr($public_key, 66, 64);
@@ -518,7 +528,7 @@ class BitcoinLib {
 			// constructor if anything is invalid.
 			try
 			{
-				$point = new \Point($curve, gmp_strval(gmp_init($x, 16),10), gmp_strval(gmp_init($y, 16),10), $generator->getOrder());
+				$point = new Point($curve, gmp_strval(gmp_init($x, 16),10), gmp_strval(gmp_init($y, 16),10), $generator->getOrder());
 			}
 			catch (\Exception $e) 
 			{
@@ -594,7 +604,7 @@ class BitcoinLib {
 		}
 
 		// Check private key within limit.
-		$g = \SECcurve::generator_secp256k1();
+		$g = SECGcurve::generator256k1();
 		$n = $g->getOrder();
 		if (gmp_strval(gmp_init($hex, 16),10) >= $n)
 			return FALSE;

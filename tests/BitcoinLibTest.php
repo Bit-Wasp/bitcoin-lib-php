@@ -6,6 +6,9 @@ require_once(__DIR__. '/../vendor/autoload.php');
 
 class BitcoinLibTest extends PHPUnit_Framework_TestCase
 {
+	/**
+	 * @var BitcoinLib
+	 */
 	public $bitcoin;
 	public $testHexEncode_i;
 	
@@ -112,11 +115,11 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
 		}
 	}
 
-   /* public function _testBase58EncodeValues($data, $equals) {
+    /* public function _testBase58EncodeValues($data, $equals) {
         $this->assertEquals($data, $equals);
     }*/
 
-   public function testBase58EncodeValues() {
+	public function testBase58EncodeValues() {
         // Taken from Bitcoin Core's ./src/tests/data/base58_encode_decode.json file
         $tests = ["" => "",
             "61" => "2g",
@@ -229,11 +232,11 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
         {
             $this->setup();
             $hex = (string)str_pad(bin2hex(openssl_random_pseudo_bytes(32)),64,'0',STR_PAD_LEFT);
-            $public = $this->bitcoin->private_key_to_public_key($hex, FALSE);
+	        $public = $this->bitcoin->private_key_to_public_key($hex, FALSE);
             $compress = $this->bitcoin->compress_public_key($public);
-            $decompress = $this->bitcoin->decompress_public_key($compress);
+	        $decompress = $this->bitcoin->decompress_public_key($compress);
 
-            $this->assertTrue($decompress['public_key'] == $public);
+	        $this->assertTrue($decompress['public_key'] == $public);
             $this->tearDown();
         }
     }
