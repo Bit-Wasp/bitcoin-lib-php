@@ -2,15 +2,10 @@
 
 namespace BitWasp\BitcoinLib;
 
-use Mdanter\Ecc\SECGcurve;
+use Mdanter\Ecc\EccFactory;
 use Mdanter\Ecc\NumberTheory;
 use Mdanter\Ecc\Point;
-use Mdanter\Ecc\GmpUtils;
 
-/*
- * for the usage of GMP over BcMath because we rely on GMP almost everywhere
- */
-\Mdanter\Ecc\ModuleConfig::useGmp();
 
 /**
  * BitcoinLib
@@ -46,22 +41,22 @@ class BitcoinLib {
 	 * @param	int	$number
 	 * @return	string
 	 */
-	public static function hex_encode($number) {
-		$hex = gmp_strval(gmp_init($number, 10), 16);
-		return (strlen($hex)%2 != 0) ? '0'.$hex : $hex;
-	}
-	
-	/**
-	 * Hex Decode
-	 * 
-	 * Decodes a hexadecimal $hex string into a decimal number.
-	 * 
-	 * @param	string	$hex
-	 * @return	int
-	 */
-	public static function hex_decode($hex) {
-		return gmp_strval(gmp_init($hex, 16), 10);
-	}
+    public static function hex_encode($number) {
+        $hex = gmp_strval(gmp_init($number, 10), 16);
+        return (strlen($hex)%2 != 0) ? '0'.$hex : $hex;
+    }
+
+    /**
+     * Hex Decode
+     *
+     * Decodes a hexadecimal $hex string into a decimal number.
+     *
+     * @param	string	$hex
+     * @return	int
+     */
+    public static function hex_decode($hex) {
+        return gmp_strval(gmp_init($hex, 16), 10);
+    }
 
 	/**
 	 * Base58 Decode
@@ -74,24 +69,23 @@ class BitcoinLib {
      * @return string
      */
     public static function base58_decode($base58) {
-		$origbase58 = $base58;
-		$return = "0";
-		
-		for($i = 0; $i < strlen($base58); $i++) {
-			// return = return*58 + current position of $base58[i]in self::$base58chars
-			$return = gmp_add(gmp_mul($return, 58), strpos(self::$base58chars, $base58[$i]));
-		}
-		$return = gmp_strval($return, 16);
-		for($i = 0; $i < strlen($origbase58) && $origbase58[$i] == "1"; $i++) {
-			$return = "00".$return;
-		}
-		if(strlen($return) %2 != 0) {
-			$return = "0".$return;
-		}
-		return $return;
-	}
+        $origbase58 = $base58;
+        $return = "0";
 
+        for($i = 0; $i < strlen($base58); $i++) {
+            // return = return*58 + current position of $base58[i]in self::$base58chars
+            $return = gmp_add(gmp_mul($return, 58), strpos(self::$base58chars, $base58[$i]));
+        }
+        $return = gmp_strval($return, 16);
+        for($i = 0; $i < strlen($origbase58) && $origbase58[$i] == "1"; $i++) {
+            $return = "00".$return;
+        }
+        if(strlen($return) %2 != 0) {
+            $return = "0".$return;
+        }
+        return $return;
 
+    }
 	/**
 	 * Base58 Encode
 	 *
@@ -230,14 +224,19 @@ class BitcoinLib {
 	 * @return	string
 	 */
 	public static function get_new_private_key() {
-		$g = SECGcurve::generator256k1();
-		$n = $g->getOrder();
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $g = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+
+        $privkey = bin2hex(openssl_random_pseudo_bytes(32));
 
 		$privKey = gmp_strval(gmp_init(bin2hex(openssl_random_pseudo_bytes(32)),16));
-		while($privKey >= $n) {
-			$privKey = gmp_strval(gmp_init(bin2hex(openssl_random_pseudo_bytes(32)),16));
+        //while($math->cmp($privkey, $g->getOrder()) >= 0) {
+		while($privKey >= $g->getOrder()) {
+            $privKey = gmp_strval(gmp_init(bin2hex(openssl_random_pseudo_bytes(32)),16));
+            //$privkey = bin2hex(openssl_random_pseudo_bytes(32));
 		}
-		$privKeyHex = self::hex_encode($privKey);
+
+		$privKeyHex = $math->dechex($privKey);
 		return str_pad($privKeyHex, 64, '0', STR_PAD_LEFT);
 	}
 
@@ -254,19 +253,20 @@ class BitcoinLib {
 	 * @return	string
 	 */
 	public static function private_key_to_public_key($privKey, $compressed = FALSE) {
-		$g = SECGcurve::generator256k1();
-    
-		$privKey = self::hex_decode($privKey);  
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $g = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+		$privKey = self::hex_decode($privKey);
+
 		try 
 		{
-			$secretG = Point::mul($privKey, $g);
+			$secretG = $g->mul($privKey, $g, $math);
 		}
 		catch (\Exception $e) 
 		{
 			return FALSE;
 		}
 	
-		$xHex = self::hex_encode($secretG->getX());  
+		$xHex = self::hex_encode($secretG->getX());
 		$yHex = self::hex_encode($secretG->getY());
 
 		$xHex = str_pad($xHex, 64, '0', STR_PAD_LEFT);
@@ -435,7 +435,14 @@ class BitcoinLib {
 	 */
 	public static function compress_public_key($public_key)
 	{
-		return '0'.(((GmpUtils::gmpMod2(gmp_init(substr($public_key, 66, 64), 16), 2))==0) ? '2' : '3').substr($public_key, 2, 64);
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+
+        $x_hex = substr($public_key, 2, 64);
+        $y = $math->hexDec(substr($public_key, 66, 64));
+
+        $parity = $math->mod( $y, 2);
+        return (($parity == 0) ? '02' : '03') . $x_hex;
+
 	}
 
 	/**
@@ -451,40 +458,35 @@ class BitcoinLib {
      */
     public static function decompress_public_key($key)
 	{
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
 		$y_byte = substr($key, 0, 2);
 		$x_coordinate = substr($key, 2);
-		
-		$x = gmp_strval(gmp_init($x_coordinate, 16),10);
 
-		$curve = SECGcurve::curve256k1();
-		$generator = SECGcurve::generator256k1();
+        $x = self::hex_decode($x_coordinate);
+
+        $theory = \Mdanter\Ecc\EccFactory::getNumberTheory($math);
+        $generator = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+        $curve = $generator->getCurve();
 
 		try
 		{
-			$x3 = NumberTheory::modularExp( $x, 3, $curve->getPrime() );
+			$x3 = $math->powmod( $x, 3, $curve->getPrime() );
 			
-			$y2 = gmp_add(
-						$x3,
-						$curve->getB()
-					);
+			$y2 = $math->add($x3, $curve->getB());
 			
-			$y0 = NumberTheory::squareRootModPrime(
-						gmp_strval($y2, 10),
-						$curve->getPrime()
-					);
+			$y0 = $theory->squareRootModP($y2, $curve->getPrime());
 
-			if($y0 == FALSE)
+			if($y0 == null)
 				return FALSE;
 
-			$y1 = gmp_strval(gmp_sub($curve->getPrime(), $y0), 10);
-			
-			$y_coordinate = ($y_byte == '02') 
-									? ((GmpUtils::gmpMod2(gmp_init($y0, 10), 2) == '0') ? $y0 : $y1)
-									: ((GmpUtils::gmpMod2(gmp_init($y0, 10), 2) !== '0') ? $y0 : $y1);
+            $y1 = $math->sub($curve->getPrime(), $y0);
 
-			$y_coordinate = str_pad(gmp_strval(gmp_init($y_coordinate), 16),64,'0',STR_PAD_LEFT);
-			
-			$point = new Point($curve, gmp_strval(gmp_init($x_coordinate, 16),10), gmp_strval(gmp_init($y_coordinate, 16),10), $generator->getOrder());
+			$y = ($y_byte == '02')
+									? (($math->mod($y0, 2) == '0') ? $y0 : $y1)
+									: (($math->mod($y0, 2) !== '0') ? $y0 : $y1);
+
+            $y_coordinate = str_pad($math->decHex($y), 64, '0', STR_PAD_LEFT);
+			$point = new \Mdanter\Ecc\Point($curve, $x, $y, $generator->getOrder(), $math);
 		} 
 		catch (\Exception $e)
 		{
@@ -517,24 +519,25 @@ class BitcoinLib {
 		}
 		else if (strlen($public_key) == '130')
 		{
+            $math = \Mdanter\Ecc\EccFactory::getAdapter();
+            $generator = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
 			// Uncompressed key, try to create the point
-			$curve = SECGcurve::curve256k1();
-			$generator = SECGcurve::generator256k1();
-		
-			$x = substr($public_key, 2, 64);
-			$y = substr($public_key, 66, 64);
+
+			$x = $math->hexDec(substr($public_key, 2, 64));
+			$y = $math->hexDec(substr($public_key, 66, 64));
 
 			// Attempt to create the point. Point returns false in the 
 			// constructor if anything is invalid.
 			try
 			{
-				$point = new Point($curve, gmp_strval(gmp_init($x, 16),10), gmp_strval(gmp_init($y, 16),10), $generator->getOrder());
+				$point = new \Mdanter\Ecc\Point($generator->getCurve(), $x, $y, $generator->getOrder(), $math);
+                return TRUE;
 			}
 			catch (\Exception $e) 
 			{
 				return FALSE;
 			}
-			return TRUE;
+
 		}
 		
 		return FALSE;
@@ -604,9 +607,10 @@ class BitcoinLib {
 		}
 
 		// Check private key within limit.
-		$g = SECGcurve::generator256k1();
-		$n = $g->getOrder();
-		if (gmp_strval(gmp_init($hex, 16),10) >= $n)
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $generator = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+		$n = $generator->getOrder();
+		if ($math->cmp($math->hexDec($hex), $n) > 0)
 			return FALSE;
 
 		// Calculate checksum for what we have, see if it matches.

@@ -2,16 +2,12 @@
 
 namespace BitWasp\BitcoinLib;
 
-use Mdanter\Ecc\SECGcurve;
+use Mdanter\Ecc\EccFactory;
 use Mdanter\Ecc\Point;
 use Mdanter\Ecc\PrivateKey;
 use Mdanter\Ecc\PublicKey;
 use Mdanter\Ecc\Signature;
 
-/*
- * for the usage of GMP over BcMath because we rely on GMP almost everywhere
- */
-\Mdanter\Ecc\ModuleConfig::useGmp();
 
 /**
  * Raw Transaction Library
@@ -97,7 +93,7 @@ class RawTransaction
      */
     public static function _dec_to_bytes($decimal, $bytes, $reverse = FALSE)
     {
-        $hex = base_convert($decimal, 10, 16);
+        $hex = dechex($decimal);
         if (strlen($hex) % 2 != 0)
             $hex = "0" . $hex;
 
@@ -152,6 +148,7 @@ class RawTransaction
      */
     public static function _encode_vint($decimal)
     {
+
         $hex = dechex($decimal);
         if ($decimal < 253) {
             $hint = self::_dec_to_bytes($decimal, 1);
@@ -259,7 +256,7 @@ class RawTransaction
                 $input_body = array('txid' => $txid,
                     'vout' => hexdec($vout),
                     'scriptSig' => array('asm' => self::_decode_script($script),
-                        'hex' => $script));
+                    'hex' => $script));
 
             // Append a sequence number, and finally add the input to the array.
             $input_body['sequence'] = hexdec(self::_return_bytes($raw_transaction, 4));
@@ -451,7 +448,7 @@ class RawTransaction
             // Pop 8 bytes (flipped) from the $tx string, convert to decimal,
             // and then convert to Satoshis.
             $satoshis = base_convert(self::_return_bytes($tx, 8, TRUE), 16, 10);
-            $amount = number_format($satoshis / 1e8, 8);
+            $amount = number_format($satoshis / 1e8, 8, ".", "");
 
             // Decode the varint for the length of the scriptPubKey
             $script_length = self::_get_vint($tx); // decimal number of bytes
@@ -522,6 +519,8 @@ class RawTransaction
      */
     public static function decode($raw_transaction, $address_version = '00')
     {
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+
         $raw_transaction = trim($raw_transaction);
         if (((bool)preg_match('/^[0-9a-fA-F]{2,}$/i', $raw_transaction) !== TRUE)
             || (strlen($raw_transaction)) % 2 !== 0
@@ -532,7 +531,7 @@ class RawTransaction
 
         $info = array();
         $info['txid'] = $txid;
-        $info['version'] = gmp_strval(gmp_init(self::_return_bytes($raw_transaction, 4, TRUE), 16), 10);
+        $info['version'] = $math->hexDec(self::_return_bytes($raw_transaction, 4, TRUE), 16);
         if (!in_array($info['version'], array('1')))
             return FALSE;
 
@@ -566,7 +565,7 @@ class RawTransaction
      */
     public static function encode($raw_transaction_array)
     {
-        // $encoded_version
+
         $encoded_version = $bytes = self::_dec_to_bytes($raw_transaction_array['version'], 4, TRUE); // TRUE - get little endian
 
         // $encoded_inputs - set the encoded varint, then work out if any input hex is to be displayed.
@@ -575,7 +574,7 @@ class RawTransaction
 
         // $encoded_outputs - set varint, then work out if output hex is required.
         $decimal_outputs_count = count($raw_transaction_array['vout']);
-        $encoded_outputs = self::_encode_vint($decimal_outputs_count) . (($decimal_inputs_count > 0) ? self::_encode_outputs($raw_transaction_array['vout'], $decimal_outputs_count) : '');
+        $encoded_outputs = self::_encode_vint($decimal_outputs_count).(($decimal_inputs_count > 0) ? self::_encode_outputs($raw_transaction_array['vout'], $decimal_outputs_count) : '');
 
         // Transaction locktime
         $encoded_locktime = self::_dec_to_bytes($raw_transaction_array['locktime'], 4, TRUE);
@@ -604,7 +603,9 @@ class RawTransaction
      */
     public static function _create_txin_signature_hash($raw_transaction, $json_inputs, $specific_input = -1, $e = NULL)
     {
+
         $decode = ($e == NULL) ? self::decode($raw_transaction) : $e;
+
         $inputs = (array)json_decode($json_inputs);
         if ($specific_input !== -1 && !is_numeric($specific_input))
             return FALSE;
@@ -637,10 +638,12 @@ class RawTransaction
                 // and calculate a double sha256 hash for this input.
                 $hash[] = hash('sha256', hash('sha256', pack("H*", self::encode($copy) . $sighashcode), TRUE));
             }
+
         } else {
             // Return a message hash for the specified output.
             $copy = $decode;
             $copy['vin'][$specific_input]['scriptSig']['hex'] = (isset($inputs[$specific_input]->redeemScript)) ? $inputs[$specific_input]->redeemScript : $inputs[$specific_input]->scriptPubKey;
+
             $hash = hash('sha256', hash('sha256', pack("H*", self::encode($copy) . $sighashcode), TRUE));
         }
         return $hash;
@@ -662,22 +665,24 @@ class RawTransaction
      */
     public static function _check_sig($sig, $hash, $key)
     {
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
         $signature = self::decode_signature($sig);
         $test_signature = new Signature(gmp_init($signature['r'], 16), gmp_init($signature['s'], 16));
-        $generator = SECGcurve::generator256k1();
+        $generator = \Mdanter\Ecc\EccFactory::getSecgCurves()->generator256k1();
         $curve = $generator->getCurve();
 
 	    if (strlen($key) == '66') {
             $decompress = BitcoinLib::decompress_public_key($key);
             $public_key_point = $decompress['point'];
         } else {
-            $x = gmp_strval(gmp_init(substr($key, 2, 64), 16), 10);
-            $y = gmp_strval(gmp_init(substr($key, 66, 64), 16), 10);
-            $public_key_point = new Point($curve, $x, $y, $generator->getOrder());
+            $x = $math->hexDec(substr($key, 2, 64));
+            $y = $math->hexDec(substr($key, 66, 64));
+
+            $public_key_point = new Point($curve, $x, $y, $generator->getOrder(), $math);
         }
 
-	    $public_key = new PublicKey($generator, $public_key_point);
-        $hash = gmp_init($hash, 16);
+	    $public_key = new PublicKey($generator, $public_key_point, $math);
+        $hash = $math->hexDec($hash);
 
         return $public_key->verifies($hash, $test_signature) == TRUE;
 
@@ -695,6 +700,8 @@ class RawTransaction
      */
     public static function decode_redeem_script($redeem_script, $data = array())
     {
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+
         // If there is no more work to be done (script is fully parsed,
         // return the array)
         if (strlen($redeem_script) == 0)
@@ -706,7 +713,7 @@ class RawTransaction
 
         // First step is to get m, the required number of signatures
         if (!isset($data['m']) || count($data) == 0) {
-            $data['m'] = gmp_strval(gmp_sub(gmp_init(substr($redeem_script, 0, 2), 16), gmp_init('50', 16)), 10);
+            $data['m'] = $math->sub($math->hexDec(substr($redeem_script, 0, 2)), $math->hexDec('50'));
             $data['keys'] = array();
             $redeem_script = substr($redeem_script, 2);
 
@@ -714,7 +721,8 @@ class RawTransaction
             // Next is to find out the length of the following public key.
             $hex = substr($redeem_script, 0, 2);
             // Set up the length of the following key.
-            $data['next_key_charlen'] = gmp_strval(gmp_mul(gmp_init('2', 10), gmp_init($hex, 16)), 10);
+            $data['next_key_charlen'] = $math->mul(2, $math->hexDec($hex));
+            //$data['next_key_charlen'] = gmp_strval(gmp_mul(gmp_init('2', 10), gmp_init($hex, 16)), 10);
 
             $redeem_script = substr($redeem_script, 2);
         } else if (isset($data['next_key_charlen'])) {
@@ -726,19 +734,19 @@ class RawTransaction
             unset($data['next_key_charlen']);
 
             // If 1 <= $next_op >= 4b : A key is coming up next. This if block runs again.
-            if (in_array(gmp_cmp(gmp_init($next_op, 16), gmp_init('1', 16)), array('0', '1'))
-                && in_array(gmp_cmp(gmp_init($next_op, 16), gmp_init('4b', 16)), array('-1', '0'))
+            if (   in_array($math->cmp($math->hexDec($next_op), 1), array(0, 1))
+                && in_array($math->cmp($math->hexDec($next_op), $math->hexDec('4b')), array(-1, 0))
             ) {
                 // Set the next key character length
-                $data['next_key_charlen'] = gmp_strval(gmp_mul(gmp_init('2', 10), gmp_init($next_op, 16)), 10);
+                $data['next_key_charlen'] = $math->mul(2, $math->hexDec($next_op));
 
                 // If 52 <= $next_op >= 60 : End of keys, now have n.
-            } else if (in_array(gmp_cmp(gmp_init($next_op, 16), gmp_init('51', 16)), array('0', '1'))
-                && in_array(gmp_cmp(gmp_init($next_op, 16), gmp_init('60', 16)), array('-1', '0'))
+            } else if (in_array($math->cmp($math->hexDec($next_op), $math->hexDec('51')), array(0, 1))
+                &&     in_array($math->cmp($math->hexDec($next_op), $math->hexDec('60')), array(-1, 0))
             ) {
 
                 // Finish the script - obtain n
-                $data['n'] = gmp_strval(gmp_sub(gmp_init($next_op, 16), gmp_init('50', 16)), 10);
+                $data['n'] = $math->sub($math->hexDec($next_op), $math->hexDec('50'));
                 if ($redeem_script !== 'ae')
                     return FALSE;
 
@@ -766,16 +774,18 @@ class RawTransaction
      */
     public static function create_redeem_script($m, $public_keys = array())
     {
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+
         if (count($public_keys) == 0)
             return FALSE;
         if ($m == 0)
             return FALSE;
 
-        $redeemScript = dechex(0x50 + $m);
+        $redeemScript = $math->decHex(0x50 + $m);
         foreach ($public_keys as $public_key) {
-            $redeemScript .= dechex(strlen($public_key) / 2) . $public_key;
+            $redeemScript .= $math->decHex(strlen($public_key) / 2) . $public_key;
         }
-        $redeemScript .= dechex(0x50 + (count($public_keys))) . 'ae';
+        $redeemScript .= $math->decHex(0x50 + (count($public_keys))) . 'ae';
         return $redeemScript;
     }
 
@@ -924,10 +934,11 @@ class RawTransaction
      */
     public static function create($inputs, $outputs, $magic_byte = '00')
     {
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
 
         // Generate the p2sh byte from the regular byte.
         $regular_byte = $magic_byte;
-        $p2sh_byte = str_pad(gmp_strval(gmp_add(gmp_init($magic_byte, 16), gmp_init('05', 16))), 2, '0', STR_PAD_LEFT);
+        $p2sh_byte = str_pad($math->add($math->hexDec($magic_byte), 5), 2, '0', STR_PAD_LEFT);
 
         $tx_array = array('version' => '1');
 
@@ -995,6 +1006,9 @@ class RawTransaction
      */
     public static function sign($wallet, $raw_transaction, $inputs, $magic_byte = '00')
     {
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $generator = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+
         // Generate digests of inputs to sign.
         $message_hash = self::_create_txin_signature_hash($raw_transaction, $inputs);
 
@@ -1014,19 +1028,23 @@ class RawTransaction
             if (isset($wallet[$tx_info['hash160']])) {
 
                 $key_info = $wallet[$tx_info['hash160']];
-                $generator = SECGcurve::generator256k1();
 
                 if ($key_info['type'] == 'scripthash') {
 
-                    $signatures = self::extract_input_signatures_p2sh($input, $message_hash[$vin], $key_info);
+                    $signatures = self::extract_input_signatures_p2sh($input, $math->hexDec($message_hash[$vin]), $key_info);
                     $sign_count += count($signatures);
 
                     // Create Signature
                     foreach ($key_info['keys'] as $key) {
-                        $point = new Point($generator->getCurve(), gmp_init(substr($key['uncompressed_key'], 2, 64), 16), gmp_init(substr($key['uncompressed_key'], 66, 64), 16), $generator->getOrder());
-                        $_public_key = new PublicKey($generator, $point);
-                        $_private_key = new PrivateKey($_public_key, gmp_init($key['private_key'], 16));
-                        $sign = $_private_key->sign(gmp_init($message_hash[$vin], 16), gmp_init((string)bin2hex(openssl_random_pseudo_bytes(32)), 16));
+
+                        $x = $math->hexDec(substr($key['uncompressed_key'], 2, 64));
+                        $y = $math->hexDec(substr($key['uncompressed_key'], 66, 64));
+                        $key_dec = $math->hexDec($key['private_key']);
+
+                        $point = new \Mdanter\Ecc\Point($generator->getCurve(), $x, $y, $generator->getOrder(), $math);
+                        $_public_key = new PublicKey($generator, $point, $math);
+                        $_private_key = new PrivateKey($_public_key, $key_dec, $math);
+                        $sign = $_private_key->sign($math->hexDec($message_hash[$vin]), $math->hexDec((string)bin2hex(openssl_random_pseudo_bytes(32))));
                         if ($sign !== FALSE) {
                             $sign_count++;
                             $signatures[$key['public_key']] = self::encode_signature($sign);
@@ -1038,11 +1056,15 @@ class RawTransaction
                 }
 
                 if ($key_info['type'] == 'pubkeyhash') {
+                    $x = $math->hexDec(substr($key_info['uncompressed_key'], 2, 64));
+                    $y = $math->hexDec(substr($key_info['uncompressed_key'], 66, 64));
+                    $key_dec = $math->hexDec($key_info['private_key']);
+
                     // Create Signature
-                    $point = new Point($generator->getCurve(), gmp_init(substr($key_info['uncompressed_key'], 2, 64), 16), gmp_init(substr($key_info['uncompressed_key'], 66, 64), 16), $generator->getOrder());
-                    $_public_key = new PublicKey($generator, $point);
-                    $_private_key = new PrivateKey($_public_key, gmp_init($key_info['private_key'], 16));
-                    $sign = $_private_key->sign(gmp_init($message_hash[$vin], 16), gmp_init((string)bin2hex(openssl_random_pseudo_bytes(32)), 16));
+                    $point = new \Mdanter\Ecc\Point($generator->getCurve(), $x, $y, $generator->getOrder(), $math);
+                    $_public_key = new PublicKey($generator, $point, $math);
+                    $_private_key = new PrivateKey($_public_key, $key_dec, $math);
+                    $sign = $_private_key->sign($math->hexDec($message_hash[$vin]), $math->hexDec((string)bin2hex(openssl_random_pseudo_bytes(32))));
                     if ($sign !== FALSE) {
                         $sign_count++;
                         $decode['vin'][$vin]['scriptSig']['hex'] = self::_apply_sig_pubkeyhash(self::encode_signature($sign), $key_info['public_key']);
@@ -1326,7 +1348,6 @@ class RawTransaction
             foreach ($wifs as $wif) {
                 $key = BitcoinLib::WIF_to_private_key($wif);
                 $pubkey = BitcoinLib::private_key_to_public_key($key['key'], $key['is_compressed']);
-
                 $pk_hash = BitcoinLib::hash160($pubkey);
 
                 if ($key['is_compressed'] == TRUE) {
@@ -1360,6 +1381,7 @@ class RawTransaction
     {
         if (count($redeem_scripts) > 0)
             foreach ($redeem_scripts as $script) {
+
                 $decode = self::decode_redeem_script($script);
                 if ($decode == FALSE)
                     continue;
@@ -1378,9 +1400,8 @@ class RawTransaction
                     'required_signature_count' => $decode['m'],
                     'address' => BitcoinLib::hash160_to_address($scripthash, $magic_byte),
                     'public_keys' => $decode['keys'],
-                    'keys' => $keys
+                    'keys' => $keys);
 
-                );
             }
     }
 }

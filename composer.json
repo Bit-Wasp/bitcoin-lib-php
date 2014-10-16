@@ -1,26 +1,27 @@
 {
-    "name": "bitwasp/bitcoin-lib",
-    "description": "Bitcoin library",
-    "license": "Unlicense",
-    "authors": [
-        {
-            "name": "Thomas Kerin",
-            "email": "thomas.kerin@gmail.com"
-        }
-    ],
-    "minimum-stability": "dev",
-    "autoload": {
-        "psr-4": {
-            "BitWasp\\BitcoinLib\\": "src/"
-        }
-    },
-    "require": {
-        "mdanter/ecc": "dev-master",
-        "php": ">=5.3.3",
-        "ext-gmp": "*"
-    },
-    "require-dev": {
-        "phpunit/phpunit":"~3.7",
-        "squizlabs/php_codesniffer":"~1.5"
-    }
+"name": "bitwasp/bitcoin-lib",
+"description": "Bitcoin library",
+"license": "Unlicense",
+"authors": [
+{
+"name": "Thomas Kerin",
+"email": "thomas.kerin@gmail.com"
 }
+],
+"minimum-stability": "dev",
+"autoload": {
+"psr-4": {
+"BitWasp\\BitcoinLib\\": "src/"
+}
+},
+"require": {
+"mdanter/ecc": "dev-master",
+"php": ">=5.3.3",
+"ext-gmp": "*"
+},
+"require-dev": {
+"phpunit/phpunit":"~3.7",
+"squizlabs/php_codesniffer":"~1.5"
+}
+}
+

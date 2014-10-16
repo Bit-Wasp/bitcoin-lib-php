@@ -2,14 +2,8 @@
 
 namespace BitWasp\BitcoinLib;
 
-use Mdanter\Ecc\SECGcurve;
-use Mdanter\Ecc\GmpUtils;
+use Mdanter\Ecc\EccFactory;
 use Mdanter\Ecc\Point;
-
-/*
- * for the usage of GMP over BcMath because we rely on GMP almost everywhere
- */
-\Mdanter\Ecc\ModuleConfig::useGmp();
 
 /**
  * BIP32
@@ -171,42 +165,26 @@ class BIP32 {
 			array_push($generated, (($previous['type'] == 'private') ? 'm' : 'M'));
 			
 		array_push($generated, (self::get_address_number($i, $is_prime).(($is_prime == 1) ? "'" : NULL)));
-		
-		$g = SECGcurve::generator256k1();
+
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $g = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
 		$n = $g->getOrder();
-		
+        $Il_dec = $math->hexDec($I_l);
+
 		if($previous['type'] == 'private') {
-			// (Il + kpar) mod n
-			$key = str_pad( 
-						 gmp_strval(
-							gmp_init(
-								GmpUtils::gmpMod2(
-									gmp_add(
-										gmp_init($I_l, 16),
-										gmp_init($private_key, 16)
-									),
-									$n
-								)
-							),
-							16
-						), 
-					64, '0', STR_PAD_LEFT);
+            $private_key_dec = $math->hexDec($private_key);
+            $key_dec = $math->mod($math->add($Il_dec, $private_key_dec),$n);
+            $key = str_pad(BitcoinLib::hex_encode($key_dec), 64, '0', STR_PAD_LEFT);
+
 		} else if($previous['type'] == 'public') {
 			// newPoint + parentPubkeyPoint
 			$decompressed = BitcoinLib::decompress_public_key($public_key); // Can return FALSE. Throw exception?
-			$curve = SECGcurve::curve256k1();
-			
+			$new_point = $g->mul($Il_dec)->add($decompressed['point']);
 			// Prepare offset, by multiplying Il by g, and adding this to the previous public key point.
 			// Create a new point by adding the two.
-			$new_point = Point::add(
-										Point::mul(
-											gmp_init($I_l, 16),
-											$g
-										), 
-										$decompressed['point']
-								);
-			$new_x = str_pad(gmp_strval($new_point->getX(), 16), 64, '0', STR_PAD_LEFT);
-			$new_y = str_pad(gmp_strval($new_point->getY(), 16), 64, '0', STR_PAD_LEFT);
+
+			$new_x = str_pad(BitcoinLib::hex_encode($new_point->getX()), 64, '0', STR_PAD_LEFT);
+			$new_y = str_pad(BitcoinLib::hex_encode($new_point->getY()), 64, '0', STR_PAD_LEFT);
 			$key = BitcoinLib::compress_public_key('04'.$new_x.$new_y);
 			
 		}
@@ -343,8 +321,9 @@ class BIP32 {
 		
 		$fingerprint = $data['fingerprint'];
 		$child_number = $data['i'];
-		
-		$depth = str_pad(gmp_strval(gmp_init($data['depth'], 10),16), 2, '0', STR_PAD_LEFT);
+
+        $depth = BitcoinLib::hex_encode($data['depth']);
+
 		$chain_code = $data['chain_code'];
 		$key_data = ($data['type'] == 'public') ? $data['key'] : '00'.$data['key'];
 		$string = $magic_byte.$depth.$fingerprint.$child_number.$chain_code.$key_data;
@@ -608,10 +587,9 @@ class BIP32 {
 	 * @return	int
 	 */
 	public static function check_is_prime_hex($hex) {
-		$is_prime = (	gmp_cmp(
-							gmp_init($hex, 16),
-							gmp_init('80000000', 16)
-						) == -1 ) ? 0 : 1;
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $cmp = $math->cmp($math->hexDec($hex), $math->hexDec('80000000'));
+		$is_prime = ($cmp == -1 ) ? 0 : 1;
 		return $is_prime;
 	}
 
@@ -628,15 +606,17 @@ class BIP32 {
 	 * @return	boolean
 	 */
 	public static function check_valid_hmac_key($key) {
-		$g = SECGcurve::generator256k1();
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $g = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
 		$n = $g->getOrder();
 		
 		// initialize the key as a base 16 number.
-		$g_l = gmp_init($key, 16);
+        $g_l = $math->hexDec($key);
+
 		// compare it to zero
-		$_equal_zero = gmp_cmp($g_l, gmp_init(0,10));
+        $_equal_zero = $math->cmp($g_l, 0);
 		// compare it to the order of the curve
-		$_GE_n = gmp_cmp($g_l, $n);
+		$_GE_n = $math->cmp($g_l, $n);
 		
 		if(	$_equal_zero == 0 ||$_GE_n == 1 ||	$_GE_n == 0 )	
 			return FALSE; // Check for invalid data			// Exception?
@@ -654,17 +634,13 @@ class BIP32 {
 	 * @param	int
 	 */
 	public static function get_address_number($hex, $is_prime = 0) {
+
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $dec = $math->hexDec($hex);
+
 		if($is_prime == 1)
-			$hex = str_pad(
-						gmp_strval(
-							gmp_sub(
-								gmp_init($hex, 16),
-								gmp_init('80000000', 16)
-							),
-							16
-						),
-						8, '0', STR_PAD_LEFT);
-		$dec = gmp_strval(gmp_init($hex, 16),10);
+			$dec = $math->sub($math->hexDec($hex), $math->hexDec('80000000'));
+
 		$n = $dec & 0x7fffffff;
 		return $n;
 	}

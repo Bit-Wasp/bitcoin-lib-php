@@ -2,14 +2,9 @@
 
 namespace BitWasp\BitcoinLib;
 
-use Mdanter\Ecc\SECGcurve;
-use Mdanter\Ecc\GmpUtils;
+use Mdanter\Ecc\EccFactory;
 use Mdanter\Ecc\Point;
 
-/*
- * for the usage of GMP over BcMath because we rely on GMP almost everywhere
- */
-\Mdanter\Ecc\ModuleConfig::useGmp();
 
 /**
  * Electrum Library
@@ -69,14 +64,17 @@ class Electrum {
 			$seed = self::stretch_seed($seed);
 			$seed = $seed['seed'];
 		}
-		// Multiply the seed by generator point.
-		$g = SECGcurve::generator256k1();
+
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $g = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+
 		$seed = gmp_init($seed, 16);
 		try 
 		{
-			$secretG = Point::mul($seed, $g);
-			$x =  str_pad(gmp_strval($secretG->getX(), 16), 64, '0', STR_PAD_LEFT);
-			$y =  str_pad(gmp_strval($secretG->getY(), 16), 64, '0', STR_PAD_LEFT);
+			$secretG = $g->mul($seed);
+            $x = str_pad($math->decHex($secretG->getX()), 64, '0', STR_PAD_LEFT);
+            $y = str_pad($math->decHex($secretG->getY()), 64, '0', STR_PAD_LEFT);
+
 		} 
 		catch (\Exception $e) 
 		{
@@ -108,23 +106,17 @@ class Electrum {
 
 		$mpk = self::generate_mpk($seed);
 
-		$g = SECGcurve::generator256k1();
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $g = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
 		$n = $g->getOrder();
 		// Generate the private key by calculating: 
 		// ($seed + (sha256(sha256($iteration:$change:$binary_mpk))) % $n)h
-		$private_key = gmp_strval(
-			gmp_init(
-				GmpUtils::gmpMod2(
-					gmp_add(
-						gmp_init($seed, 16),
-						gmp_init(hash('sha256', hash('sha256', "$iteration:$change:".pack('H*', $mpk), TRUE)), 16)
-					),
-					$n
-				)
-			),
-			16
-		);
-		
+
+        $seedDec = $math->hexDec($seed);
+        $offsetDec = $math->hexDec(hash('sha256', hash('sha256', "$iteration:$change:".pack('H*', $mpk), TRUE)));
+
+        $private_key = $math->decHex($math->mod($math->add($seedDec, $offsetDec), $n));
+        $private_key = str_pad($private_key, 64, '0', STR_PAD_LEFT);
 		return $private_key;
 	}
 	
@@ -141,27 +133,29 @@ class Electrum {
 	 */
 	public static function public_key_from_mpk($mpk, $iteration, $change = 0, $compressed = FALSE) {
 		$change = ($change == 0) ? '0' : '1';
-		
+
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $gen = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
 		// Generate the curve, and the generator point.
-		$curve = SECGcurve::curve256k1();
-		$gen = SECGcurve::generator256k1();
+		$curve = $gen->getCurve();
 			
 		// Prepare the input values, by converting the MPK to X and Y coordinates
-		$x = gmp_init(substr($mpk, 0, 64), 16);
-		$y = gmp_init(substr($mpk, 64, 64), 16);
+		$x = $math->hexDec(substr($mpk, 0, 64));
+		$y = $math->hexDec(substr($mpk, 64, 64));
 		
 		// Generate a scalar from the $iteration and $mpk
-		$z = gmp_init(hash('sha256', hash('sha256', "$iteration:$change:" . pack('H*', $mpk), TRUE)), 16);
+		$z = $math->hexDec(hash('sha256', hash('sha256', "$iteration:$change:" . pack('H*', $mpk), TRUE)));
 
 		try 
 		{
 			// Add the Point defined by $x and $y, to the result of EC multiplication of $z by $gen
-			$pt = Point::add(new Point($curve, $x, $y), Point::mul($z, $gen));
+            $pt = new \Mdanter\Ecc\Point($curve, $x, $y, $gen->getOrder(), $math);
+            $pt = $pt->add($gen->mul($z));
 			
 			// Generate the uncompressed public key.
 			$keystr = '04'
-					. str_pad(gmp_strval($pt->x, 16), 64, '0', STR_PAD_LEFT)
-					. str_pad(gmp_strval($pt->y, 16), 64, '0', STR_PAD_LEFT);
+					. str_pad($math->decHex($pt->getX()), 64, '0', STR_PAD_LEFT)
+					. str_pad($math->decHex($pt->getY()), 64, '0', STR_PAD_LEFT);
 		}
 		catch (\Exception $e)
 		{
@@ -199,7 +193,9 @@ class Electrum {
 	 * @param	string	$words
 	 * @return	string
 	 */
-	public static function decode_mnemonic($words) {		
+	public static function decode_mnemonic($words) {
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+
 		$words = explode(" ", $words);
 		$out = '';
 		$n = 1626;
@@ -210,7 +206,7 @@ class Electrum {
 			$index_w1 = array_search($word1, self::$words); 
 			$index_w2 = array_search($word2, self::$words)%$n; 
 			$index_w3 = array_search($word3, self::$words)%$n;
-			$x = $index_w1+$n*(GmpUtils::gmpMod2($index_w2-$index_w1,$n))+$n*$n*(GmpUtils::gmpMod2($index_w3-$index_w2,$n));
+			$x = $index_w1+$n*($math->mod($index_w2-$index_w1,$n))+$n*$n*($math->mod($index_w3-$index_w2,$n));
 			$out .= BitcoinLib::hex_encode($x);
 		}
 		return $out;
