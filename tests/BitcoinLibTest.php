@@ -174,10 +174,12 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
         foreach($tests as $priv_key => $true_address) {
             $this->setup();
             $priv_key = trim($priv_key);
-
             $priv_key_info = $this->bitcoin->WIF_to_private_key($priv_key);
+
             $pubkey = $this->bitcoin->private_key_to_public_key($priv_key_info['key'], $priv_key_info['is_compressed']);
+
             $address = $this->bitcoin->public_key_to_address($pubkey, '00');
+
             $this->assertEquals($address, $true_address);
 
             $this->tearDown();

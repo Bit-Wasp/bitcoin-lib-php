@@ -22,6 +22,8 @@ class BIP32CoreTest extends PHPUnit_Framework_TestCase {
 
 
 	public function testGMP() {
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+
 		$I_l = "e97a4d6be13f8f5804c0a76080428fc6d51260f74801678c4127045d2640af14";
 		$private_key = "142018c66b43a95de58c1cf603446fc0da322bc15fb4df068b844b57c706dd05";
 		$n = "115792089237316195423570985008687907852837564279074904382605163141518161494337";
@@ -29,6 +31,8 @@ class BIP32CoreTest extends PHPUnit_Framework_TestCase {
 		$gmp_I_l = gmp_init($I_l, 16);
 		$gmp_private_key = gmp_init($private_key, 16);
 		$gmp_add = gmp_add($gmp_I_l, $gmp_private_key);
+
+
 
 		$this->assertEquals("105604983404708440304568772161069255144976878830542744455590282065741265022740", gmp_strval($gmp_I_l));
 		$this->assertEquals("9102967069016248707169900673545386030247334423973996501079368232055584775429", gmp_strval($gmp_private_key));
@@ -40,7 +44,7 @@ class BIP32CoreTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals("230500039711040884435309657843302549028061777533591645339274813439315011292506", gmp_strval(gmp_add(gmp_init($n), gmp_div_r($gmp_add, gmp_init($n)))));
 
 
-		$gmp_mod2 = GmpUtils::gmpMod2($gmp_add, $n);
+		$gmp_mod2 = $math->mod($gmp_add, $n);
 
 		$this->assertTrue(is_string($gmp_mod2));
 		$this->assertEquals("114707950473724689011738672834614641175224213254516740956669650297796849798169", $gmp_mod2);
