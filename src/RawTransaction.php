@@ -25,6 +25,7 @@ use Mdanter\Ecc\Signature;
  *                required to redeem funds.
  *  - decode_redeem_script - decodes a redeemScript to obtain the pubkeys, m, and n.
  */
+
 class RawTransaction
 {
 
@@ -118,17 +119,16 @@ class RawTransaction
      */
     public static function _get_vint(&$string)
     {
-        $math = EccFactory::getAdapter();
         // Load the next byte, convert to decimal.
-        $decimal = $math->hexDec(self::_return_bytes($string, 1));
+        $decimal = hexdec(self::_return_bytes($string, 1));
 
         // Less than 253: Not encoding extra bytes.
         // More than 253, work out the $number of bytes using the 2^(offset)
-        $num_bytes = $math->cmp($decimal, 253) < 0 ? 0 : 2 ^ ($decimal - 253);
+        $num_bytes = ($decimal < 253) ? 0 : 2 ^ ($decimal - 253);
 
         // Num_bytes is 0: Just return the decimal
         // Otherwise, return $num_bytes bytes (order flipped) and converted to decimal
-        return ($num_bytes == 0) ? $decimal : $math->hexDec(self::_return_bytes($string, $num_bytes, TRUE));
+        return ($num_bytes == 0) ? $decimal : hexdec(self::_return_bytes($string, $num_bytes, TRUE));
 
     }
 
@@ -148,19 +148,18 @@ class RawTransaction
      */
     public static function _encode_vint($decimal)
     {
-        $math = EccFactory::getAdapter();
 
-        $hex = $math->decHex($decimal);
+        $hex = dechex($decimal);
         if ($decimal < 253) {
             $hint = self::_dec_to_bytes($decimal, 1);
             $num_bytes = 0;
-        } else if ($decimal < $math->pow(2, 16)) {
+        } else if ($decimal < 65535) {
             $hint = 'fd';
             $num_bytes = 2;
-        } else if ($hex < $math->pow(2, 32)) {
+        } else if ($hex < 4294967295) {
             $hint = 'fe';
             $num_bytes = 4;
-        } else if ($hex < $math->pow(2, 64)) {
+        } else if ($hex < 18446744073709551615) {
             $hint = 'ff';
             $num_bytes = 8;
         } else {
@@ -185,12 +184,10 @@ class RawTransaction
      */
     public static function _decode_script($script)
     {
-        $math = EccFactory::getAdapter();
-
         $pos = 0;
         $data = array();
         while ($pos < strlen($script)) {
-            $code = $math->hexdec(substr($script, $pos, 2)); // hex opcode.
+            $code = hexdec(substr($script, $pos, 2)); // hex opcode.
             $pos += 2;
 
             if ($code < 1) {
@@ -199,14 +196,14 @@ class RawTransaction
             } else if ($code <= 75) {
                 // $code bytes will be pushed to the stack.
                 $push = substr($script, $pos, ($code * 2));
-                $pos += $math->mul($code, 2);
+                $pos += $code * 2;
             } else if ($code <= 78) {
                 // In this range, 2^($code-76) is the number of bytes to take for the *next* number onto the stack.
                 $szsz = 2 ^ ($code - 76); // decimal number of bytes.
-                $sz = $math->hexDec(substr($script, $pos, $math->mul($szsz, 2))); // decimal number of bytes to load and push.
+                $sz = hexdec(substr($script, $pos, ($szsz * 2))); // decimal number of bytes to load and push.
                 $pos += $szsz;
                 $push = substr($script, $pos, ($pos + $sz * 2)); // Load the data starting from the new position.
-                $pos += $math->mul($sz, 2);
+                $pos += $sz * 2;
             } else if ($code <= 96) {
                 // OP_x, where x = $code-80
                 $push = ($code - 80);
@@ -232,8 +229,6 @@ class RawTransaction
      */
     public static function _decode_inputs(&$raw_transaction, $input_count)
     {
-        $math = EccFactory::getAdapter();;
-
         $inputs = array();
 
         // Loop until $input count is reached, sequentially removing the
@@ -242,7 +237,7 @@ class RawTransaction
             // Check that the variable has at least 36 bytes, and that the
             // required length for this input is less than the length of the raw_transaction string.
             if (strlen($raw_transaction) < 74
-                || !(($math->hexDec(substr($raw_transaction, 72, 2)) + 74 + 8) < strlen($raw_transaction))
+                || !((hexdec(substr($raw_transaction, 72, 2)) + 74 + 8) < strlen($raw_transaction))
             )
                 return FALSE;
 
@@ -261,7 +256,7 @@ class RawTransaction
                 $input_body = array('txid' => $txid,
                     'vout' => hexdec($vout),
                     'scriptSig' => array('asm' => self::_decode_script($script),
-                        'hex' => $script));
+                    'hex' => $script));
 
             // Append a sequence number, and finally add the input to the array.
             $input_body['sequence'] = hexdec(self::_return_bytes($raw_transaction, 4));
@@ -364,7 +359,7 @@ class RawTransaction
      */
     public static function _get_transaction_type($data, $address_version = '00')
     {
-        $math = EccFactory::getAdapter();
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
 
         $data = explode(" ", $data);
 
@@ -443,7 +438,7 @@ class RawTransaction
      */
     public static function _decode_outputs(&$tx, $output_count, $address_version = '00')
     {
-        $math = EccFactory::getAdapter();
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
 
         $outputs = array();
         for ($i = 0; $i < $output_count; $i++) {
@@ -527,7 +522,7 @@ class RawTransaction
      */
     public static function decode($raw_transaction, $address_version = '00')
     {
-        $math = EccFactory::getAdapter();
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
 
         $raw_transaction = trim($raw_transaction);
         if (((bool)preg_match('/^[0-9a-fA-F]{2,}$/i', $raw_transaction) !== TRUE)
@@ -582,7 +577,7 @@ class RawTransaction
 
         // $encoded_outputs - set varint, then work out if output hex is required.
         $decimal_outputs_count = count($raw_transaction_array['vout']);
-        $encoded_outputs = self::_encode_vint($decimal_outputs_count) . (($decimal_inputs_count > 0) ? self::_encode_outputs($raw_transaction_array['vout'], $decimal_outputs_count) : '');
+        $encoded_outputs = self::_encode_vint($decimal_outputs_count).(($decimal_inputs_count > 0) ? self::_encode_outputs($raw_transaction_array['vout'], $decimal_outputs_count) : '');
 
         // Transaction locktime
         $encoded_locktime = self::_dec_to_bytes($raw_transaction_array['locktime'], 4, TRUE);
@@ -673,13 +668,13 @@ class RawTransaction
      */
     public static function _check_sig($sig, $hash, $key)
     {
-        $math = EccFactory::getAdapter();
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
         $signature = self::decode_signature($sig);
         $test_signature = new Signature($math->hexDec($signature['r']), $math->hexDec($signature['s']));
-        $generator = EccFactory::getSecgCurves()->generator256k1();
+        $generator = \Mdanter\Ecc\EccFactory::getSecgCurves()->generator256k1();
         $curve = $generator->getCurve();
 
-        if (strlen($key) == '66') {
+	    if (strlen($key) == '66') {
             $decompress = BitcoinLib::decompress_public_key($key);
             $public_key_point = $decompress['point'];
         } else {
@@ -689,7 +684,7 @@ class RawTransaction
             $public_key_point = new Point($curve, $x, $y, $generator->getOrder(), $math);
         }
 
-        $public_key = new PublicKey($generator, $public_key_point, $math);
+	    $public_key = new PublicKey($generator, $public_key_point, $math);
         $hash = $math->hexDec($hash);
 
         return $public_key->verifies($hash, $test_signature) == TRUE;
@@ -708,7 +703,7 @@ class RawTransaction
      */
     public static function decode_redeem_script($redeem_script, $data = array())
     {
-        $math = EccFactory::getAdapter();
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
 
         // If there is no more work to be done (script is fully parsed,
         // return the array)
@@ -741,7 +736,7 @@ class RawTransaction
             unset($data['next_key_charlen']);
 
             // If 1 <= $next_op >= 4b : A key is coming up next. This if block runs again.
-            if (in_array($math->cmp($math->hexDec($next_op), 1), array(0, 1))
+            if (   in_array($math->cmp($math->hexDec($next_op), 1), array(0, 1))
                 && in_array($math->cmp($math->hexDec($next_op), $math->hexDec('4b')), array(-1, 0))
             ) {
                 // Set the next key character length
@@ -749,7 +744,7 @@ class RawTransaction
 
                 // If 52 <= $next_op >= 60 : End of keys, now have n.
             } else if (in_array($math->cmp($math->hexDec($next_op), $math->hexDec('51')), array(0, 1))
-                && in_array($math->cmp($math->hexDec($next_op), $math->hexDec('60')), array(-1, 0))
+                &&     in_array($math->cmp($math->hexDec($next_op), $math->hexDec('60')), array(-1, 0))
             ) {
 
                 // Finish the script - obtain n
@@ -781,7 +776,7 @@ class RawTransaction
      */
     public static function create_redeem_script($m, $public_keys = array())
     {
-        $math = EccFactory::getAdapter();
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
 
         if (count($public_keys) == 0)
             return FALSE;
@@ -824,41 +819,40 @@ class RawTransaction
             'address' => BitcoinLib::public_key_to_address($redeem_script, $address_version));
     }
 
-    /**
-     * Sort Multisig Keys
-     *
-     * Accepts an array of public keys for multisig, and returns them sorted
-     * by length and by lexicographic order.
-     *
-     * @param    array $public_keys
-     * @return    array
-     */
-    public static function sort_multisig_keys($public_keys)
-    {
-        $sorted_keys = $public_keys;
-        usort($sorted_keys, function ($a, $b) {
-            $len_a = strlen($a);
-            $len_b = strlen($b);
-
-            $length = $len_a > $len_b ? $len_a : $len_b;
-            for ($i = 0; $i < $length; $i++) {
-                if (!isset($a[$i])) {
-                    return -1;
-                } else if (!isset($b[$i])) {
-                    return 1;
-                } else if ((int)$a[$i] < (int)$b[$i]) {
-                    return -1;
-                } else if ((int)$a[$i] > (int)$b[$i]) {
-                    return 1;
-                } else {
-                    continue;
-                }
-            }
-            return 0;
-        });
-        return $sorted_keys;
-    }
-
+	/**
+	 * Sort Multisig Keys
+	 * 
+	 * Accepts an array of public keys for multisig, and returns them sorted
+	 * by length and by lexicographic order.
+	 * 
+	 * @param	array	$public_keys
+	 * @return	array
+	 */
+	public static function sort_multisig_keys($public_keys) {
+		$sorted_keys = $public_keys;
+		usort($sorted_keys, function ($a, $b) {
+			$len_a = strlen($a);
+			$len_b = strlen($b);
+			
+			$length = $len_a > $len_b ? $len_a : $len_b;
+			for($i = 0; $i < $length; $i++) {
+				if(!isset($a[$i])) {
+					return -1;
+				} else if(!isset($b[$i])) {
+					return 1;
+				} else if((int)$a[$i] < (int)$b[$i]) {
+					return -1;
+				} else if((int)$a[$i] > (int)$b[$i]) {
+					return 1;
+				} else {
+					continue;
+				}	
+			}
+			return 0;
+		});
+		return $sorted_keys;
+	}
+	
     /**
      * Validate Signed Transaction
      *
@@ -942,7 +936,7 @@ class RawTransaction
      */
     public static function create($inputs, $outputs, $magic_byte = '00')
     {
-        $math = EccFactory::getAdapter();
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
 
         // Generate the p2sh byte from the regular byte.
         $regular_byte = $magic_byte;
@@ -1014,8 +1008,8 @@ class RawTransaction
      */
     public static function sign($wallet, $raw_transaction, $inputs, $magic_byte = '00')
     {
-        $math = EccFactory::getAdapter();
-        $generator = EccFactory::getSecgCurves($math)->generator256k1();
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $generator = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
 
         // Generate digests of inputs to sign.
         $message_hash = self::_create_txin_signature_hash($raw_transaction, $inputs);
@@ -1204,7 +1198,7 @@ class RawTransaction
                 $generated .= self::_dec_to_bytes(strlen($sig_array[$key]) / 2, 1)
                     . $sig_array[$key];
         }
-        $generated .= '4c' . self::_dec_to_bytes(strlen($script_info['script']) / 2, 1)
+        $generated .= '4c'.self::_dec_to_bytes(strlen($script_info['script']) / 2, 1)
             . $script_info['script'];
         return $generated;
     }
@@ -1220,7 +1214,7 @@ class RawTransaction
      */
     public static function decode_signature($signature)
     {
-        $math = EccFactory::getAdapter();
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
 
         $r_start = 8;
         $r_length = $math->hexDec(substr($signature, 6, 2)) * 2;
@@ -1247,7 +1241,7 @@ class RawTransaction
      */
     public static function is_canonical_signature($signature)
     {
-        $math = EccFactory::getAdapter();
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
 
         $loud = FALSE;
         $length = strlen($signature);
