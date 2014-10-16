@@ -359,6 +359,8 @@ class RawTransaction
      */
     public static function _get_transaction_type($data, $address_version = '00')
     {
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+
         $data = explode(" ", $data);
 
         // Define information about eventual transactions cases, and
@@ -413,7 +415,7 @@ class RawTransaction
                 $return = $define[$tx_type];
                 $return['hash160'] = $data[$define[$tx_type]['data_index_for_hash']];
 
-                $magic_byte = ($return['type'] == 'scripthash') ? str_pad(gmp_strval(gmp_add(gmp_init($address_version), gmp_init('05', 16))), 2, '0', STR_PAD_LEFT) : $address_version;
+                $magic_byte = ($return['type'] == 'scripthash') ? BitcoinLib::hex_encode($math->add($math->hexDec($address_version), $math->hexDec('05'))) : $address_version;
                 $return['addresses'][0] = BitcoinLib::hash160_to_address($return['hash160'], $magic_byte);
                 unset($return['data_index_for_hash']);
             }
@@ -436,18 +438,19 @@ class RawTransaction
      */
     public static function _decode_outputs(&$tx, $output_count, $address_version = '00')
     {
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
 
         $outputs = array();
         for ($i = 0; $i < $output_count; $i++) {
             // Check the $tx has sufficient length to cover this input.
             if (strlen($tx) < 8
-                || !((hexdec(substr($tx, 8, 2)) + 8 + 2) < strlen($tx))
+                || !(($math->hexDec(substr($tx, 8, 2)) + 8 + 2) < strlen($tx))
             )
                 return FALSE;
 
             // Pop 8 bytes (flipped) from the $tx string, convert to decimal,
             // and then convert to Satoshis.
-            $satoshis = base_convert(self::_return_bytes($tx, 8, TRUE), 16, 10);
+            $satoshis = $math->hexDec(self::_return_bytes($tx, 8, TRUE), 16, 10);
             $amount = number_format($satoshis / 1e8, 8, ".", "");
 
             // Decode the varint for the length of the scriptPubKey
@@ -549,7 +552,7 @@ class RawTransaction
 
         $info['vout'] = self::_decode_outputs($raw_transaction, $output_count, $address_version);
 
-        $info['locktime'] = hexdec(self::_return_bytes($raw_transaction, 4));
+        $info['locktime'] = $math->hexDec(self::_return_bytes($raw_transaction, 4));
         return $info;
     }
 
@@ -667,7 +670,7 @@ class RawTransaction
     {
         $math = \Mdanter\Ecc\EccFactory::getAdapter();
         $signature = self::decode_signature($sig);
-        $test_signature = new Signature(gmp_init($signature['r'], 16), gmp_init($signature['s'], 16));
+        $test_signature = new Signature($math->hexDec($signature['r']), $math->hexDec($signature['s']));
         $generator = \Mdanter\Ecc\EccFactory::getSecgCurves()->generator256k1();
         $curve = $generator->getCurve();
 
@@ -722,7 +725,6 @@ class RawTransaction
             $hex = substr($redeem_script, 0, 2);
             // Set up the length of the following key.
             $data['next_key_charlen'] = $math->mul(2, $math->hexDec($hex));
-            //$data['next_key_charlen'] = gmp_strval(gmp_mul(gmp_init('2', 10), gmp_init($hex, 16)), 10);
 
             $redeem_script = substr($redeem_script, 2);
         } else if (isset($data['next_key_charlen'])) {
@@ -1212,13 +1214,15 @@ class RawTransaction
      */
     public static function decode_signature($signature)
     {
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+
         $r_start = 8;
-        $r_length = hexdec(substr($signature, 6, 2)) * 2;
+        $r_length = $math->hexDec(substr($signature, 6, 2)) * 2;
         $r_end = $r_start + $r_length;
         $r = substr($signature, $r_start, $r_length);
 
         $s_start = $r_end + 4;
-        $s_length = hexdec(substr($signature, ($r_end + 2), 2)) * 2;
+        $s_length = $math->hexDec(substr($signature, ($r_end + 2), 2)) * 2;
         $s = substr($signature, $s_start, $s_length);
         return array('r' => $r,
             's' => $s,
@@ -1237,14 +1241,16 @@ class RawTransaction
      */
     public static function is_canonical_signature($signature)
     {
+        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+
         $loud = FALSE;
         $length = strlen($signature);
-        if ($length < 18) {
+        if ($math->cmp($length, 18) < 0) {
             if ($loud == TRUE) echo "Non-canonical signature: too short\n";
             return FALSE;
         }
 
-        if ($length > 146) {
+        if ($math->cmp($length, 146) < 0) {
             if ($loud == TRUE) echo "Non-canonical signature: too long\n";
             return FALSE;
         }
@@ -1255,16 +1261,16 @@ class RawTransaction
             return FALSE;
         }
 
-        if (substr($signature, 2, 2) !== dechex((strlen($signature) / 2) - 3)) {
+        if (substr($signature, 2, 2) !== $math->decHex((strlen($signature) / 2) - 3)) {
             if ($loud == TRUE) echo "Non-canonical signature: wrong length marker\n";
             return FALSE;
         }
 
-        $len_r_bytes = hexdec(substr($signature, 6, 2));
+        $len_r_bytes = $math->hexDec(substr($signature, 6, 2));
         $r = substr($signature, 8, $len_r_bytes * 2);
         $r_first = substr($r, 0, 2);
 
-        $len_s_bytes = hexdec(substr($signature, (5 + $len_r_bytes) * 2, 2));
+        $len_s_bytes = $math->hexDec(substr($signature, (5 + $len_r_bytes) * 2, 2));
         $s = substr($signature, (8 + ($len_r_bytes * 2) + 4), $len_s_bytes * 2);
         $s_first = substr($s, 0, 2);
 
