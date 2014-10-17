@@ -1033,7 +1033,7 @@ class RawTransaction
 
                 if ($key_info['type'] == 'scripthash') {
 
-                    $signatures = self::extract_input_signatures_p2sh($input, $math->hexDec($message_hash[$vin]), $key_info);
+                    $signatures = self::extract_input_signatures_p2sh($input, $message_hash[$vin], $key_info);
                     $sign_count += count($signatures);
 
                     // Create Signature
