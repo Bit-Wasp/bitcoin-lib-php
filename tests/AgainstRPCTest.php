@@ -1,11 +1,11 @@
 <?php
 
 use BitWasp\BitcoinLib\BitcoinLib;
+use BitWasp\BitcoinLib\Jsonrpcclient;
 use BitWasp\BitcoinLib\RawTransaction;
 use BitWasp\BitcoinLib\Electrum;
 
 require_once(__DIR__. '/../vendor/autoload.php');
-require_once(__DIR__. '/../src/Jsonrpcclient.php');
 
 class testAgainstRPC extends PHPUnit_Framework_TestCase {
 
