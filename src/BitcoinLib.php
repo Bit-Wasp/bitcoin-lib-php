@@ -40,7 +40,7 @@ class BitcoinLib {
      *
      * @var array
      */
-    private static $magic_bytes = array(
+    private static $magic_byte_presets = array(
         'bitcoin' => '00|05',
         'bitcoin-testnet' => '6f|c4',
     );
@@ -61,20 +61,20 @@ class BitcoinLib {
      */
     private static $magic_p2sh_byte;
 
-    public static function setMagicByte($magic_byte) {
+    public static function setMagicByteDefaults($magic_byte_defaults) {
 
-        if (isset(self::$magic_bytes[$magic_byte])) {
-            $magic_byte = self::$magic_bytes[$magic_byte];
+        if (isset(self::$magic_byte_presets[$magic_byte_defaults])) {
+            $magic_byte_defaults = self::$magic_byte_presets[$magic_byte_defaults];
         }
 
-        $magic_byte = explode('|', $magic_byte);
+        $magic_byte_defaults = explode('|', $magic_byte_defaults);
 
-        if (count($magic_byte) != 2) {
-            throw new \Exception("magic_byte should magic_byte|magic_p2sh_byte");
+        if (count($magic_byte_defaults) != 2) {
+            throw new \Exception("magic_byte_defaults should magic_byte|magic_p2sh_byte");
         }
 
-        self::$magic_byte = $magic_byte[0];
-        self::$magic_p2sh_byte = $magic_byte[1];
+        self::$magic_byte = $magic_byte_defaults[0];
+        self::$magic_p2sh_byte = $magic_byte_defaults[1];
     }
 
     /**
@@ -92,7 +92,7 @@ class BitcoinLib {
      */
     public static function magicByte($magic_byte = null) {
         if (is_null(self::$magic_byte)) {
-            self::setMagicByte('bitcoin');
+            self::setMagicByteDefaults('bitcoin');
         }
 
         if (is_null($magic_byte)) {
@@ -112,8 +112,8 @@ class BitcoinLib {
             return self::magicP2SHByte();
         }
 
-        if (isset(self::$magic_bytes[$magic_byte])) {
-            $preset_magic_byte = explode('|', self::$magic_bytes[$magic_byte]);
+        if (isset(self::$magic_byte_presets[$magic_byte])) {
+            $preset_magic_byte = explode('|', self::$magic_byte_presets[$magic_byte]);
             return $preset_magic_byte[0];
         }
 
@@ -135,7 +135,7 @@ class BitcoinLib {
      */
     public static function magicP2SHByte($magic_byte = null) {
         if (is_null(self::$magic_p2sh_byte)) {
-            self::setMagicByte('bitcoin');
+            self::setMagicByteDefaults('bitcoin');
         }
 
         if (is_null($magic_byte)) {
@@ -152,8 +152,8 @@ class BitcoinLib {
         }
 
 
-        if (isset(self::$magic_bytes[$magic_byte])) {
-            $preset_magic_byte = explode('|', self::$magic_bytes[$magic_byte]);
+        if (isset(self::$magic_byte_presets[$magic_byte])) {
+            $preset_magic_byte = explode('|', self::$magic_byte_presets[$magic_byte]);
             return $preset_magic_byte[1];
         }
 
@@ -175,7 +175,7 @@ class BitcoinLib {
      */
     public static function magicBytePair($magic_byte_pair = null) {
         if (is_null(self::$magic_byte) || is_null(self::$magic_p2sh_byte)) {
-            self::setMagicByte('bitcoin');
+            self::setMagicByteDefaults('bitcoin');
         }
 
         if (is_null($magic_byte_pair)) {
@@ -186,8 +186,8 @@ class BitcoinLib {
             return explode('|', $magic_byte_pair);
         }
 
-        if (isset(self::$magic_bytes[$magic_byte_pair])) {
-            $preset_magic_byte = explode('|', self::$magic_bytes[$magic_byte_pair]);
+        if (isset(self::$magic_byte_presets[$magic_byte_pair])) {
+            $preset_magic_byte = explode('|', self::$magic_byte_presets[$magic_byte_pair]);
             return $preset_magic_byte;
         }
 

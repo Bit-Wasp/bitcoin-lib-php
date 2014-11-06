@@ -5,11 +5,12 @@ use BitWasp\BitcoinLib\RawTransaction;
 
 require_once(__DIR__. '/../vendor/autoload.php');
 
-BitcoinLib::setMagicByte("bitcoin-testnet");
-
 /*
  * !! TESTNET !!
- *
+ */
+BitcoinLib::setMagicByteDefaults("bitcoin-testnet");
+
+/*
  * address: n3P94USXs7LzfF4BKJVyGv2uCfBQRbvMZJ
  * priv:    cV2BRcdtWoZMSovYCpoY9gyvjiVK5xufpAwdAFk1jdonhGZq1cCm
  * pub:     03c0b1fd07752ebdd43c75c0a60d67958eeac8d4f5245884477eae094c4361418d

@@ -22,7 +22,7 @@ class BitcoinLibTestNetTest extends BitcoinLibTest
 	
 	public function setup() {
         $this->bitcoin = new BitcoinLib();
-        $this->bitcoin->setMagicByte('bitcoin-testnet');
+        $this->bitcoin->setMagicByteDefaults('bitcoin-testnet');
     }
     
 	public function tearDown() {
