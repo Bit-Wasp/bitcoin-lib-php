@@ -214,4 +214,42 @@ class BIP39Test extends PHPUnit_Framework_TestCase {
             }
         }
     }
+
+    public function testGenerate() {
+        for ($i = 0; $i < 100; $i++) {
+            $entropy = BIP39::generateEntropy(128);
+            $this->assertTrue(!!$entropy);
+
+            $mnemonic = BIP39::entropyToMnemonic($entropy);
+            $this->assertTrue(!!$entropy);
+
+            $entropy2 = BIP39::mnemonicToEntropy($mnemonic);
+            $this->assertTrue(!!$entropy2);
+            $this->assertEquals($entropy, $entropy2);
+        }
+
+        for ($i = 0; $i < 100; $i++) {
+            $entropy = BIP39::generateEntropy(256);
+            $this->assertTrue(!!$entropy);
+
+            $mnemonic = BIP39::entropyToMnemonic($entropy);
+            $this->assertTrue(!!$entropy);
+
+            $entropy2 = BIP39::mnemonicToEntropy($mnemonic);
+            $this->assertTrue(!!$entropy2);
+            $this->assertEquals($entropy, $entropy2);
+        }
+
+        for ($i = 0; $i < 100; $i++) {
+            $entropy = BIP39::generateEntropy(512);
+            $this->assertTrue(!!$entropy);
+
+            $mnemonic = BIP39::entropyToMnemonic($entropy);
+            $this->assertTrue(!!$entropy);
+
+            $entropy2 = BIP39::mnemonicToEntropy($mnemonic);
+            $this->assertTrue(!!$entropy2);
+            $this->assertEquals($entropy, $entropy2);
+        }
+    }
 }

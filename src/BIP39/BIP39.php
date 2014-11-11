@@ -7,6 +7,21 @@ class BIP39 {
     protected static $defaultWordList;
 
     /**
+     * generate random entropy using openssl_random_pseudo_bytes
+     *
+     * @param int           $size           desired strength, must be multiple of 32, recommended 128-256
+     * @return string                       hex Entropy
+     * @throws \Exception
+     */
+    public static function generateEntropy($size = 256) {
+        if ($size % 32 !== 0) {
+            throw new \Exception("Entropy must be in a multiple of 32");
+        }
+
+        return bin2hex(openssl_random_pseudo_bytes($size / 8));
+    }
+
+    /**
      * create Mnemonic from Entropy
      *
      * @param string        $entropyHex     hex Entropy
