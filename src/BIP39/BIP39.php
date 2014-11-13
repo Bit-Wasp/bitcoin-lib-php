@@ -9,16 +9,17 @@ class BIP39 {
     /**
      * generate random entropy using openssl_random_pseudo_bytes
      *
-     * @param int           $size           desired strength, must be multiple of 32, recommended 128-256
-     * @return string                       hex Entropy
+     * @param int  $size                    desired strength, must be multiple of 32, recommended 128-256
+     * @param bool &$strong                 by reference $strong argument of openssl_random_pseudo_bytes
      * @throws \Exception
+     * @return string                       hex Entropy
      */
-    public static function generateEntropy($size = 256) {
+    public static function generateEntropy($size = 256, &$strong = null) {
         if ($size % 32 !== 0) {
             throw new \Exception("Entropy must be in a multiple of 32");
         }
 
-        return bin2hex(openssl_random_pseudo_bytes($size / 8));
+        return bin2hex(openssl_random_pseudo_bytes($size / 8, $strong));
     }
 
     /**
