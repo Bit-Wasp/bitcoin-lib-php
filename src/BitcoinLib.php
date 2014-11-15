@@ -32,8 +32,169 @@ class BitcoinLib {
 	 * This is a string containing the allowed characters in base58.
 	 */
 	private static $base58chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-	
-	/**
+
+    /**
+     * magic_byte presets
+     *
+     * MAKE SURE alphabetic chars in the HEX are LOWERCASE!
+     *
+     * @var array
+     */
+    private static $magic_byte_presets = array(
+        'bitcoin' => '00|05',
+        'bitcoin-testnet' => '6f|c4',
+    );
+
+    /**
+     * use self::magicByte() instead of directly accessing this property
+     *  which will initiated this to the 'bitcoin' preset on first call
+     *
+     * @var string
+     */
+    private static $magic_byte;
+
+    /**
+     * use self::magicByte('p2sh') instead of directly accessing this property
+     *  which will initiated this to the 'bitcoin' 'p2sh' preset on first call
+     *
+     * @var string
+     */
+    private static $magic_p2sh_byte;
+
+    public static function setMagicByteDefaults($magic_byte_defaults) {
+
+        if (isset(self::$magic_byte_presets[$magic_byte_defaults])) {
+            $magic_byte_defaults = self::$magic_byte_presets[$magic_byte_defaults];
+        }
+
+        $magic_byte_defaults = explode('|', $magic_byte_defaults);
+
+        if (count($magic_byte_defaults) != 2) {
+            throw new \Exception("magic_byte_defaults should magic_byte|magic_p2sh_byte");
+        }
+
+        self::$magic_byte = $magic_byte_defaults[0];
+        self::$magic_p2sh_byte = $magic_byte_defaults[1];
+    }
+
+    /**
+     * normalizes magic_byte
+     *
+     * accepted:
+     *  - '<magic_byte>' -> <magic_byte>
+     *  - NULL           -> default magic_byte
+     *  - '<alias>'      -> magic_byte for specified alias
+     *  - 'p2sh'         -> default magic_p2sh_byte
+     *
+     * @param   string      $magic_byte
+     * @return  string
+     * @throws  \Exception
+     */
+    public static function magicByte($magic_byte = null) {
+        if (is_null(self::$magic_byte)) {
+            self::setMagicByteDefaults('bitcoin');
+        }
+
+        if (is_null($magic_byte)) {
+            return self::$magic_byte;
+        }
+
+        if (strlen($magic_byte) == 5 && strpos($magic_byte, '|') == 2) {
+            $magic_byte = explode('|', $magic_byte);
+            return $magic_byte[0];
+        }
+
+        if (strlen($magic_byte) == 2) {
+            return $magic_byte;
+        }
+
+        if ($magic_byte == 'p2sh') {
+            return self::magicP2SHByte();
+        }
+
+        if (isset(self::$magic_byte_presets[$magic_byte])) {
+            $preset_magic_byte = explode('|', self::$magic_byte_presets[$magic_byte]);
+            return $preset_magic_byte[0];
+        }
+
+        throw new \Exception("Failed to determine magic_byte");
+    }
+
+
+    /**
+     * normalizes magic_p2sh_byte
+     *
+     * accepted:
+     *  - '<magic_p2sh_byte>' -> <magic_p2sh_byte>
+     *  - NULL                -> default magic_p2sh_byte
+     *  - '<alias>'           -> magic_p2sh_byte for specified alias
+     *
+     * @param   string      $magic_byte
+     * @return  string
+     * @throws  \Exception
+     */
+    public static function magicP2SHByte($magic_byte = null) {
+        if (is_null(self::$magic_p2sh_byte)) {
+            self::setMagicByteDefaults('bitcoin');
+        }
+
+        if (is_null($magic_byte)) {
+            return self::$magic_p2sh_byte;
+        }
+
+        if (strlen($magic_byte) == 5 && strpos($magic_byte, '|') == 2) {
+            $magic_byte = explode('|', $magic_byte);
+            return $magic_byte[1];
+        }
+
+        if (strlen($magic_byte) == 2) {
+            return $magic_byte;
+        }
+
+
+        if (isset(self::$magic_byte_presets[$magic_byte])) {
+            $preset_magic_byte = explode('|', self::$magic_byte_presets[$magic_byte]);
+            return $preset_magic_byte[1];
+        }
+
+        throw new \Exception("Failed to determine magic_p2sh_byte");
+    }
+
+    /**
+     * normalizes magic_p2sh_byte pair
+     *
+     * accepted:
+     *  - '<magic_byte>|<magic_p2sh_byte>' -> [<magic_byte>, <magic_p2sh_byte>]
+     *  - '<magic_byte>'                   -> default pair if '<magic_byte>' is the default magic_byte
+     *  - NULL                             -> default pair
+     *  - '<alias>'                        -> pair for specified alias
+     *
+     * @param   string      $magic_byte_pair
+     * @return  array[string, string]
+     * @throws  \Exception
+     */
+    public static function magicBytePair($magic_byte_pair = null) {
+        if (is_null(self::$magic_byte) || is_null(self::$magic_p2sh_byte)) {
+            self::setMagicByteDefaults('bitcoin');
+        }
+
+        if (is_null($magic_byte_pair)) {
+            return [self::$magic_byte, self::$magic_p2sh_byte];
+        }
+
+        if (strlen($magic_byte_pair) == 5 && strpos($magic_byte_pair, '|') == 2) {
+            return explode('|', $magic_byte_pair);
+        }
+
+        if (isset(self::$magic_byte_presets[$magic_byte_pair])) {
+            $preset_magic_byte = explode('|', self::$magic_byte_presets[$magic_byte_pair]);
+            return $preset_magic_byte;
+        }
+
+        throw new \Exception("Failed to determine magic_byte_pair");
+    }
+
+    /**
 	 * Hex Encode 
 	 * 
 	 * Encodes a decimal $number into a hexadecimal string.
@@ -192,8 +353,8 @@ class BitcoinLib {
 	 * @param	string	$address_version
 	 * @return	string
 	 */
-	public static function hash160_to_address($hash160, $address_version) {
-		$hash160 = $address_version . $hash160;
+	public static function hash160_to_address($hash160, $address_version = null) {
+		$hash160 = self::magicByte($address_version) . $hash160;
 		return self::base58_encode_checksum($hash160);
 	}
 	
@@ -209,9 +370,9 @@ class BitcoinLib {
 	 * @param	string	$address_version
 	 * @return	string
 	 */
-	public static function public_key_to_address($public_key, $address_version) {
+	public static function public_key_to_address($public_key, $address_version = null) {
 		$hash160 = self::hash160($public_key);
-		return self::hash160_to_address($hash160, $address_version);
+		return self::hash160_to_address($hash160, self::magicByte($address_version));
 	}
 
 	/**
@@ -286,10 +447,11 @@ class BitcoinLib {
      * @param $address_version
      * @return string
      */
-    public static function private_key_to_address($private_key, $address_version) {
+	public static function private_key_to_address($private_key, $address_version = null) {
+		$address_version = self::magicByte($address_version);
 
 		$public_key = self::private_key_to_public_key($private_key);
-		return self::public_key_to_address($public_key, $address_version);
+		return self::public_key_to_address($public_key, self::magicByte($address_version));
 	}
 
 	/**
@@ -319,7 +481,9 @@ class BitcoinLib {
      * @param bool $compressed
      * @return array
      */
-    public static function get_new_key_set($address_version, $compressed = FALSE) {
+    public static function get_new_key_set($address_version = null, $compressed = FALSE) {
+        $address_version = self::magicByte($address_version);
+
 		do {
 			$key_pair = self::get_new_key_pair();
 			$private_WIF = self::private_key_to_WIF($key_pair['privKey'], $compressed, $address_version);
@@ -346,8 +510,10 @@ class BitcoinLib {
 	 * @param	string	$address_version
 	 * @return	string
 	 */
-	public static function get_private_key_address_version($address_version)
+	public static function get_private_key_address_version($address_version = null)
 	{
+        $address_version = self::magicByte($address_version);
+
 		return gmp_strval(
 					gmp_add(
 						gmp_init($address_version, 16),
@@ -371,10 +537,10 @@ class BitcoinLib {
      * @param $address_version
      * @return string
      */
-    public static function private_key_to_WIF($privKey, $compressed = FALSE, $address_version)
+    public static function private_key_to_WIF($privKey, $compressed = FALSE, $address_version = null)
 	{
 		$key = $privKey.(($compressed == TRUE)?'01':'');
-		return self::hash160_to_address($key, self::get_private_key_address_version($address_version));
+		return self::hash160_to_address($key, self::get_private_key_address_version(self::magicByte($address_version)));
 	}
 	
 	/**
@@ -554,7 +720,7 @@ class BitcoinLib {
 	 * @param	string	$address_version
 	 * @return	boolean
 	 */
-	public static function validate_address($address, $address_version)
+	public static function validate_address($address, $address_version = null)
 	{
 		// Check the address is decoded correctly.
 		$decode = self::base58_decode($address);
@@ -563,7 +729,7 @@ class BitcoinLib {
 
 		// Compare the version.
 		$version = substr($decode, 0, 2);
-		if (hexdec($version) > hexdec($address_version))
+		if (hexdec($version) > hexdec(self::magicByte($address_version)))
 			return FALSE;
 
 		// Finally compare the checksums.

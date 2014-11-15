@@ -359,6 +359,7 @@ class BIP32 {
 		$key['i'] = substr($hex, 18, 8);
 		$key['address_number'] = self::get_address_number($key['i']);
 		$key['chain_code'] = substr($hex, 26, 64);
+		$key['is_compressed'] = true;
 
 		if($key['type'] == 'public') {
 			$key_start_position = 90;
@@ -375,6 +376,28 @@ class BIP32 {
 					: self::check_valid_hmac_key($key['key']);
 					
 		return ($validation) ? $key : FALSE;
+	}
+
+	/**
+	 * BIP32 Private Keys To Wallet
+	 *
+	 * This function accepts $wallet - a reference to an array containing
+	 * wallet info, indexed by hash160 of expected address.
+	 * It will attempt to add each key to this wallet, as well as all the
+	 * details that could be needed later on: public key, uncompressed key,
+	 * address, an indicator for address compression. Type is always set
+	 * to pubkeyhash for private key entries in the wallet.
+	 *
+	 * @param       $wallet
+	 * @param array $keys
+	 * @param null  $magic_byte
+	 */
+	public static function bip32_keys_to_wallet(&$wallet, array $keys, $magic_byte = null) {
+		$magic_byte = BitcoinLib::magicByte($magic_byte);
+
+		RawTransaction::private_keys_to_wallet($wallet, array_map(function ($key) {
+			return BIP32::import($key[0]);
+		}, $keys), $magic_byte);
 	}
 
 	/**
@@ -565,8 +588,9 @@ class BIP32 {
 	 * This function is used to convert the $address_number, i, into a 32
 	 * bit unsigned integer. If $set_prime = 1, then it will flip the left-most
 	 * bit, indicating a prime derivation must be used.
-	 * 
+	 *
 	 * @param	int	$address_number
+	 * @param   int $set_prime
 	 * @return	string
 	 */
 	public static function calc_address_bytes($address_number, $set_prime = 0) {

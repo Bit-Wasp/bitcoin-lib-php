@@ -354,12 +354,14 @@ class RawTransaction
      *
      *
      * @param    string $data
-     * @param    string $address_version
+     * @param    string $magic_byte
+     * @param    string $magic_p2sh_byte
      * @return    array/FALSE
      */
-    public static function _get_transaction_type($data, $address_version = '00')
+    public static function _get_transaction_type($data, $magic_byte = null, $magic_p2sh_byte = null)
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $magic_byte = BitcoinLib::magicByte($magic_byte);
+        $magic_p2sh_byte = BitcoinLib::magicP2SHByte($magic_p2sh_byte);
 
         $data = explode(" ", $data);
 
@@ -415,8 +417,8 @@ class RawTransaction
                 $return = $define[$tx_type];
                 $return['hash160'] = $data[$define[$tx_type]['data_index_for_hash']];
 
-                $magic_byte = ($return['type'] == 'scripthash') ? BitcoinLib::hex_encode($math->add($math->hexDec($address_version), $math->hexDec('05'))) : $address_version;
-                $return['addresses'][0] = BitcoinLib::hash160_to_address($return['hash160'], $magic_byte);
+                $return['addresses'][0] = BitcoinLib::hash160_to_address($return['hash160'], ($return['type'] == 'scripthash') ? $magic_p2sh_byte : $magic_byte);
+
                 unset($return['data_index_for_hash']);
             }
         }
@@ -433,12 +435,16 @@ class RawTransaction
      * Returns FALSE if
      * @param    string $tx
      * @param    int $output_count
-     * @param    string $address_version
+     * @param    string $magic_byte
+     * @param    string $magic_p2sh_byte
      * @return    array/FALSE
      */
-    public static function _decode_outputs(&$tx, $output_count, $address_version = '00')
+    public static function _decode_outputs(&$tx, $output_count, $magic_byte = null, $magic_p2sh_byte = null)
     {
         $math = \Mdanter\Ecc\EccFactory::getAdapter();
+
+        $magic_byte = BitcoinLib::magicByte($magic_byte);
+        $magic_p2sh_byte = BitcoinLib::magicP2SHByte($magic_p2sh_byte);
 
         $outputs = array();
         for ($i = 0; $i < $output_count; $i++) {
@@ -462,7 +468,7 @@ class RawTransaction
                 'hex' => $script);
 
             // Try to decode the scriptPubKey['asm'] to learn the transaction type.
-            $txn_info = self::_get_transaction_type($scriptPubKey['asm'], $address_version);
+            $txn_info = self::_get_transaction_type($scriptPubKey['asm'], $magic_byte, $magic_p2sh_byte);
             if ($txn_info !== FALSE)
                 $scriptPubKey = array_merge($scriptPubKey, $txn_info);
             else
@@ -517,12 +523,16 @@ class RawTransaction
      * - defaults to bitcoins version byte.
      *
      * @param    string $raw_transaction
-     * @param    string $address_version
+     * @param    string $magic_byte
+     * @param    string $magic_p2sh_byte
      * @return  array/FALSE
      */
-    public static function decode($raw_transaction, $address_version = '00')
+    public static function decode($raw_transaction, $magic_byte = null, $magic_p2sh_byte = null)
     {
         $math = \Mdanter\Ecc\EccFactory::getAdapter();
+
+        $magic_byte = BitcoinLib::magicByte($magic_byte);
+        $magic_p2sh_byte = BitcoinLib::magicP2SHByte($magic_p2sh_byte);
 
         $raw_transaction = trim($raw_transaction);
         if (((bool)preg_match('/^[0-9a-fA-F]{2,}$/i', $raw_transaction) !== TRUE)
@@ -550,7 +560,7 @@ class RawTransaction
         if (!($output_count >= 0 && $output_count <= 4294967296))
             return FALSE;
 
-        $info['vout'] = self::_decode_outputs($raw_transaction, $output_count, $address_version);
+        $info['vout'] = self::_decode_outputs($raw_transaction, $output_count, $magic_byte, $magic_p2sh_byte);
 
         $info['locktime'] = $math->hexDec(self::_return_bytes($raw_transaction, 4));
         return $info;
@@ -568,7 +578,6 @@ class RawTransaction
      */
     public static function encode($raw_transaction_array)
     {
-
         $encoded_version = $bytes = self::_dec_to_bytes($raw_transaction_array['version'], 4, TRUE); // TRUE - get little endian
 
         // $encoded_inputs - set the encoded varint, then work out if any input hex is to be displayed.
@@ -804,8 +813,10 @@ class RawTransaction
      * @param   string $address_version
      * @return  array/FALSE
      */
-    public static function create_multisig($m, $public_keys = array(), $address_version = '05')
+    public static function create_multisig($m, $public_keys = array(), $magic_p2sh_byte = null)
     {
+        $magic_p2sh_byte = BitcoinLib::magicP2SHByte($magic_p2sh_byte);
+
         if ($m == 0)
             return FALSE;
         if (count($public_keys) == 0)
@@ -815,16 +826,18 @@ class RawTransaction
         if ($redeem_script == FALSE)
             return FALSE;
 
-        return array('redeemScript' => $redeem_script,
-            'address' => BitcoinLib::public_key_to_address($redeem_script, $address_version));
+        return array(
+            'redeemScript' => $redeem_script,
+            'address' => BitcoinLib::public_key_to_address($redeem_script, $magic_p2sh_byte)
+        );
     }
 
 	/**
 	 * Sort Multisig Keys
-	 * 
+	 *
 	 * Accepts an array of public keys for multisig, and returns them sorted
 	 * by length and by lexicographic order.
-	 * 
+	 *
 	 * @param	array	$public_keys
 	 * @return	array
 	 */
@@ -833,7 +846,7 @@ class RawTransaction
 		usort($sorted_keys, function ($a, $b) {
 			$len_a = strlen($a);
 			$len_b = strlen($b);
-			
+
 			$length = $len_a > $len_b ? $len_a : $len_b;
 			for($i = 0; $i < $length; $i++) {
 				if(!isset($a[$i])) {
@@ -846,13 +859,13 @@ class RawTransaction
 					return 1;
 				} else {
 					continue;
-				}	
+				}
 			}
 			return 0;
 		});
 		return $sorted_keys;
 	}
-	
+
     /**
      * Validate Signed Transaction
      *
@@ -863,12 +876,16 @@ class RawTransaction
      *
      * @param    string $raw_tx
      * @param    string $json_string
-     * @param    string $address_version .
+     * @param    string $magic_byte
+     * @param    string $magic_p2sh_byte
      * @return    boolean
      */
-    public static function validate_signed_transaction($raw_tx, $json_string, $address_version = '00')
+    public static function validate_signed_transaction($raw_tx, $json_string, $magic_byte = null, $magic_p2sh_byte = null)
     {
-        $decode = self::decode($raw_tx, $address_version);
+        $magic_byte = BitcoinLib::magicByte($magic_byte);
+        $magic_p2sh_byte = BitcoinLib::magicP2SHByte($magic_p2sh_byte);
+
+        $decode = self::decode($raw_tx, $magic_byte, $magic_p2sh_byte);
         if ($decode == FALSE)
             return FALSE;
 
@@ -878,7 +895,7 @@ class RawTransaction
         $outcome = TRUE;
         foreach ($decode['vin'] as $i => $vin) {
             // Decode previous scriptPubKey to learn trasaction type.
-            $type_info = self::_get_transaction_type(self::_decode_scriptPubKey($json_arr[$i]->scriptPubKey));
+            $type_info = self::_get_transaction_type(self::_decode_scriptPubKey($json_arr[$i]->scriptPubKey), $magic_byte, $magic_p2sh_byte);
 
             if ($type_info['type'] == 'pubkeyhash') {
                 // Pay-to-pubkey-hash. Check one <sig> <pubkey>
@@ -929,18 +946,16 @@ class RawTransaction
      * Inputs: Each input is a child array of [txid, vout, and optionally a sequence number.]
      * Outputs: Each output is a key in the array: address => $value.
      *
-     * @param    array $inputs
-     * @param    array $outputs
+     * @param   array $inputs
+     * @param   array $outputs
      * @param   string $magic_byte
+     * @param   string $magic_p2sh_byte
      * @return    string/FALSE
      */
-    public static function create($inputs, $outputs, $magic_byte = '00')
+    public static function create($inputs, $outputs, $magic_byte = null, $magic_p2sh_byte = null)
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
-
-        // Generate the p2sh byte from the regular byte.
-        $regular_byte = $magic_byte;
-        $p2sh_byte = str_pad($math->add($math->hexDec($magic_byte), 5), 2, '0', STR_PAD_LEFT);
+        $magic_byte = BitcoinLib::magicByte($magic_byte);
+        $magic_p2sh_byte = BitcoinLib::magicP2SHByte($magic_p2sh_byte);
 
         $tx_array = array('version' => '1');
 
@@ -962,8 +977,8 @@ class RawTransaction
         // Outputs is the set of [address/amount]
         $tx_array['vout'] = array();
         foreach ($outputs as $address => $value) {
-            if (BitcoinLib::validate_address($address, $regular_byte) == FALSE
-                && BitcoinLib::validate_address($address, $p2sh_byte) == FALSE
+            if (BitcoinLib::validate_address($address, $magic_byte) == FALSE
+                && BitcoinLib::validate_address($address, $magic_p2sh_byte) == FALSE
             )
                 return FALSE;
 
@@ -971,7 +986,7 @@ class RawTransaction
             $version = substr($decode_address, 0, 2);
             $hash = substr($decode_address, 2, 40);
 
-            if ($version == $p2sh_byte) {
+            if ($version == $magic_p2sh_byte) {
                 // OP_HASH160 <scriptHash> OP_EQUAL
                 $scriptPubKey = "a914{$hash}87";
             } else {
@@ -985,6 +1000,7 @@ class RawTransaction
         }
 
         $tx_array['locktime'] = 0;
+
         return self::encode($tx_array);
 
     }
@@ -1001,15 +1017,19 @@ class RawTransaction
      * belongs to a key specified in the wallet.
      *
      * @param   array $wallet
-     * @param    string $raw_transaction
-     * @param    array $inputs
-     * @param    string $magic_byte
-     * @return    array
+     * @param   string $raw_transaction
+     * @param   array $inputs
+     * @param   string $magic_byte
+     * @param   string $magic_p2sh_byte
+     * @return  array
      */
-    public static function sign($wallet, $raw_transaction, $inputs, $magic_byte = '00')
+    public static function sign($wallet, $raw_transaction, $inputs, $magic_byte = null, $magic_p2sh_byte = null)
     {
         $math = \Mdanter\Ecc\EccFactory::getAdapter();
         $generator = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+
+        $magic_byte = BitcoinLib::magicByte($magic_byte);
+        $magic_p2sh_byte = BitcoinLib::magicP2SHByte($magic_p2sh_byte);
 
         // Generate digests of inputs to sign.
         $message_hash = self::_create_txin_signature_hash($raw_transaction, $inputs);
@@ -1017,7 +1037,6 @@ class RawTransaction
         $inputs_arr = (array)json_decode($inputs);
 
         // Generate an association of expected hash160's and related information.
-        //$wallet = BitcoinLib::private_keys_to_receive($priv_keys);
         $decode = self::decode($raw_transaction);
 
         $req_sigs = 0;
@@ -1025,7 +1044,7 @@ class RawTransaction
         foreach ($decode['vin'] as $vin => $input) {
 
             $scriptPubKey = self::_decode_scriptPubKey($inputs_arr[$vin]->scriptPubKey);
-            $tx_info = self::_get_transaction_type($scriptPubKey, $magic_byte);
+            $tx_info = self::_get_transaction_type($scriptPubKey, $magic_byte, $magic_p2sh_byte);
 
             if (isset($wallet[$tx_info['hash160']])) {
 
@@ -1034,6 +1053,7 @@ class RawTransaction
                 if ($key_info['type'] == 'scripthash') {
 
                     $signatures = self::extract_input_signatures_p2sh($input, $message_hash[$vin], $key_info);
+
                     $sign_count += count($signatures);
 
                     // Create Signature
@@ -1073,18 +1093,24 @@ class RawTransaction
                     }
                     $req_sigs++;
                 }
+            } else {
+                $req_sigs++;
             }
         }
         $new_raw = self::encode($decode);
 
         // If the transaction isn't fully signed, return false.
         // If it's fully signed, perform signature verification, return true if valid, or invalid if signatures are incorrect.
-        $complete = ((($req_sigs - $sign_count) == 0)
-            ? ((self::validate_signed_transaction($new_raw, $inputs, $magic_byte) == TRUE) ? 'true' : 'false')
+	    $complete = ((($req_sigs - $sign_count) <= 0)
+            ? ((self::validate_signed_transaction($new_raw, $inputs, $magic_byte, $magic_p2sh_byte) == TRUE) ? 'true' : 'false')
             : 'false');
 
-        return array('hex' => $new_raw,
-            'complete' => $complete);
+	    return array(
+		    'hex' => $new_raw,
+		    'complete' => $complete,
+		    'sign_count' => $sign_count,
+		    'req_sigs' => $req_sigs
+	    );
     }
 
     /**
@@ -1348,11 +1374,18 @@ class RawTransaction
      * @param array $wifs
      * @param string $magic_byte
      */
-    public static function private_keys_to_wallet(&$wallet, array $wifs, $magic_byte = '00')
+    public static function private_keys_to_wallet(&$wallet, array $wifs, $magic_byte = null)
     {
+        $magic_byte = BitcoinLib::magicByte($magic_byte);
+
         if (count($wifs) > 0)
             foreach ($wifs as $wif) {
-                $key = BitcoinLib::WIF_to_private_key($wif);
+                if (is_array($wif) && isset($wif['key'], $wif['is_compressed'])) {
+                    $key = $wif;
+                } else {
+                    $key = BitcoinLib::WIF_to_private_key($wif);
+                }
+
                 $pubkey = BitcoinLib::private_key_to_public_key($key['key'], $key['is_compressed']);
                 $pk_hash = BitcoinLib::hash160($pubkey);
 
@@ -1383,8 +1416,10 @@ class RawTransaction
      * @param array $redeem_scripts
      * @param string $magic_byte
      */
-    public static function redeem_scripts_to_wallet(&$wallet, array $redeem_scripts = array(), $magic_byte = '05')
+    public static function redeem_scripts_to_wallet(&$wallet, array $redeem_scripts = array(), $magic_p2sh_byte = null)
     {
+        $magic_p2sh_byte = BitcoinLib::magicP2SHByte($magic_p2sh_byte);
+
         if (count($redeem_scripts) > 0)
             foreach ($redeem_scripts as $script) {
 
@@ -1404,7 +1439,7 @@ class RawTransaction
                 $wallet[$scripthash] = array('type' => 'scripthash',
                     'script' => $script,
                     'required_signature_count' => $decode['m'],
-                    'address' => BitcoinLib::hash160_to_address($scripthash, $magic_byte),
+                    'address' => BitcoinLib::hash160_to_address($scripthash, $magic_p2sh_byte),
                     'public_keys' => $decode['keys'],
                     'keys' => $keys);
 

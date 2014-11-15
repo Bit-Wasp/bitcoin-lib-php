@@ -11,9 +11,18 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
 	 */
 	public $bitcoin;
 	public $testHexEncode_i;
+    public $addressVersion;
+    public $WIFVersion;
+    public $keyConversionData = array();
 	
 	public function __construct() {
-
+        $this->addressVersion = '00';
+        $this->WIFVersion = '80';
+        $this->keyConversionData = array(
+            "5HxWvvfubhXpYYpS3tJkw6fq9jE9j18THftkZjHHfmFiWtmAbrj" => "1QFqqMUD55ZV3PJEJZtaKCsQmjLT6JkjvJ",
+            "5KC4ejrDjv152FGwP386VD1i2NYc5KkfSMyv1nGy1VGDxGHqVY3" => "1F5y5E5FMc5YzdJtB9hLaUe43GDxEKXENJ",
+            "Kwr371tjA9u2rFSMZjTNun2PXXP3WPZu2afRHTcta6KxEUdm1vEw" => "1NoJrossxPBKfCHuJXT4HadJrXRE9Fxiqs"
+        );
 	}
 	
 	public function setup() {
@@ -22,6 +31,10 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
     
 	public function tearDown() {
         $this->bitcoin = null;
+    }
+
+    public function testPrivateKeyVersion() {
+        $this->assertEquals($this->WIFVersion, $this->bitcoin->get_private_key_address_version($this->addressVersion));
     }
 	
 	//////////////////////////////////////////////////////
@@ -146,30 +159,56 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
 	// base58_check testing
 	public function testBase58CheckEncode()
 	{
-		for ($i = 0; $i < 500; $i++)
-		{
+        for ($i = 0; $i < 500; $i++)
+        {
             $this->setup();
-			// random, 20-byte string.
-			$hex = (string)bin2hex(openssl_random_pseudo_bytes(20));
-			
-			$encode = $this->bitcoin->base58_encode_checksum('00'.$hex);
-			$decode = $this->bitcoin->base58_decode_checksum($encode);
-			$this->assertTrue($this->bitcoin->validate_address($encode,'00'));
-			$this->assertTrue($hex == $decode);
-			// Check that the string was encoded correctly w/ checksum
+            // random, 20-byte string.
+            $hex = (string)bin2hex(openssl_random_pseudo_bytes(20));
 
-			$check2 = $this->bitcoin->hash160_to_address($hex, '00');
-			// Check that both ways of generating the address result in the same thing.
-			$this->assertTrue($this->bitcoin->validate_address($check2,'00'));
-			$this->assertTrue($check2 == $encode);
+            // 'manually' create address
+            $encode = $this->bitcoin->base58_encode_checksum($this->addressVersion.$hex);
+            $decode = $this->bitcoin->base58_decode_checksum($encode);
+
+            // validate 'manually' created address
+            $this->assertTrue($this->bitcoin->validate_address($encode, $this->addressVersion));
+            // validate 'manually' created address without specifying the address version
+            //  relying on the defaults
+            $this->assertTrue($this->bitcoin->validate_address($encode));
+
+            // validate 'manually'
+            $this->assertTrue($hex == $decode);
+
+            // create address
+            $check2 = $this->bitcoin->hash160_to_address($hex, $this->addressVersion);
+
+            // validate created address
+            $this->assertTrue($this->bitcoin->validate_address($check2, $this->addressVersion));
+            // validate created address without specifying the address version
+            //  relying on the defaults
+            $this->assertTrue($this->bitcoin->validate_address($check2));
+
+            // validate 'manually'
+            $this->assertTrue($check2 == $encode);
+
+            // create address,  without specifying the address version
+            //  relying on the defaults
+            $check3 = $this->bitcoin->hash160_to_address($hex);
+
+            // validate created address
+            $this->assertTrue($this->bitcoin->validate_address($check3, $this->addressVersion));
+            // validate created address without specifying the address version
+            //  relying on the defaults
+            $this->assertTrue($this->bitcoin->validate_address($check3));
+
+            // validate 'manually'
+            $this->assertTrue($check3 == $encode);
+
             $this->tearDown();
-		}
+        }
 	}
 
     public function testKeyConversion() {
-        $tests = ["5HxWvvfubhXpYYpS3tJkw6fq9jE9j18THftkZjHHfmFiWtmAbrj" => "1QFqqMUD55ZV3PJEJZtaKCsQmjLT6JkjvJ",
-            "5KC4ejrDjv152FGwP386VD1i2NYc5KkfSMyv1nGy1VGDxGHqVY3" => "1F5y5E5FMc5YzdJtB9hLaUe43GDxEKXENJ",
-            "Kwr371tjA9u2rFSMZjTNun2PXXP3WPZu2afRHTcta6KxEUdm1vEw" => "1NoJrossxPBKfCHuJXT4HadJrXRE9Fxiqs"];
+        $tests = $this->keyConversionData;
 
         foreach($tests as $priv_key => $true_address) {
             $this->setup();
@@ -178,9 +217,10 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
 
             $pubkey = $this->bitcoin->private_key_to_public_key($priv_key_info['key'], $priv_key_info['is_compressed']);
 
-            $address = $this->bitcoin->public_key_to_address($pubkey, '00');
-
-            $this->assertEquals($address, $true_address);
+            // validate public key to address
+            $this->assertEquals($this->bitcoin->public_key_to_address($pubkey, $this->addressVersion), $true_address);
+            // validate public key to address, without specifying address version
+            $this->assertEquals($this->bitcoin->public_key_to_address($pubkey), $true_address);
 
             $this->tearDown();
         }
@@ -195,10 +235,17 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
         {
             $this->setup();
             $hex = (string)str_pad(bin2hex(openssl_random_pseudo_bytes(32)),64,'0',STR_PAD_LEFT);
-            $wif = $this->bitcoin->private_key_to_WIF($hex, FALSE, '00');
-            $key = $this->bitcoin->WIF_to_private_key($wif);
 
+            // create private key and WIF
+            $wif = $this->bitcoin->private_key_to_WIF($hex, FALSE, $this->addressVersion);
+            $key = $this->bitcoin->WIF_to_private_key($wif);
             $this->assertTrue($key['key'] == $hex);
+
+            // create private key and WIF, without specifying address version
+            $wif = $this->bitcoin->private_key_to_WIF($hex, FALSE);
+            $key = $this->bitcoin->WIF_to_private_key($wif);
+            $this->assertTrue($key['key'] == $hex);
+
             $this->tearDown();
         }
     }
@@ -262,7 +309,7 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
         for($i = 0; $i < 15; $i++)
         {
             $this->setup();
-            $set = $this->bitcoin->get_new_key_set('00');
+            $set = $this->bitcoin->get_new_key_set($this->addressVersion);
             $this->assertTrue($this->bitcoin->validate_public_key($set['pubKey']));
             $this->tearDown();
         }
@@ -274,9 +321,9 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
         for($i = 0; $i < 50; $i++)
         {
             $this->setup();
-            $key = $this->bitcoin->get_new_key_set('00', $val);
+            $key = $this->bitcoin->get_new_key_set($this->addressVersion, $val);
             $val = ($val == FALSE) ? TRUE : FALSE;
-            $this->assertTrue($this->bitcoin->validate_WIF($key['privWIF'], '80'));
+            $this->assertTrue($this->bitcoin->validate_WIF($key['privWIF'], $this->WIFVersion));
             $this->tearDown();
         }
     }
