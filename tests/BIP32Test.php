@@ -20,6 +20,49 @@ class BIP32Test extends PHPUnit_Framework_TestCase
         $this->bip32 = null;
     }
 
+    public function testCKD() {
+        // create master key
+        $masterKey = $this->bip32->master_key("000102030405060708090a0b0c0d0e0f", "bitcoin", false);
+        $this->assertEquals("m", $masterKey[1]);
+        $this->assertEquals("xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiChkVvvNKmPGJxWUtg6LnF5kejMRNNU3TGtRBeJgk33yuGBxrMPHi", $masterKey[0]);
+
+        // get the "m" derivation, should be equal to the master key, by absolute path
+        $sameMasterKey = $this->bip32->build_key($masterKey, "m");
+        $this->assertEquals("m", $sameMasterKey[1]);
+        $this->assertEquals("xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiChkVvvNKmPGJxWUtg6LnF5kejMRNNU3TGtRBeJgk33yuGBxrMPHi", $sameMasterKey[0]);
+
+        // get the "m/0" derivation, should be the first child, by absolute path
+        $firstChildKey = $this->bip32->build_key($masterKey, "m/0");
+        $this->assertEquals("m/0", $firstChildKey[1]);
+        $this->assertEquals("xprv9uHRZZhbkedL37eZEnyrNsQPFZYRAvjy5rt6M1nbEkLSo378x1CQQLo2xxBvREwiK6kqf7GRNvsNEchwibzXaV6i5GcsgyjBeRguXhKsi4R", $firstChildKey[0]);
+
+        // get the "m/0" derivation, should be the first child, by relative path
+        $firstChildKey = $this->bip32->build_key($masterKey, "0");
+        $this->assertEquals("m/0", $firstChildKey[1]);
+        $this->assertEquals("xprv9uHRZZhbkedL37eZEnyrNsQPFZYRAvjy5rt6M1nbEkLSo378x1CQQLo2xxBvREwiK6kqf7GRNvsNEchwibzXaV6i5GcsgyjBeRguXhKsi4R", $firstChildKey[0]);
+
+        // get the "m/0" derivation, should be the first child, by relative path, by only providing the key and not the original path
+        $firstChildKey = $this->bip32->build_key($masterKey[0], "0");
+        $this->assertEquals("m/0", $firstChildKey[1]);
+        $this->assertEquals("xprv9uHRZZhbkedL37eZEnyrNsQPFZYRAvjy5rt6M1nbEkLSo378x1CQQLo2xxBvREwiK6kqf7GRNvsNEchwibzXaV6i5GcsgyjBeRguXhKsi4R", $firstChildKey[0]);
+
+        // get the "m/0" derivation, should be the first child, by absolute path, by only providing the key and not the original path
+        $firstChildKey = $this->bip32->build_key($masterKey[0], "m/0");
+        $this->assertEquals("m/0", $firstChildKey[1]);
+        $this->assertEquals("xprv9uHRZZhbkedL37eZEnyrNsQPFZYRAvjy5rt6M1nbEkLSo378x1CQQLo2xxBvREwiK6kqf7GRNvsNEchwibzXaV6i5GcsgyjBeRguXhKsi4R", $firstChildKey[0]);
+
+        // get the "m/44'/0'/0'/0/0" derivation, by absolute path
+        $bip44ChildKey = $this->bip32->build_key($masterKey, "m/44'/0'/0'/0/0");
+        $this->assertEquals("m/44'/0'/0'/0/0", $bip44ChildKey[1]);
+        $this->assertEquals("xprvA4A9CuBXhdBtCaLxwrw64Jaran4n1rgzeS5mjH47Ds8V67uZS8tTkG8jV3BZi83QqYXPcN4v8EjK2Aof4YcEeqLt688mV57gF4j6QZWdP9U", $bip44ChildKey[0]);
+
+        // get the "m/44'/0'/0'/0/0" derivation, by relative path, in 2 steps
+        $bip44ChildKey = $this->bip32->build_key($masterKey, "44'/0'");
+        $bip44ChildKey = $this->bip32->build_key($bip44ChildKey, "0'/0/0");
+        $this->assertEquals("m/44'/0'/0'/0/0", $bip44ChildKey[1]);
+        $this->assertEquals("xprvA4A9CuBXhdBtCaLxwrw64Jaran4n1rgzeS5mjH47Ds8V67uZS8tTkG8jV3BZi83QqYXPcN4v8EjK2Aof4YcEeqLt688mV57gF4j6QZWdP9U", $bip44ChildKey[0]);
+    }
+
     public function testMasterKeyFromSeed() {
         $intended_pub = 'xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8';
         $intended_priv = 'xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiChkVvvNKmPGJxWUtg6LnF5kejMRNNU3TGtRBeJgk33yuGBxrMPHi';
