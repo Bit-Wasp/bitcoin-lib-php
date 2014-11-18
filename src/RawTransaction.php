@@ -1313,7 +1313,7 @@ class RawTransaction
             return false;
         }
 
-        if ($math->cmp($length, 146) < 0) {
+        if ($math->cmp($length, 146) > 0) {
             if ($loud == true) {
                 echo "Non-canonical signature: too long\n";
             }
