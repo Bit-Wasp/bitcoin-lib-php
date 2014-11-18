@@ -35,8 +35,12 @@ RawTransaction::private_keys_to_wallet($wallet, array('L2V4QgXVUyWVoMGejTj7PrRUU
 // Create raw transaction
 $raw_transaction = RawTransaction::create($inputs, $outputs);
 
-
 // Sign the transaction
+//  To broadcast you would send the $sign['hex'] on to the network
+//  eg; with `bitcoind sendrawtransaction <hex>`
 $sign = RawTransaction::sign($wallet, $raw_transaction, $json_inputs);
-print_r($sign);echo "\n";
+print_r($sign); echo "\n";
 
+// Get the transaction hash from the raw transaction
+$txhash = RawTransaction::hash_from_raw($sign['hex']);
+print_r($txhash); echo "\n";
