@@ -58,6 +58,7 @@ RawTransaction::private_keys_to_wallet($wallet, array("cV2BRcdtWoZMSovYCpoY9gyvj
 RawTransaction::redeem_scripts_to_wallet($wallet, array($redeem_script));
 $sign = RawTransaction::sign($wallet, $raw_transaction, json_encode($inputs));
 print_r($sign);
+var_dump(2 == $sign['req_sigs'], 1 == $sign['sign_count'], 'false' === $sign['complete']);
 
 /*
  * sign with second key
@@ -67,6 +68,7 @@ RawTransaction::private_keys_to_wallet($wallet, array("cMps8Dg4Z1ThcwvPiPpshR6cb
 RawTransaction::redeem_scripts_to_wallet($wallet, array($redeem_script));
 $sign = RawTransaction::sign($wallet, $sign['hex'], json_encode($inputs));
 print_r($sign);
+var_dump(2 == $sign['req_sigs'], 2 == $sign['sign_count'], 'true' === $sign['complete']);
 
 /*
  * sign with third key
@@ -76,4 +78,5 @@ RawTransaction::private_keys_to_wallet($wallet, array("cNn72iUvQhuzZCWg3TC31fvyN
 RawTransaction::redeem_scripts_to_wallet($wallet, array($redeem_script));
 $sign = RawTransaction::sign($wallet, $sign['hex'], json_encode($inputs));
 print_r($sign);
+var_dump(2 == $sign['req_sigs'], 3 == $sign['sign_count'], 'true' === $sign['complete']);
 

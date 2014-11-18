@@ -27,6 +27,8 @@ use Mdanter\Ecc\Signature;
 class RawTransaction
 {
 
+    const SIGN_RETRIES = 100;
+
     /**
      * Some of the defined OP CODES available in Bitcoins script.
      *
@@ -1096,13 +1098,23 @@ class RawTransaction
                         $point = new \Mdanter\Ecc\Point($generator->getCurve(), $x, $y, $generator->getOrder(), $math);
                         $_public_key = new PublicKey($generator, $point, $math);
                         $_private_key = new PrivateKey($_public_key, $key_dec, $math);
-                        $sign = $_private_key->sign($math->hexDec($message_hash[$vin]), $math->hexDec((string)bin2hex(openssl_random_pseudo_bytes(32))));
-                        if ($sign !== false) {
+
+                        $tries_left = self::SIGN_RETRIES;
+                        $signok = false;
+                        do {
+                            $random = (string)bin2hex(openssl_random_pseudo_bytes(32));
+                            $sign = $_private_key->sign($math->hexDec($message_hash[$vin]), $math->hexDec($random));
+                            $encsign = self::encode_signature($sign);
+
+                        } while (($sign === false || !($signok = self::is_canonical_signature($encsign))) && $tries_left-- > 1);
+
+                        if ($sign !== false && $signok) {
                             $sign_count++;
-                            $signatures[$key['public_key']] = self::encode_signature($sign);
+                            $signatures[$key['public_key']] = $encsign;
                         }
                     }
                     $decode['vin'][$vin]['scriptSig']['hex'] = self::_apply_sig_scripthash_multisig($signatures, $key_info);
+
                     // Increase required # signature counter.
                     $req_sigs += $key_info['required_signature_count'];
                 }
@@ -1116,11 +1128,20 @@ class RawTransaction
                     $point = new \Mdanter\Ecc\Point($generator->getCurve(), $x, $y, $generator->getOrder(), $math);
                     $_public_key = new PublicKey($generator, $point, $math);
                     $_private_key = new PrivateKey($_public_key, $key_dec, $math);
-                    $sign = $_private_key->sign($math->hexDec($message_hash[$vin]), $math->hexDec((string)bin2hex(openssl_random_pseudo_bytes(32))));
-                    if ($sign !== false) {
+                    $tries_left = self::SIGN_RETRIES;
+                    $signok = false;
+                    do {
+                        $random = (string)bin2hex(openssl_random_pseudo_bytes(32));
+                        $sign = $_private_key->sign($math->hexDec($message_hash[$vin]), $math->hexDec($random));
+                        $encsign = self::encode_signature($sign);
+
+                    } while (($sign === false || !($signok = self::is_canonical_signature($encsign))) && $tries_left-- > 1);
+
+                    if ($sign !== false && $signok) {
                         $sign_count++;
-                        $decode['vin'][$vin]['scriptSig']['hex'] = self::_apply_sig_pubkeyhash(self::encode_signature($sign), $key_info['public_key']);
+                        $decode['vin'][$vin]['scriptSig']['hex'] = self::_apply_sig_pubkeyhash($encsign, $key_info['public_key']);
                     }
+
                     $req_sigs++;
                 }
             } else {
