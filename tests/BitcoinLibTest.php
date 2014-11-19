@@ -17,6 +17,7 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
 	
 	public function __construct() {
         $this->addressVersion = '00';
+        $this->p2shAddressVersion = '05';
         $this->WIFVersion = '80';
         $this->keyConversionData = array(
             "5HxWvvfubhXpYYpS3tJkw6fq9jE9j18THftkZjHHfmFiWtmAbrj" => "1QFqqMUD55ZV3PJEJZtaKCsQmjLT6JkjvJ",
@@ -157,8 +158,8 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
 	
 	///////////////////////////////////////////////////////
 	// base58_check testing
-	public function testBase58CheckEncode()
-	{
+    public function testBase58CheckEncode()
+    {
         for ($i = 0; $i < 500; $i++)
         {
             $this->setup();
@@ -170,10 +171,14 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
             $decode = $this->bitcoin->base58_decode_checksum($encode);
 
             // validate 'manually' created address
-            $this->assertTrue($this->bitcoin->validate_address($encode, $this->addressVersion));
+            $this->assertTrue($this->bitcoin->validate_address($encode, $this->addressVersion, $this->p2shAddressVersion));
             // validate 'manually' created address without specifying the address version
             //  relying on the defaults
             $this->assertTrue($this->bitcoin->validate_address($encode));
+            // validate 'manually' created address
+            //  disable address version and P2S address version specifically
+            $this->assertFalse($this->bitcoin->validate_address($encode, false, null));
+            $this->assertTrue($this->bitcoin->validate_address($encode, null, false));
 
             // validate 'manually'
             $this->assertTrue($hex == $decode);
@@ -182,10 +187,14 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
             $check2 = $this->bitcoin->hash160_to_address($hex, $this->addressVersion);
 
             // validate created address
-            $this->assertTrue($this->bitcoin->validate_address($check2, $this->addressVersion));
+            $this->assertTrue($this->bitcoin->validate_address($check2, $this->addressVersion, $this->p2shAddressVersion));
             // validate created address without specifying the address version
             //  relying on the defaults
             $this->assertTrue($this->bitcoin->validate_address($check2));
+            // validate created address
+            //  disable address version and P2S address version specifically
+            $this->assertFalse($this->bitcoin->validate_address($check2, false, null));
+            $this->assertTrue($this->bitcoin->validate_address($check2, null, false));
 
             // validate 'manually'
             $this->assertTrue($check2 == $encode);
@@ -195,17 +204,82 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
             $check3 = $this->bitcoin->hash160_to_address($hex);
 
             // validate created address
-            $this->assertTrue($this->bitcoin->validate_address($check3, $this->addressVersion));
+            $this->assertTrue($this->bitcoin->validate_address($check3, $this->addressVersion, $this->p2shAddressVersion));
             // validate created address without specifying the address version
             //  relying on the defaults
             $this->assertTrue($this->bitcoin->validate_address($check3));
+            // validate created address
+            //  disable address version and P2S address version specifically
+            $this->assertFalse($this->bitcoin->validate_address($check3, false, null));
+            $this->assertTrue($this->bitcoin->validate_address($check3, null, false));
 
             // validate 'manually'
             $this->assertTrue($check3 == $encode);
 
             $this->tearDown();
         }
-	}
+    }
+    public function testBase58CheckEncodeP2SH()
+    {
+        for ($i = 0; $i < 500; $i++)
+        {
+            $this->setup();
+            // random, 20-byte string.
+            $hex = (string)bin2hex(openssl_random_pseudo_bytes(20));
+
+            // 'manually' create address
+            $encode = $this->bitcoin->base58_encode_checksum($this->p2shAddressVersion.$hex);
+            $decode = $this->bitcoin->base58_decode_checksum($encode);
+
+            // validate 'manually' created address
+            $this->assertTrue($this->bitcoin->validate_address($encode, $this->addressVersion, $this->p2shAddressVersion));
+            // validate 'manually' created address without specifying the address version
+            //  relying on the defaults
+            $this->assertTrue($this->bitcoin->validate_address($encode));
+            // validate 'manually' created address
+            //  disable address version and P2S address version specifically
+            $this->assertTrue($this->bitcoin->validate_address($encode, false, null));
+            $this->assertFalse($this->bitcoin->validate_address($encode, null, false));
+
+            // validate 'manually'
+            $this->assertTrue($hex == $decode);
+
+            // create address
+            $check2 = $this->bitcoin->hash160_to_address($hex, $this->p2shAddressVersion);
+
+            // validate created address
+            $this->assertTrue($this->bitcoin->validate_address($check2, $this->addressVersion, $this->p2shAddressVersion));
+            // validate created address without specifying the address version
+            //  relying on the defaults
+            $this->assertTrue($this->bitcoin->validate_address($check2));
+            // validate created address
+            //  disable address version and P2S address version specifically
+            $this->assertTrue($this->bitcoin->validate_address($check2, false, null));
+            $this->assertFalse($this->bitcoin->validate_address($check2, null, false));
+
+            // validate 'manually'
+            $this->assertTrue($check2 == $encode);
+
+            // create address,  without specifying the address version
+            //  relying on the defaults
+            $check3 = $this->bitcoin->hash160_to_address($hex, 'p2sh');
+
+            // validate created address
+            $this->assertTrue($this->bitcoin->validate_address($check3, $this->addressVersion, $this->p2shAddressVersion));
+            // validate created address without specifying the address version
+            //  relying on the defaults
+            $this->assertTrue($this->bitcoin->validate_address($check3));
+            // validate created address
+            //  disable address version and P2S address version specifically
+            $this->assertTrue($this->bitcoin->validate_address($check3, false, null));
+            $this->assertFalse($this->bitcoin->validate_address($check3, null, false));
+
+            // validate 'manually'
+            $this->assertTrue($check3 == $encode);
+
+            $this->tearDown();
+        }
+    }
 
     public function testKeyConversion() {
         $tests = $this->keyConversionData;

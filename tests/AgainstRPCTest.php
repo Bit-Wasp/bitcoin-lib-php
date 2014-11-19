@@ -11,6 +11,7 @@ class testAgainstRPC extends PHPUnit_Framework_TestCase {
 
     public function __construct() {
         $this->magic_byte = '00';
+        $this->magic_p2sh_byte = '05';
         $this->c = array('url' => 'http://bitcoinrpc:6Wk1SYL7JmPYoUeWjYRSdqij4xrM5rGBvC4kbJipLVJK@127.0.0.1:8332');
         $this->client = new Jsonrpcclient($this->c);
         if($this->client->getinfo() == null)
@@ -36,7 +37,7 @@ class testAgainstRPC extends PHPUnit_Framework_TestCase {
 
             // Ensure that the Bitcoind believes the address is valid, and that this matches what we think
             $this->assertTrue($validate['isvalid']);
-            $this->assertEquals($validate['isvalid'], $this->bitcoin->validate_address($set['pubAdd'],$this->magic_byte));
+            $this->assertEquals($validate['isvalid'], $this->bitcoin->validate_address($set['pubAdd'], $this->magic_byte, $this->magic_p2sh_byte));
 
         }
     }
