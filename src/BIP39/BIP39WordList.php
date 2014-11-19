@@ -2,7 +2,8 @@
 
 namespace BitWasp\BitcoinLib\BIP39;
 
-abstract class BIP39WordList {
+abstract class BIP39WordList
+{
 
     /**
      * get a list of all the words

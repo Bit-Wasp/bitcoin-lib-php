@@ -8,15 +8,18 @@ namespace BitWasp\BitcoinLib\BIP39;
  *
  * @package BitWasp\BitcoinLib\BIP39
  */
-class BIP39EnglishWordList extends BIP39WordList {
+class BIP39EnglishWordList extends BIP39WordList
+{
 
     protected $wordsFlipped;
 
-    public function getWords() {
+    public function getWords()
+    {
         return $this->words;
     }
 
-    public function getWord($idx) {
+    public function getWord($idx)
+    {
         if (!isset($this->words)) {
             throw new \Exception(__CLASS__ . " does not contain a word for index [{$idx}]");
         }
@@ -24,7 +27,8 @@ class BIP39EnglishWordList extends BIP39WordList {
         return $this->words[$idx];
     }
 
-    public function getIndex($word) {
+    public function getIndex($word)
+    {
         // create a flipped word list to speed up the searching of words
         if (is_null($this->wordsFlipped)) {
             $this->wordsFlipped = array_flip($this->words);

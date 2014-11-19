@@ -2,7 +2,8 @@
 
 namespace BitWasp\BitcoinLib\BIP39;
 
-class BIP39 {
+class BIP39
+{
 
     protected static $defaultWordList;
 
@@ -14,7 +15,8 @@ class BIP39 {
      * @throws \Exception
      * @return string                       hex Entropy
      */
-    public static function generateEntropy($size = 256, &$strong = null) {
+    public static function generateEntropy($size = 256, &$strong = null)
+    {
         if ($size % 32 !== 0) {
             throw new \Exception("Entropy must be in a multiple of 32");
         }
@@ -30,7 +32,8 @@ class BIP39 {
      * @return string                       hex Mnemonic
      * @throws \Exception
      */
-    public static function entropyToMnemonic($entropyHex, BIP39WordList $wordList = null) {
+    public static function entropyToMnemonic($entropyHex, BIP39WordList $wordList = null)
+    {
         // calculate entropy, /2 because PHP can't do bytes
         $ENT = (strlen($entropyHex) / 2) * 8;
         // calculate how long the checksum should be
@@ -65,7 +68,8 @@ class BIP39 {
      * @param string        $entropyHex     hex Entropy
      * @return string                       bits checksum
      */
-    protected static function entropyChecksum($entropyHex) {
+    protected static function entropyChecksum($entropyHex)
+    {
         // calculate entropy, /2 because PHP can't do bytes
         $ENT = (strlen($entropyHex) / 2) * 8;
         // calculate how long the checksum should be
@@ -91,7 +95,8 @@ class BIP39 {
      * @return string                       hex Entropy
      * @throws \Exception
      */
-    public static function mnemonicToEntropy($mnemonic, BIP39WordList $wordList = null) {
+    public static function mnemonicToEntropy($mnemonic, BIP39WordList $wordList = null)
+    {
         $words = explode(" ", $mnemonic);
 
         if (count($words) % 3 !== 0) {
@@ -140,7 +145,8 @@ class BIP39 {
      * @return mixed
      * @throws \Exception
      */
-    public static function mnemonicToSeedHex($mnemonic, $passphrase) {
+    public static function mnemonicToSeedHex($mnemonic, $passphrase)
+    {
         $passphrase = self::normalizePassphrase($passphrase);
         $salt = "mnemonic" . $passphrase;
         return hash_pbkdf2("sha512", $mnemonic, $salt, 2048, 64 * 2, false);
@@ -156,7 +162,8 @@ class BIP39 {
      * @return string
      * @throws \Exception
      */
-    public static function normalizePassphrase($passphrase) {
+    public static function normalizePassphrase($passphrase)
+    {
         if (!class_exists('Normalizer')) {
             if (mb_detect_encoding($passphrase) == "UTF-8") {
                 throw new \Exception("UTF-8 passphrase is not supported without the PECL intl extension installed.");
@@ -173,7 +180,8 @@ class BIP39 {
      *
      * @return BIP39EnglishWordList
      */
-    public static function defaultWordList() {
+    public static function defaultWordList()
+    {
         if (is_null(self::$defaultWordList)) {
             self::$defaultWordList = new BIP39EnglishWordList();
         }
