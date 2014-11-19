@@ -289,7 +289,7 @@ class BIP32
         if (strtolower(substr($string_def, 0, 1)) == 'm') {
             // the desired definition should start with the definition
             if (strpos($string_def, $def) !== 0) {
-                throw new \Exception("!!");
+                throw new \Exception("Path ({$string_def}) should match parent path ({$def}) when building key by absolute path");
             }
 
             // unshift the definition to make the desired definition relative
