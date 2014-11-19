@@ -49,7 +49,7 @@ class BIP39
         $wordList = $wordList ?: self::defaultWordList();
 
         // build word list
-        $result = [];
+        $result = array();
         foreach (str_split($bits, 11) as $bit) {
             $idx = gmp_strval(gmp_init($bit, 2), 10);
 
@@ -107,7 +107,7 @@ class BIP39
         $wordList = $wordList ?: self::defaultWordList();
 
         // convert the words back into bit strings
-        $bits = [];
+        $bits = array();
         foreach ($words as $word) {
             $idx = $wordList->getIndex($word);
 
