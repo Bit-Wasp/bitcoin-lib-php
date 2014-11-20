@@ -127,15 +127,14 @@ class BIP32
 
         if ($previous['type'] == 'private') {
             $private_key = $previous['key'];
-            $public_key = BitcoinLib::private_key_to_public_key($private_key, true);
+            $public_key = null;
         } else if ($previous['type'] == 'public') {
+            $private_key = null;
             $public_key = $previous['key'];
         } else {
             // Exception here?
             return false;
         }
-
-        $fingerprint = substr(hash('ripemd160', hash('sha256', pack("H*", $public_key), true)), 0, 8);
 
         $i = array_pop($address_definition);
 
@@ -146,11 +145,24 @@ class BIP32
             }
             $data = '00' . $private_key . $i;
         } else if ($is_prime == 0) {
+            $public_key = $public_key ?: BitcoinLib::private_key_to_public_key($private_key, true);
             $data = $public_key . $i;
         }
 
         if (!isset($data)) {
             return false;
+        }
+
+        /*
+         * optimization;
+         *  if this isn't the last derivation then the fingerprint is irrelevant so we can just spoof it!
+         *  that way we don't need the public key for the fingerprint
+         */
+        if (empty($address_definition)) {
+            $public_key = $public_key ?: BitcoinLib::private_key_to_public_key($private_key, true);
+            $fingerprint = substr(hash('ripemd160', hash('sha256', pack("H*", $public_key), true)), 0, 8);
+        } else {
+            $fingerprint = "FFFFFFFF";
         }
 
         $I = hash_hmac('sha512', pack("H*", $data), pack("H*", $previous['chain_code']));
