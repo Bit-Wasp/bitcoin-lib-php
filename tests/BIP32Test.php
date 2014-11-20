@@ -62,6 +62,27 @@ class BIP32Test extends PHPUnit_Framework_TestCase
         $this->assertEquals("m/44'/0'/0'/0/0", $bip44ChildKey[1]);
         $this->assertEquals("xprvA4A9CuBXhdBtCaLxwrw64Jaran4n1rgzeS5mjH47Ds8V67uZS8tTkG8jV3BZi83QqYXPcN4v8EjK2Aof4YcEeqLt688mV57gF4j6QZWdP9U", $bip44ChildKey[0]);
 
+        // get the "m/44'/0'/0'/0/0" derivation, by relative path, in 2 steps
+        $bip44ChildKey = $this->bip32->build_key($masterKey, "44'/0'/0'");
+        $bip44ChildKey = $this->bip32->build_key($bip44ChildKey, "0/0");
+        $this->assertEquals("m/44'/0'/0'/0/0", $bip44ChildKey[1]);
+        $this->assertEquals("xprvA4A9CuBXhdBtCaLxwrw64Jaran4n1rgzeS5mjH47Ds8V67uZS8tTkG8jV3BZi83QqYXPcN4v8EjK2Aof4YcEeqLt688mV57gF4j6QZWdP9U", $bip44ChildKey[0]);
+
+        // get the "m/44'/0'/0'/0/0" derivation, by relative path, in 2 steps
+        $bip44ChildKey = $this->bip32->build_key($masterKey, "44'/0'/0'/0");
+        $bip44ChildKey = $this->bip32->build_key($bip44ChildKey, "0");
+        $this->assertEquals("m/44'/0'/0'/0/0", $bip44ChildKey[1]);
+        $this->assertEquals("xprvA4A9CuBXhdBtCaLxwrw64Jaran4n1rgzeS5mjH47Ds8V67uZS8tTkG8jV3BZi83QqYXPcN4v8EjK2Aof4YcEeqLt688mV57gF4j6QZWdP9U", $bip44ChildKey[0]);
+
+        // get the "m/44'/0'/0'/0/0" derivation, by relative path, in single steps
+        $bip44ChildKey = $this->bip32->build_key($masterKey, "44'");
+        $bip44ChildKey = $this->bip32->build_key($bip44ChildKey, "0'");
+        $bip44ChildKey = $this->bip32->build_key($bip44ChildKey, "0'");
+        $bip44ChildKey = $this->bip32->build_key($bip44ChildKey, "0");
+        $bip44ChildKey = $this->bip32->build_key($bip44ChildKey, "0");
+        $this->assertEquals("m/44'/0'/0'/0/0", $bip44ChildKey[1]);
+        $this->assertEquals("xprvA4A9CuBXhdBtCaLxwrw64Jaran4n1rgzeS5mjH47Ds8V67uZS8tTkG8jV3BZi83QqYXPcN4v8EjK2Aof4YcEeqLt688mV57gF4j6QZWdP9U", $bip44ChildKey[0]);
+
         try {
             $bip44ChildKey = $this->bip32->build_key($masterKey, "m/44'/0'/0'/0/0");
             $this->bip32->build_key($bip44ChildKey, "m/44'/1'/0'/0/0");
