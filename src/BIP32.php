@@ -64,6 +64,13 @@ class BIP32
     public static $litecoin_testnet_public = '0436f6e1';
     public static $litecoin_testnet_private = '0436ef7d';
     public static $litecoin_testnet_version = '6f';
+    // Monacoin
+    public static $monacoin_mainnet_public = '';
+    public static $monacoin_mainnet_private = '';
+    public static $monacoin_mainnet_version = '32';
+    public static $monacoin_testnet_public = '';
+    public static $monacoin_testnet_private = '';
+    public static $monacoin_testnet_version = '6f';
 
     /**
      * Master Key
@@ -489,7 +496,7 @@ class BIP32
      * @param    string $address_version
      * return    string/FALSE
      */
-    public static function key_to_address($extended_key)
+    public static function key_to_address($extended_key, $address_version=null)
     {
         $import = self::import($extended_key);
         if ($import['type'] == 'public') {
@@ -501,7 +508,7 @@ class BIP32
         }
 
         // Convert the public key to the address.
-        return BitcoinLib::public_key_to_address($public, $import['version']);
+        return BitcoinLib::public_key_to_address($public, $address_version!==null?$address_version:$import['version']);
     }
 
     /**
