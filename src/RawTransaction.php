@@ -1067,7 +1067,7 @@ class RawTransaction
         $inputs_arr = (array)json_decode($inputs);
 
         // Generate an association of expected hash160's and related information.
-        $decode = self::decode($raw_transaction);
+        $decode = self::decode($raw_transaction, $magic_byte, $magic_p2sh_byte);
 
         $req_sigs = 0;
         $sign_count = 0;
