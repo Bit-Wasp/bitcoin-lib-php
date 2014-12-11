@@ -35,7 +35,7 @@ Installing via Composer (recommended)
 
     {
         "require": {
-            "bitwasp/bitcoin-lib": "@dev"
+            "bitwasp/bitcoin-lib": "1.0.*"
         }
     }
 
