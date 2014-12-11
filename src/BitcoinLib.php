@@ -182,7 +182,7 @@ class BitcoinLib
         }
 
         if (is_null($magic_byte_pair)) {
-            return [self::$magic_byte, self::$magic_p2sh_byte];
+            return array(self::$magic_byte, self::$magic_p2sh_byte);
         }
 
         if (strlen($magic_byte_pair) == 5 && strpos($magic_byte_pair, '|') == 2) {
