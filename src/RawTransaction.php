@@ -1006,9 +1006,7 @@ class RawTransaction
         // Outputs is the set of [address/amount]
         $tx_array['vout'] = array();
         foreach ($outputs as $address => $value) {
-            if (BitcoinLib::validate_address($address, $magic_byte) == false
-                && BitcoinLib::validate_address($address, $magic_p2sh_byte) == false
-            ) {
+            if (!BitcoinLib::validate_address($address, $magic_byte, $magic_p2sh_byte)) {
                 return false;
             }
 

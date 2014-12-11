@@ -728,11 +728,15 @@ class BitcoinLib
      * address, otherwise returns TRUE;
      *
      * @param    string $address
-     * @param    string $address_version
+     * @param    string $magic_byte
+     * @param    string $magic_p2sh_byte
      * @return    boolean
      */
-    public static function validate_address($address, $address_version = null)
+    public static function validate_address($address, $magic_byte = null, $magic_p2sh_byte = null)
     {
+        $magic_byte = $magic_byte !== false ? self::magicByte($magic_byte) : false;
+        $magic_p2sh_byte = $magic_p2sh_byte !== false ? self::magicP2SHByte($magic_p2sh_byte) : false;
+
         // Check the address is decoded correctly.
         $decode = self::base58_decode($address);
         if (strlen($decode) !== 50) {
@@ -741,13 +745,12 @@ class BitcoinLib
 
         // Compare the version.
         $version = substr($decode, 0, 2);
-        if (hexdec($version) > hexdec(self::magicByte($address_version))) {
+        if ($version !== $magic_byte && $version !== $magic_p2sh_byte) {
             return false;
         }
 
         // Finally compare the checksums.
         return substr($decode, -8) == substr(self::hash256(substr($decode, 0, 42)), 0, 8);
-
     }
 
     /**

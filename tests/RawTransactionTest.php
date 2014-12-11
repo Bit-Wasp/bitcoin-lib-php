@@ -262,4 +262,23 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
     }
 
 
+    public function testP2SHMultisig() {
+        $n = 3;
+        $m = 2;
+
+        $k = [];
+        $pk_list = [];
+
+        for($i = 0; $i < $n; $i++){
+            $k[$i] = BitcoinLib::get_new_key_set();
+            $pk_list[] = $k[$i]['pubKey'];
+        }
+
+        $multisig = RawTransaction::create_multisig($m, $pk_list);
+
+        $this->assertTrue(!!$multisig['address']);
+        $this->assertTrue(BitcoinLib::validate_address($multisig['address']));
+    }
+
+
 };
