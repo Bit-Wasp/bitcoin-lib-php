@@ -1,7 +1,7 @@
 {
     "name": "bitwasp/bitcoin-lib",
     "description": "Implementation of raw transactions in bitcoin, HD wallets, Electrum wallets, and other fun stuff.",
-    "keywords": ["bitcoin", "php", "bip32", "electrum, "ecc", "transactions", "HD wallet","btc"],
+    "keywords": ["bitcoin", "php", "bip32", "electrum, "ecc", "transactions", "HD wallet","btc", "cryptocurrency"],
     "license": "Unlicense",
     "authors": [
         {
