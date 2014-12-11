@@ -606,6 +606,31 @@ class RawTransaction
     }
 
     /**
+     * Get the transaction hash from the raw transaction hex
+     *
+     * @param $raw_transaction
+     * @return string
+     */
+    public static function hash_from_raw($raw_transaction)
+    {
+        $decode = self::decode($raw_transaction);
+
+        return self::hash_from_txid($decode['txid']);
+    }
+
+    /**
+     * Get the transaction hash from the txid
+     *  by flipping the endian
+     *
+     * @param $txid
+     * @return string
+     */
+    public static function hash_from_txid($txid)
+    {
+        return self::_flip_byte_order($txid);
+    }
+
+    /**
      * Create Signature Hash
      *
      * This function accepts a $raw_transaction hex, and generates a hash
