@@ -1,6 +1,7 @@
 {
     "name": "bitwasp/bitcoin-lib",
-    "description": "Bitcoin library",
+    "description": "Implementation of raw transactions in bitcoin, HD wallets, Electrum wallets, and other fun stuff.",
+    "keywords": ["bitcoin", "php", "bip32", "electrum", "ecc", "transactions", "HD wallet","btc", "cryptocurrency"],
     "license": "Unlicense",
     "authors": [
         {
@@ -8,7 +9,6 @@
             "email": "thomas.kerin@gmail.com"
         }
     ],
-    "minimum-stability": "dev",
     "autoload": {
         "psr-4": {
             "BitWasp\\BitcoinLib\\": "src/"
