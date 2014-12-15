@@ -42,10 +42,26 @@ Installing via Composer (recommended)
 3. Install via Composer
 
     php composer.phar install
-    
-BIP39 requires PECL intl extension
----------------------------------
-The PECL intl extesion is required for BIP39 Mnemonic Seeds when a UTF-8 passphrase is used.  
+
+Dependencies
+============
+Mcrypt Extension (Random data)
+------------------------------
+The Mcrypt Extension is required for generating random data, it does this internally 
+by using `/dev/urandom` on unix or `CryptGenRandom` on windows.
+
+GMP Extension (Math)
+--------------------
+The GMP Extension is required for the crypto math.
+
+PECL intl extension (BIP39)
+---------------------------
+The PECL intl extension is required for BIP39 Mnemonic Seeds when a UTF-8 passphrase is used.
+
+Mdanter's PHP Pure PHP Elliptic Curve Cryptography Library
+----------------------------------------------------------
+`mdanter/ecc` is required for most of the crypto.
+
 
 Contributing
 ============
