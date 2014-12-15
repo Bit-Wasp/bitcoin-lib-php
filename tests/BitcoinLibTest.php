@@ -66,7 +66,7 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
 		for($i = 0; $i < 500; $i++)
 		{
 			$length = mt_rand(1, 32);
-			$hex = (string)bin2hex(openssl_random_pseudo_bytes($length));
+			$hex = (string)bin2hex(mcrypt_create_iv($length, \MCRYPT_DEV_URANDOM));
 			$this->assertTrue(ctype_xdigit($hex));
 		}
 	}
@@ -87,7 +87,7 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
             $this->setup();
 			$length = mt_rand(1, 7);
 			// Generate a random length hex string.
-			$hex = (string)bin2hex(openssl_random_pseudo_bytes($length));
+			$hex = (string)bin2hex(mcrypt_create_iv($length, \MCRYPT_DEV_URANDOM));
 			// Get real decimal result.
 			$dec = base_convert($hex, 16, 10); // handles big ints better than hexdec.
 			$this->assertEquals($this->bitcoin->hex_decode($hex), $dec);
@@ -103,7 +103,7 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
             $this->setup();
 			$length = mt_rand(1, 5000);
 			// Generate a random length hex string.
-			$hex = (string)bin2hex(openssl_random_pseudo_bytes($length));
+			$hex = (string)bin2hex(mcrypt_create_iv($length, \MCRYPT_DEV_URANDOM));
 			// Get real decimal result.
 			$dec = gmp_strval(gmp_init($hex,16),10);
 			$this->assertEquals($this->bitcoin->hex_decode($hex), $dec);
@@ -120,7 +120,7 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
 		{
             $this->setup();
 			// Generate a random length hex string.
-			$hex = (string)bin2hex(openssl_random_pseudo_bytes(20));
+			$hex = (string)bin2hex(mcrypt_create_iv(20, \MCRYPT_DEV_URANDOM));
 			$encode = $this->bitcoin->base58_encode($hex);
 			$decode = $this->bitcoin->base58_decode($encode);
 			
@@ -164,7 +164,7 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
         {
             $this->setup();
             // random, 20-byte string.
-            $hex = (string)bin2hex(openssl_random_pseudo_bytes(20));
+            $hex = (string)bin2hex(mcrypt_create_iv(20, \MCRYPT_DEV_URANDOM));
 
             // 'manually' create address
             $encode = $this->bitcoin->base58_encode_checksum($this->addressVersion.$hex);
@@ -225,7 +225,7 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
         {
             $this->setup();
             // random, 20-byte string.
-            $hex = (string)bin2hex(openssl_random_pseudo_bytes(20));
+            $hex = (string)bin2hex(mcrypt_create_iv(20, \MCRYPT_DEV_URANDOM));
 
             // 'manually' create address
             $encode = $this->bitcoin->base58_encode_checksum($this->p2shAddressVersion.$hex);
@@ -308,7 +308,7 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
         for($i = 0; $i < 50; $i++)
         {
             $this->setup();
-            $hex = (string)str_pad(bin2hex(openssl_random_pseudo_bytes(32)),64,'0',STR_PAD_LEFT);
+            $hex = (string)str_pad(bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM)),64,'0',STR_PAD_LEFT);
 
             // create private key and WIF
             $wif = $this->bitcoin->private_key_to_WIF($hex, FALSE, $this->addressVersion);
@@ -329,23 +329,12 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
         for($i = 0; $i < 10; $i++)
         {
             $this->setup();
-            $hex = (string)str_pad(bin2hex(openssl_random_pseudo_bytes(32)),64,'0',STR_PAD_LEFT);
+            $hex = (string)str_pad(bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM)),64,'0',STR_PAD_LEFT);
             $public = $this->bitcoin->private_key_to_public_key($hex, FALSE);
             $import = $this->bitcoin->import_public_key($public);
 
             $this->assertTrue($import !== FALSE);
             $this->tearDown();
-        }
-
-    }
-
-    public function testProducingStrongRNG()
-    {
-        for($i = 0; $i < 100; $i++)
-        {
-            $is_strong = FALSE;
-            $hex = (string)str_pad(bin2hex(openssl_random_pseudo_bytes(32, $is_strong)),64,'0',STR_PAD_LEFT);
-            $this->assertTrue($is_strong);
         }
     }
 
@@ -354,7 +343,7 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
         for($i = 0; $i < 15; $i++)
         {
             $this->setup();
-            $hex = (string)str_pad(bin2hex(openssl_random_pseudo_bytes(32)),64,'0',STR_PAD_LEFT);
+            $hex = (string)str_pad(bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM)),64,'0',STR_PAD_LEFT);
 	        $public = $this->bitcoin->private_key_to_public_key($hex, FALSE);
             $compress = $this->bitcoin->compress_public_key($public);
 	        $decompress = $this->bitcoin->decompress_public_key($compress);

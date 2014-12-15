@@ -17,7 +17,8 @@
     "require": {
         "mdanter/ecc": "0.2.0",
         "php": ">=5.3.3",
-        "ext-gmp": "*"
+        "ext-gmp": "*",
+        "ext-mcrypt": "*"
     },
     "suggest": {
         "ext-intl": "Required for BIP39 Mnemonic Seeds with UTF-8 passphrases"

@@ -4,7 +4,7 @@ use BitWasp\BitcoinLib\BIP32;
 
 require_once(__DIR__. '/../vendor/autoload.php');
 
-$seed = bin2hex(openssl_random_pseudo_bytes(128));
+$seed = bin2hex(mcrypt_create_iv(128, \MCRYPT_DEV_URANDOM));
 $master = BIP32::master_key($seed);
 
 

@@ -1,3 +1,4 @@
 /vendor
 composer.lock
 ./examples/tk_*
+build/cache/*

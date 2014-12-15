@@ -407,13 +407,13 @@ class BitcoinLib
         $math = \Mdanter\Ecc\EccFactory::getAdapter();
         $g = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
 
-        $privkey = bin2hex(openssl_random_pseudo_bytes(32));
+        $privkey = bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM));
 
-        $privKey = gmp_strval(gmp_init(bin2hex(openssl_random_pseudo_bytes(32)), 16));
+        $privKey = gmp_strval(gmp_init(bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM)), 16));
         //while($math->cmp($privkey, $g->getOrder()) >= 0) {
         while ($privKey >= $g->getOrder()) {
-            $privKey = gmp_strval(gmp_init(bin2hex(openssl_random_pseudo_bytes(32)), 16));
-            //$privkey = bin2hex(openssl_random_pseudo_bytes(32));
+            $privKey = gmp_strval(gmp_init(bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM)), 16));
+            //$privkey = bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM));
         }
 
         $privKeyHex = $math->dechex($privKey);

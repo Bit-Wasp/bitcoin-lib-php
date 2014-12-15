@@ -1119,7 +1119,7 @@ class RawTransaction
                         $point = new \Mdanter\Ecc\Point($generator->getCurve(), $x, $y, $generator->getOrder(), $math);
                         $_public_key = new PublicKey($generator, $point, $math);
                         $_private_key = new PrivateKey($_public_key, $key_dec, $math);
-                        $sign = $_private_key->sign($math->hexDec($message_hash[$vin]), $math->hexDec((string)bin2hex(openssl_random_pseudo_bytes(32))));
+                        $sign = $_private_key->sign($math->hexDec($message_hash[$vin]), $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
                         if ($sign !== false) {
                             $sign_count++;
                             $signatures[$key['public_key']] = self::encode_signature($sign);
@@ -1139,7 +1139,7 @@ class RawTransaction
                     $point = new \Mdanter\Ecc\Point($generator->getCurve(), $x, $y, $generator->getOrder(), $math);
                     $_public_key = new PublicKey($generator, $point, $math);
                     $_private_key = new PrivateKey($_public_key, $key_dec, $math);
-                    $sign = $_private_key->sign($math->hexDec($message_hash[$vin]), $math->hexDec((string)bin2hex(openssl_random_pseudo_bytes(32))));
+                    $sign = $_private_key->sign($math->hexDec($message_hash[$vin]), $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
                     if ($sign !== false) {
                         $sign_count++;
                         $decode['vin'][$vin]['scriptSig']['hex'] = self::_apply_sig_pubkeyhash(self::encode_signature($sign), $key_info['public_key']);
