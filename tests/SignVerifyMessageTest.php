@@ -2,27 +2,18 @@
 
 use BitWasp\BitcoinLib\BitcoinLib;
 use BitWasp\BitcoinLib\Jsonrpcclient;
-use BitWasp\BitcoinLib\RawTransaction as RawTransaction;
 
 require_once(__DIR__. '/../vendor/autoload.php');
-function numToVarIntString($i) {
-    if ($i < 0xfd) {
-        return chr($i);
-    } else if ($i <= 0xffff) {
-        return pack('Cv', 0xfd, $i);
-    } else if ($i <= 0xffffffff) {
-        return pack('CV', 0xfe, $i);
-    } else {
-        throw new InvalidArgumentException('int too large');
-    }
-}
+
 class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
 {
-    protected $extensiveTesting = true;
+    protected $extensiveTesting = false;
 
     protected $againstRPC = false;
 
     public function testSignMessage() {
+        BitcoinLib::setMagicByteDefaults('bitcoin');
+
         $k = "40830342147156906673307227534819286677883886097095155210766904187107130350230"; // fixed K value for testing
 
         $WIF = "KxuKf1nB3nZ5eYVFVuCgvH5EFM8iUSWqmqJ9bAQukekYgPbju4FL";
@@ -41,7 +32,15 @@ class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
         $this->assertTrue(BitcoinLib::verifyMessage("12XJYLMM9ZoDZjmBZ1SeFANhgCVjwNYgVm", "IHDCaEP3MZQcOOn1hp/nAbYFf9KOSoLi+TCWNFDV2+j+SkVSFYZHHJjfwwYP02Xlf7aIOZdI5ZzJZetLpnDp9H8=", "12XJYLMM9ZoDZjmBZ1SeFANhgCVjwNYgVm"));
     }
 
+    public function testSignMessageTestnet() {
+        BitcoinLib::setMagicByteDefaults('bitcoin-testnet');
+
+        $this->assertTrue(BitcoinLib::verifyMessage("mkiPAxhzUMo8mAwW3q95q7aNuXt6HzbbUA", "IND22TSMS2uuWyIn2Be49ajaGwNmiQtiCXrozev00cPFXpACe8LQYU/t6xp8YXb5SIVAnqEn/DailZw+OM85TM0=", "mkiPAxhzUMo8mAwW3q95q7aNuXt6HzbbUA"));
+    }
+
     public function testVerifyMessageDataSet() {
+        BitcoinLib::setMagicByteDefaults('bitcoin');
+
         $data = json_decode(file_get_contents(__DIR__ . "/data/signverify.json"), true);
         $data = array_map(function($k) use ($data) { return $data[$k]; }, array_rand($data, $this->extensiveTesting ? 100 : 5));
 
@@ -51,6 +50,8 @@ class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
     }
 
     public function testSignMessageDataSet() {
+        BitcoinLib::setMagicByteDefaults('bitcoin');
+
         $data = json_decode(file_get_contents(__DIR__ . "/data/signverify.json"), true);
         $data = array_map(function($k) use ($data) { return $data[$k]; }, array_rand($data, $this->extensiveTesting ? 100 : 5));
 
@@ -63,6 +64,8 @@ class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
     }
 
     public function testSignMessageDataSetAgainstRPC() {
+        BitcoinLib::setMagicByteDefaults('bitcoin');
+
         if (!$this->againstRPC) {
             return $this->markTestSkipped("Not testing against RPC");
         }

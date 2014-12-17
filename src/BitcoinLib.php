@@ -979,7 +979,7 @@ class BitcoinLib
 
         // extract parameters
         $address = substr(hex2bin(self::base58_decode($address)), 0, -4);
-        if (strlen($address) != 21 || $address[0] != "\x0") {
+        if (strlen($address) != 21 || $address[0] != hex2bin(self::magicByte())) {
             throw new \InvalidArgumentException('invalid Bitcoin address');
         }
 
@@ -1029,7 +1029,7 @@ class BitcoinLib
                 str_pad(hex2bin(self::padHex($math->decHex($point->getX()))), 32, "\x00", STR_PAD_LEFT);
         }
 
-        $derivedAddress = "\x00". hash('ripemd160', hash('sha256', $pubBinStr, true), true);
+        $derivedAddress = hex2bin(self::magicByte()) . hash('ripemd160', hash('sha256', $pubBinStr, true), true);
 
         return $address === $derivedAddress;
     }
