@@ -1004,17 +1004,22 @@ class BitcoinLib
         $messageHash = "\x18Bitcoin Signed Message:\n" . hex2bin(RawTransaction::_encode_vint(strlen($message))) . $message;
         $messageHash = hash('sha256', hash('sha256', $messageHash, true), true);
 
-        $pubkey = self::recoverPubKey(
-            $math->hexDec(bin2hex(substr($signature, 1, 32))),
-            $math->hexDec(bin2hex(substr($signature, 33, 32))),
-            $math->hexDec(bin2hex($messageHash)),
-            $recoveryFlags,
-            $generator
-        );
+        try {
+            $pubkey = self::recoverPubKey(
+                $math->hexDec(bin2hex(substr($signature, 1, 32))),
+                $math->hexDec(bin2hex(substr($signature, 33, 32))),
+                $math->hexDec(bin2hex($messageHash)),
+                $recoveryFlags,
+                $generator
+            );
+        } catch (\Exception $e) {
+            throw new \Exception("unable to recover key", 0, $e);
+        }
 
         if ($pubkey === false) {
-            throw new \InvalidArgumentException('unable to recover key');
+            throw new \Exception('unable to recover key');
         }
+
         $point = $pubkey->getPoint();
 
         // see that the key we recovered is for the address given

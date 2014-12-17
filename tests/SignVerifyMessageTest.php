@@ -32,6 +32,33 @@ class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
         $this->assertTrue(BitcoinLib::verifyMessage("12XJYLMM9ZoDZjmBZ1SeFANhgCVjwNYgVm", "IHDCaEP3MZQcOOn1hp/nAbYFf9KOSoLi+TCWNFDV2+j+SkVSFYZHHJjfwwYP02Xlf7aIOZdI5ZzJZetLpnDp9H8=", "12XJYLMM9ZoDZjmBZ1SeFANhgCVjwNYgVm"));
     }
 
+    public function testSignMessageFailure() {
+        BitcoinLib::setMagicByteDefaults('bitcoin');
+
+        try {
+            BitcoinLib::verifyMessage("mkiPAxhzUMo8mAwW3q95q7aNuXt6HzbbUA", "IND22TSMS2uuWyIn2Be49ajaGwNmiQtiCXrozev00cPFXpACe8LQYU/t6xp8YXb5SIVAnqEn/DailZw+OM85TM0=", "mkiPAxhzUMo8mAwW3q95q7aNuXt6HzbbUA");
+            $this->fail("verifyMessage should throw exception when address is invalid");
+        } catch (\Exception $e) {
+            $this->assertEquals("invalid Bitcoin address", $e->getMessage());
+        }
+
+        $this->assertFalse(BitcoinLib::verifyMessage("12XJYLMM9ZoDZjmBZ1SeFANhgCVjwNYgVm", "IHDCaEP3MZQcOOn1hp/nAbYFf9KOSoLi+TCWNFDV2+j+SkVSFYZHHJjfwwYP02Xlf7aIOZdI5ZzJZetLpnDp9H7=", "12XJYLMM9ZoDZjmBZ1SeFANhgCVjwNYgVm"));
+
+        try {
+            $this->assertFalse(BitcoinLib::verifyMessage("12XJYLMM9ZoDZjmBZ1SeFANhgCVjwNYgVm", "I22CEEP3MZQcOOn1hp/nAbYFf9KOSoLi+TCWNFDV2+j+SkVSFYZHHJjfwwYP02Xlf7aIOZdI5ZzJZetLpnDp9H8=", "12XJYLMM9ZoDZjmBZ1SeFANhgCVjwNYgVm"));
+            $this->fail("verifyMessage should throw exception when signature is invalid");
+        } catch (\Exception $e) {
+            $this->assertEquals("invalid signature type", $e->getMessage());
+        }
+
+        try {
+            $this->assertFalse(BitcoinLib::verifyMessage("12XJYLMM9ZoDZjmBZ1SeFANhgCVjwNYgVm", "IH2CEEP3MZQcOOn1hp/nAbYFf9KOSoLi+TCWNFDV2+j+SkVSFYZHHJjfwwYP02Xlf7aIOZdI5ZzJZetLpnDp9H8=", "12XJYLMM9ZoDZjmBZ1SeFANhgCVjwNYgVm"));
+            $this->fail("verifyMessage should throw exception when signature is invalid");
+        } catch (\Exception $e) {
+            $this->assertEquals("unable to recover key", $e->getMessage());
+        }
+    }
+
     public function testSignMessageTestnet() {
         BitcoinLib::setMagicByteDefaults('bitcoin-testnet');
 
