@@ -409,10 +409,8 @@ class BitcoinLib
      */
     public static function get_new_private_key()
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
-        $g = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
-
-        $privkey = bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM));
+        $math = EccFactory::getAdapter();
+        $g = EccFactory::getSecgCurves($math)->generator256k1();
 
         $privKey = gmp_strval(gmp_init(bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM)), 16));
         //while($math->cmp($privkey, $g->getOrder()) >= 0) {
@@ -439,8 +437,8 @@ class BitcoinLib
      */
     public static function private_key_to_public_key($privKey, $compressed = false)
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
-        $g = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+        $math = EccFactory::getAdapter();
+        $g = EccFactory::getSecgCurves($math)->generator256k1();
         $privKey = self::hex_decode($privKey);
 
         try {
@@ -624,7 +622,7 @@ class BitcoinLib
      */
     public static function compress_public_key($public_key)
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $math = EccFactory::getAdapter();
 
         $x_hex = substr($public_key, 2, 64);
         $y = $math->hexDec(substr($public_key, 66, 64));
@@ -647,14 +645,14 @@ class BitcoinLib
      */
     public static function decompress_public_key($key)
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $math = EccFactory::getAdapter();
         $y_byte = substr($key, 0, 2);
         $x_coordinate = substr($key, 2);
 
         $x = self::hex_decode($x_coordinate);
 
-        $theory = \Mdanter\Ecc\EccFactory::getNumberTheory($math);
-        $generator = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+        $theory = EccFactory::getNumberTheory($math);
+        $generator = EccFactory::getSecgCurves($math)->generator256k1();
         $curve = $generator->getCurve();
 
         try {
@@ -675,7 +673,7 @@ class BitcoinLib
                 : (($math->mod($y0, 2) !== '0') ? $y0 : $y1);
 
             $y_coordinate = str_pad($math->decHex($y), 64, '0', STR_PAD_LEFT);
-            $point = new \Mdanter\Ecc\Point($curve, $x, $y, $generator->getOrder(), $math);
+            $point = new Point($curve, $x, $y, $generator->getOrder(), $math);
         } catch (\Exception $e) {
             return false;
         }
@@ -704,8 +702,8 @@ class BitcoinLib
             $decompressed = self::decompress_public_key($public_key);
             return $decompressed == true;
         } else if (strlen($public_key) == '130') {
-            $math = \Mdanter\Ecc\EccFactory::getAdapter();
-            $generator = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+            $math = EccFactory::getAdapter();
+            $generator = EccFactory::getSecgCurves($math)->generator256k1();
             // Uncompressed key, try to create the point
 
             $x = $math->hexDec(substr($public_key, 2, 64));
@@ -714,7 +712,7 @@ class BitcoinLib
             // Attempt to create the point. Point returns false in the
             // constructor if anything is invalid.
             try {
-                $point = new \Mdanter\Ecc\Point($generator->getCurve(), $x, $y, $generator->getOrder(), $math);
+                $point = new Point($generator->getCurve(), $x, $y, $generator->getOrder(), $math);
                 return true;
             } catch (\Exception $e) {
                 return false;
@@ -794,8 +792,8 @@ class BitcoinLib
         }
 
         // Check private key within limit.
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
-        $generator = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+        $math = EccFactory::getAdapter();
+        $generator = EccFactory::getSecgCurves($math)->generator256k1();
         $n = $generator->getOrder();
         if ($math->cmp($math->hexDec($hex), $n) > 0) {
             return false;
@@ -818,8 +816,8 @@ class BitcoinLib
      */
     public static function signMessage($message, $privateKey, $k = null)
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
-        $generator = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+        $math = EccFactory::getAdapter();
+        $generator = EccFactory::getSecgCurves($math)->generator256k1();
 
         $messageHash = "\x18Bitcoin Signed Message:\n" . hex2bin(RawTransaction::_encode_vint(strlen($message))) . $message;
         $messageHash = hash('sha256', hash('sha256', $messageHash, true), true);
@@ -833,7 +831,7 @@ class BitcoinLib
         $y = $math->hexDec(substr($uncompressedKey, 66, 64));
         $key_dec = $math->hexDec($privateKey['key']);
 
-        $point = new \Mdanter\Ecc\Point($generator->getCurve(), $x, $y, $generator->getOrder(), $math);
+        $point = new Point($generator->getCurve(), $x, $y, $generator->getOrder(), $math);
         $_publicKey = new PublicKey($generator, $point, $math);
         $_privateKey = new PrivateKey($_publicKey, $key_dec, $math);
 
@@ -858,8 +856,8 @@ class BitcoinLib
      */
     private static function calcPubKeyRecoveryParam($r, $s, $e, PointInterface $Q)
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
-        $generator = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+        $math = EccFactory::getAdapter();
+        $generator = EccFactory::getSecgCurves($math)->generator256k1();
 
         for ($i = 0; $i < 4; $i++) {
             if ($pubKey = self::recoverPubKey($r, $s, $e, $i, $generator)) {
@@ -903,7 +901,7 @@ class BitcoinLib
     /**
      * based on php-bitcoin-signature-routines implementation (which is based on bitcoinjs-lib's implementation)
      * which is SEC 1: Elliptic Curve Cryptography, section 4.1.6, "Public Key Recovery Operation"
-     * http://www.secg.org/download/aid-780/sec1-v2.pdf
+     * http://www.secg.org/sec1-v2.pdf
      *
      * @param                $r
      * @param                $s
@@ -914,7 +912,7 @@ class BitcoinLib
      */
     private static function recoverPubKey($r, $s, $e, $recoveryFlags, GeneratorPoint $G)
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $math = EccFactory::getAdapter();
 
         $isYEven = ($recoveryFlags & 1) != 0;
         $isSecondKey = ($recoveryFlags & 2) != 0;
@@ -974,8 +972,8 @@ class BitcoinLib
      */
     public static function verifyMessage($address, $signature, $message)
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
-        $generator = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+        $math = EccFactory::getAdapter();
+        $generator = EccFactory::getSecgCurves($math)->generator256k1();
 
         // extract parameters
         $address = substr(hex2bin(self::base58_decode($address)), 0, -4);

@@ -3,7 +3,7 @@
 use BitWasp\BitcoinLib\BitcoinLib;
 use BitWasp\BitcoinLib\Jsonrpcclient;
 
-require_once(__DIR__. '/../vendor/autoload.php');
+require_once(__DIR__ . '/../vendor/autoload.php');
 
 class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
 {
@@ -11,7 +11,8 @@ class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
 
     protected $againstRPC = false;
 
-    public function testSignMessage() {
+    public function testSignMessage()
+    {
         BitcoinLib::setMagicByteDefaults('bitcoin');
 
         $k = "40830342147156906673307227534819286677883886097095155210766904187107130350230"; // fixed K value for testing
@@ -32,7 +33,8 @@ class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
         $this->assertTrue(BitcoinLib::verifyMessage("12XJYLMM9ZoDZjmBZ1SeFANhgCVjwNYgVm", "IHDCaEP3MZQcOOn1hp/nAbYFf9KOSoLi+TCWNFDV2+j+SkVSFYZHHJjfwwYP02Xlf7aIOZdI5ZzJZetLpnDp9H8=", "12XJYLMM9ZoDZjmBZ1SeFANhgCVjwNYgVm"));
     }
 
-    public function testSignMessageFailure() {
+    public function testSignMessageFailure()
+    {
         BitcoinLib::setMagicByteDefaults('bitcoin');
 
         try {
@@ -59,28 +61,35 @@ class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
         }
     }
 
-    public function testSignMessageTestnet() {
+    public function testSignMessageTestnet()
+    {
         BitcoinLib::setMagicByteDefaults('bitcoin-testnet');
 
         $this->assertTrue(BitcoinLib::verifyMessage("mkiPAxhzUMo8mAwW3q95q7aNuXt6HzbbUA", "IND22TSMS2uuWyIn2Be49ajaGwNmiQtiCXrozev00cPFXpACe8LQYU/t6xp8YXb5SIVAnqEn/DailZw+OM85TM0=", "mkiPAxhzUMo8mAwW3q95q7aNuXt6HzbbUA"));
     }
 
-    public function testVerifyMessageDataSet() {
+    public function testVerifyMessageDataSet()
+    {
         BitcoinLib::setMagicByteDefaults('bitcoin');
 
         $data = json_decode(file_get_contents(__DIR__ . "/data/signverify.json"), true);
-        $data = array_map(function($k) use ($data) { return $data[$k]; }, array_rand($data, $this->extensiveTesting ? 100 : 5));
+        $data = array_map(function ($k) use ($data) {
+            return $data[$k];
+        }, array_rand($data, $this->extensiveTesting ? 100 : 5));
 
         foreach ($data as $row) {
             $this->assertTrue(BitcoinLib::verifyMessage($row['address'], $row['signature'], $row['address']));
         }
     }
 
-    public function testSignMessageDataSet() {
+    public function testSignMessageDataSet()
+    {
         BitcoinLib::setMagicByteDefaults('bitcoin');
 
         $data = json_decode(file_get_contents(__DIR__ . "/data/signverify.json"), true);
-        $data = array_map(function($k) use ($data) { return $data[$k]; }, array_rand($data, $this->extensiveTesting ? 100 : 5));
+        $data = array_map(function ($k) use ($data) {
+            return $data[$k];
+        }, array_rand($data, $this->extensiveTesting ? 100 : 5));
 
         foreach ($data as $row) {
             $privKey = BitcoinLib::WIF_to_private_key($row['wif']);
@@ -90,7 +99,8 @@ class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
         }
     }
 
-    public function testSignMessageDataSetAgainstRPC() {
+    public function testSignMessageDataSetAgainstRPC()
+    {
         BitcoinLib::setMagicByteDefaults('bitcoin');
 
         if (!$this->againstRPC) {
@@ -100,7 +110,9 @@ class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
         $rpc = new Jsonrpcclient(array('url' => 'http://bitcoin:fsJoJupAXx@127.0.0.1:8332'));
 
         $data = json_decode(file_get_contents(__DIR__ . "/data/signverify.json"), true);
-        $data = array_map(function($k) use ($data) { return $data[$k]; }, array_rand($data, $this->extensiveTesting ? 100 : 5));
+        $data = array_map(function ($k) use ($data) {
+            return $data[$k];
+        }, array_rand($data, $this->extensiveTesting ? 100 : 5));
 
         foreach ($data as $row) {
             $privKey = BitcoinLib::WIF_to_private_key($row['wif']);
