@@ -26,6 +26,9 @@ use Mdanter\Ecc\Signature;
  */
 class RawTransaction
 {
+    public static $VERBOSE = false;
+
+    public static $SIGN_RETRIES = 1;
 
     /**
      * Some of the defined OP CODES available in Bitcoins script.
@@ -1119,10 +1122,23 @@ class RawTransaction
                         $point = new \Mdanter\Ecc\Point($generator->getCurve(), $x, $y, $generator->getOrder(), $math);
                         $_public_key = new PublicKey($generator, $point, $math);
                         $_private_key = new PrivateKey($_public_key, $key_dec, $math);
-                        $sign = $_private_key->sign($math->hexDec($message_hash[$vin]), $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
-                        if ($sign !== false) {
-                            $sign_count++;
-                            $signatures[$key['public_key']] = self::encode_signature($sign);
+
+                        // retry 10 times to get a canonical signature
+                        for ($i = 0; $i < self::$SIGN_RETRIES; $i++) {
+                            $sign = $_private_key->sign($math->hexDec($message_hash[$vin]), $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
+
+                            if ($sign !== false) {
+                                $sign_count++;
+                                $signatures[$key['public_key']] = self::encode_signature($sign);
+
+                                if (self::is_canonical_signature($signatures[$key['public_key']])) {
+                                    break;
+                                } else if (self::$VERBOSE) {
+                                    echo "failed to create canonical signature \n";
+                                }
+                            } else if (self::$VERBOSE) {
+                                echo "failed to sign \n";
+                            }
                         }
                     }
                     $decode['vin'][$vin]['scriptSig']['hex'] = self::_apply_sig_scripthash_multisig($signatures, $key_info);
@@ -1139,11 +1155,26 @@ class RawTransaction
                     $point = new \Mdanter\Ecc\Point($generator->getCurve(), $x, $y, $generator->getOrder(), $math);
                     $_public_key = new PublicKey($generator, $point, $math);
                     $_private_key = new PrivateKey($_public_key, $key_dec, $math);
-                    $sign = $_private_key->sign($math->hexDec($message_hash[$vin]), $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
-                    if ($sign !== false) {
-                        $sign_count++;
-                        $decode['vin'][$vin]['scriptSig']['hex'] = self::_apply_sig_pubkeyhash(self::encode_signature($sign), $key_info['public_key']);
+
+                    // retry 10 times to get a canonical signature
+                    for ($i = 0; $i < self::$SIGN_RETRIES; $i++) {
+                        $sign = $_private_key->sign($math->hexDec($message_hash[$vin]), $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
+
+                        if ($sign !== false) {
+                            $sign_count++;
+                            $encsign = self::encode_signature($sign);
+                            $decode['vin'][$vin]['scriptSig']['hex'] = self::_apply_sig_pubkeyhash($encsign, $key_info['public_key']);
+
+                            if (self::is_canonical_signature($encsign)) {
+                                break;
+                            } else if (self::$VERBOSE) {
+                                echo "failed to create canonical signature \n";
+                            }
+                        } else if (self::$VERBOSE) {
+                            echo "failed to sign \n";
+                        }
                     }
+
                     $req_sigs++;
                 }
             } else {
