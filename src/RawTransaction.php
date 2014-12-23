@@ -460,7 +460,7 @@ class RawTransaction
             // Pop 8 bytes (flipped) from the $tx string, convert to decimal,
             // and then convert to Satoshis.
             $satoshis = $math->hexDec(self::_return_bytes($tx, 8, true), 16, 10);
-            $amount = number_format($satoshis / 1e8, 8, ".", "");
+            $amount = BitcoinLib::toBTCString($satoshis);
 
             // Decode the varint for the length of the scriptPubKey
             $script_length = self::_get_vint($tx); // decimal number of bytes
@@ -506,7 +506,7 @@ class RawTransaction
 
         $outputs = '';
         for ($i = 0; $i < $output_count; $i++) {
-            $satoshis = $vout_arr[$i]['value'] * 1e8;
+            $satoshis = BitcoinLib::toSatoshi($vout_arr[$i]['value']);
             $amount = self::_dec_to_bytes($satoshis, 8);
             $amount = self::_flip_byte_order($amount);
 
