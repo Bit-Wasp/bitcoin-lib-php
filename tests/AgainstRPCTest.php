@@ -10,15 +10,24 @@ require_once(__DIR__. '/../vendor/autoload.php');
 class testAgainstRPC extends PHPUnit_Framework_TestCase {
 
     public function __construct() {
+        if (!getenv('BITCOINLIB_TEST_AGAINST_RPC')) {
+            return;
+        }
+
         $this->magic_byte = '00';
         $this->magic_p2sh_byte = '05';
         $this->c = array('url' => 'http://bitcoinrpc:6Wk1SYL7JmPYoUeWjYRSdqij4xrM5rGBvC4kbJipLVJK@127.0.0.1:8332');
         $this->client = new Jsonrpcclient($this->c);
-        if($this->client->getinfo() == null)
+        if ($this->client->getinfo() == null) {
             die("Can't connect to bitcoind");
+        }
     }
 
     public function setup() {
+        if (!getenv('BITCOINLIB_TEST_AGAINST_RPC')) {
+            return $this->markTestSkipped("Not testing against RPC");
+        }
+
         $this->electrum = new Electrum();
         $this->bitcoin = new BitcoinLib();
         $this->rawtransaction = new RawTransaction();

@@ -228,7 +228,7 @@ class BitcoinLibTest extends PHPUnit_Framework_TestCase
             $hex = (string)bin2hex(mcrypt_create_iv(20, \MCRYPT_DEV_URANDOM));
 
             // 'manually' create address
-            $encode = $this->bitcoin->base58_encode_checksum($this->p2shAddressVersion.$hex);
+            $encode = $this->bitcoin->base58_encode_checksum($this->p2shAddressVersion . $hex);
             $decode = $this->bitcoin->base58_decode_checksum($encode);
 
             // validate 'manually' created address

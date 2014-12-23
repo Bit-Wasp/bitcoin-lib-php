@@ -12,6 +12,7 @@ class BitcoinLibTestNetTest extends BitcoinLibTest
         parent::__construct();
 
         $this->addressVersion = '6f';
+        $this->p2shAddressVersion = 'c4';
         $this->WIFVersion = 'ef';
         $this->keyConversionData = array(
             "5HxWvvfubhXpYYpS3tJkw6fq9jE9j18THftkZjHHfmFiWtmAbrj" => "n4mo8QZBt6zjpVmr28rx985jdiw9zwfcvS",
