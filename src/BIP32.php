@@ -132,8 +132,7 @@ class BIP32
             $private_key = null;
             $public_key = $previous['key'];
         } else {
-            // Exception here?
-            return false;
+            throw new \Exception("Unknown previous type in CKD");
         }
 
         $i = array_pop($address_definition);
@@ -141,7 +140,7 @@ class BIP32
         $is_prime = self::check_is_prime_hex($i);
         if ($is_prime == 1) {
             if ($previous['type'] == 'public') {
-                return false; // Cannot derive private from public key - Exception here?
+                throw new \Exception("Can't derive private key from public key");
             }
             $data = '00' . $private_key . $i;
         } else if ($is_prime == 0) {
@@ -296,6 +295,17 @@ class BIP32
             return false;
         }
 
+        if (!preg_match("#^[mM/0-9']*$#", $string_def)) {
+            throw new \Exception("Path can only contain chars: [mM/0-9']");
+        }
+
+        // if the desired path is public while the input is private
+        $toPublic = substr($string_def, 0, 1) == "M" && substr($def, 0, 1) == "m";
+        if ($toPublic) {
+            // derive the private path, convert to public when returning
+            $string_def[0] = "m";
+        }
+
         // if the desired definition starts with m/ or M/ then it's an absolute path
         //  this function however works with relative paths, so we need to make the path relative
         if (strtolower(substr($string_def, 0, 1)) == 'm') {
@@ -308,18 +318,26 @@ class BIP32
             $string_def = substr($string_def, strlen($def)) ?: "";
 
             // if nothing remains we have nothing to do
-            if (!$string_def) {
-                return [$parent, $def];
-            } else {
+            if ($string_def) {
                 // unshift the / that remains
                 $string_def = substr($string_def, 1);
             }
         }
 
-        $address_definition = self::get_definition_tuple($parent, $string_def);
+        // do child key derivation
+        if (strlen($string_def)) {
+            $address_definition = self::get_definition_tuple($parent, $string_def);
+            $extended_key = self::CKD($parent, $address_definition, explode("/", $def));
+        } else {
+            $extended_key = [$parent, $def];
+        }
 
-        $extended_key = self::CKD($parent, $address_definition, explode("/", $def));
-        return $extended_key;
+        // convert to public key if necessary
+        if ($toPublic) {
+            return self::extended_private_to_public($extended_key);
+        } else {
+            return $extended_key;
+        }
     }
 
     /**

@@ -3,9 +3,16 @@
 use BitWasp\BitcoinLib\BIP32 as BIP32;
 require_once(__DIR__. '/../vendor/autoload.php');
 
-
+/**
+ * test vectors generated/verified using http://bip32.org/
+ *
+ * Class BIP32Test
+ */
 class BIP32Test extends PHPUnit_Framework_TestCase
 {
+    /**
+     * @var BIP32
+     */
     public $bip32;
 
     public function __construct() {
@@ -83,9 +90,70 @@ class BIP32Test extends PHPUnit_Framework_TestCase
         $this->assertEquals("m/44'/0'/0'/0/0", $bip44ChildKey[1]);
         $this->assertEquals("xprvA4A9CuBXhdBtCaLxwrw64Jaran4n1rgzeS5mjH47Ds8V67uZS8tTkG8jV3BZi83QqYXPcN4v8EjK2Aof4YcEeqLt688mV57gF4j6QZWdP9U", $bip44ChildKey[0]);
 
+        // we're expecting an exception
         try {
             $bip44ChildKey = $this->bip32->build_key($masterKey, "m/44'/0'/0'/0/0");
             $this->bip32->build_key($bip44ChildKey, "m/44'/1'/0'/0/0");
+            $this->fail("build_key should throw exception with bad path");
+        } catch (\Exception $e) {
+            $this->assertTrue(!!$e);
+        }
+    }
+
+    public function testCKDPrivateToPublic() {
+        // create master key
+        $masterKey = $this->bip32->master_key("000102030405060708090a0b0c0d0e0f", "bitcoin", false);
+        $this->assertEquals("m", $masterKey[1]);
+        $this->assertEquals("xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiChkVvvNKmPGJxWUtg6LnF5kejMRNNU3TGtRBeJgk33yuGBxrMPHi", $masterKey[0]);
+
+        // get the "m" derivation, should be equal to the master key, by absolute path
+        $pubMasterKey = $this->bip32->build_key($masterKey, "M");
+        $this->assertEquals("M", $pubMasterKey[1]);
+        $this->assertEquals("xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8", $pubMasterKey[0]);
+
+        // get the "M/0" derivation, should be the first child, by absolute path
+        $firstChildKey = $this->bip32->build_key($masterKey, "M/0");
+        $this->assertEquals("M/0", $firstChildKey[1]);
+        $this->assertEquals("xpub68Gmy5EVb2BdFbj2LpWrk1M7obNuaPTpT5oh9QCCo5sRfqSHVYWex97WpDZzszdzHzxXDAzPLVSwybe4uPYkSk4G3gnrPqqkV9RyNzAcNJ1", $firstChildKey[0]);
+
+        // get the "m/0" derivation, should be the first child, by absolute path, by only providing the key and not the original path
+        $firstChildKey = $this->bip32->build_key($masterKey[0], "M/0");
+        $this->assertEquals("M/0", $firstChildKey[1]);
+        $this->assertEquals("xpub68Gmy5EVb2BdFbj2LpWrk1M7obNuaPTpT5oh9QCCo5sRfqSHVYWex97WpDZzszdzHzxXDAzPLVSwybe4uPYkSk4G3gnrPqqkV9RyNzAcNJ1", $firstChildKey[0]);
+
+        // get the "M/44'/0'/0'/0/0" derivation, by absolute path
+        $bip44ChildKey = $this->bip32->build_key($masterKey, "M/44'/0'/0'/0/0");
+        $this->assertEquals("M/44'/0'/0'/0/0", $bip44ChildKey[1]);
+        $this->assertEquals("xpub6H9VcQiRXzkBR4RS3tU6RSXb8ouGRKQr1f1NXfTinCfTxvEhygCiJ4TDLHz1dyQ6d2Vz8Ne7eezkrViwaPo2ZMsNjVtFwvzsQXCDV6HJ3cV", $bip44ChildKey[0]);
+
+        // get the "M/44'/0'/0'/0/0" derivation, by relative path, in 2 steps
+        $bip44ChildKey = $this->bip32->build_key($masterKey, "M/44'/0'/0'");
+        $bip44ChildKey = $this->bip32->build_key($bip44ChildKey, "0/0");
+        $this->assertEquals("M/44'/0'/0'/0/0", $bip44ChildKey[1]);
+        $this->assertEquals("xpub6H9VcQiRXzkBR4RS3tU6RSXb8ouGRKQr1f1NXfTinCfTxvEhygCiJ4TDLHz1dyQ6d2Vz8Ne7eezkrViwaPo2ZMsNjVtFwvzsQXCDV6HJ3cV", $bip44ChildKey[0]);
+
+        // get the "M/44'/0'/0'/0/0" derivation, by relative path, in 2 steps
+        $bip44ChildKey = $this->bip32->build_key($masterKey, "M/44'/0'/0'/0");
+        $bip44ChildKey = $this->bip32->build_key($bip44ChildKey, "0");
+        $this->assertEquals("M/44'/0'/0'/0/0", $bip44ChildKey[1]);
+        $this->assertEquals("xpub6H9VcQiRXzkBR4RS3tU6RSXb8ouGRKQr1f1NXfTinCfTxvEhygCiJ4TDLHz1dyQ6d2Vz8Ne7eezkrViwaPo2ZMsNjVtFwvzsQXCDV6HJ3cV", $bip44ChildKey[0]);
+
+        // get the "M/44'/0'/0'/0/0" derivation, by relative path, in single steps
+        $bip44ChildKey = $this->bip32->build_key($masterKey, "m/44'");
+        $bip44ChildKey = $this->bip32->build_key($bip44ChildKey, "0'");
+        $bip44ChildKey = $this->bip32->build_key($bip44ChildKey, "0'");
+        $bip44ChildKey = $this->bip32->build_key($bip44ChildKey, "0");
+        $bip44ChildKey = $this->bip32->build_key($bip44ChildKey, "0");
+        $bip44ChildKey = $this->bip32->extended_private_to_public($bip44ChildKey);
+
+        $this->assertEquals("M/44'/0'/0'/0/0", $bip44ChildKey[1]);
+        $this->assertEquals("xpub6H9VcQiRXzkBR4RS3tU6RSXb8ouGRKQr1f1NXfTinCfTxvEhygCiJ4TDLHz1dyQ6d2Vz8Ne7eezkrViwaPo2ZMsNjVtFwvzsQXCDV6HJ3cV", $bip44ChildKey[0]);
+
+        // we're expecting an exception
+        try {
+            $bip44ChildKey = $this->bip32->build_key($masterKey, "M/44'/0'");
+            $bip44ChildKey = $this->bip32->build_key($bip44ChildKey, "0'");
+
             $this->fail("build_key should throw exception with bad path");
         } catch (\Exception $e) {
             $this->assertTrue(!!$e);
