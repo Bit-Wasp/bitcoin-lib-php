@@ -27,6 +27,35 @@ class BIP32Test extends PHPUnit_Framework_TestCase
         $this->bip32 = null;
     }
 
+    public function testDefinitionTuple() {
+        $masterKey = $this->bip32->master_key("000102030405060708090a0b0c0d0e0f", "bitcoin", false);
+
+        $this->assertEquals("00000003", $this->bip32->calc_address_bytes("3", false));
+        $this->assertEquals("80000003", $this->bip32->calc_address_bytes("3", true));
+        $this->assertEquals("00000003", $this->bip32->calc_address_bytes("3'", false));
+        $this->assertEquals("80000003", $this->bip32->calc_address_bytes("3'", true));
+
+        $this->assertEquals(
+            [
+                "00000003",
+                "00000003",
+                "00000003",
+                "00000000",
+            ],
+            $this->bip32->get_definition_tuple($masterKey[0], "m/3/3/3")
+        );
+
+        $this->assertEquals(
+            [
+                "00000003",
+                "80000003",
+                "00000003",
+                "00000000",
+            ],
+            $this->bip32->get_definition_tuple($masterKey[0], "m/3/3'/3")
+        );
+    }
+
     public function testCKD() {
         // create master key
         $masterKey = $this->bip32->master_key("000102030405060708090a0b0c0d0e0f", "bitcoin", false);

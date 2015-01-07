@@ -255,7 +255,7 @@ class BIP32
             $want_prime = 0;
             if (strpos($def, "'") !== false) {
                 // Remove ' from the number, and set $want_prime
-                str_replace("'", '', $def);
+                $def = str_replace("'", '', $def);
                 $want_prime = 1;
             }
 
