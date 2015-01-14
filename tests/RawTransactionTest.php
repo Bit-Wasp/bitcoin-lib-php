@@ -107,6 +107,8 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(2, $sign['req_sigs']);
         $this->assertEquals(3, $sign['sign_count']);
         $this->assertEquals('true', $sign['complete']);
+
+        BitcoinLib::setMagicByteDefaults('bitcoin');
     }
 
     public function testCreateRaw() {
@@ -387,8 +389,6 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
         }, $privKeys);
 
         $pubKeys = RawTransaction::sort_multisig_keys($pubKeys);
-
-        var_dump($pubKeys);
 
         $multisig = RawTransaction::create_multisig($m, $pubKeys);
 

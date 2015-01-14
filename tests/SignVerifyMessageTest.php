@@ -68,8 +68,8 @@ class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
     public function testSignMessageTestnet()
     {
         BitcoinLib::setMagicByteDefaults('bitcoin-testnet');
-
         $this->assertTrue(BitcoinLib::verifyMessage("mkiPAxhzUMo8mAwW3q95q7aNuXt6HzbbUA", "IND22TSMS2uuWyIn2Be49ajaGwNmiQtiCXrozev00cPFXpACe8LQYU/t6xp8YXb5SIVAnqEn/DailZw+OM85TM0=", "mkiPAxhzUMo8mAwW3q95q7aNuXt6HzbbUA"));
+        BitcoinLib::setMagicByteDefaults('bitcoin');
     }
 
     public function testVerifyMessageDataSet()
