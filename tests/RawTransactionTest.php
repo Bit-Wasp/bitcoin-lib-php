@@ -429,10 +429,18 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
         for ($i = 0; $i < 100; $i++) {
             $random = hash('sha256', 'random'.$i);
             $sign = $private->sign($math->hexDec($random), $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
+<<<<<<< HEAD
             $this->assertInstanceOf('Mdanter\Ecc\Signature\Signature', $sign);
+=======
+            $this->assertInstanceOf('Mdanter\Ecc\Signature', $sign);
+>>>>>>> Add test that 100 random signatures are verified as canonical
             $sig = RawTransaction::encode_signature($sign);
             $this->assertTrue(RawTransaction::is_canonical_signature($sig));
         }
     }
 
+<<<<<<< HEAD
 };
+=======
+};
+>>>>>>> Add test that 100 random signatures are verified as canonical
