@@ -11,10 +11,13 @@ class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
 
     protected $againstRPC = false;
 
-    public function testSignMessage()
+    public function setup()
     {
         BitcoinLib::setMagicByteDefaults('bitcoin');
+    }
 
+    public function testSignMessage()
+    {
         $k = "40830342147156906673307227534819286677883886097095155210766904187107130350230"; // fixed K value for testing
 
         $WIF = "KxuKf1nB3nZ5eYVFVuCgvH5EFM8iUSWqmqJ9bAQukekYgPbju4FL";
@@ -35,8 +38,6 @@ class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
 
     public function testSignMessageFailure()
     {
-        BitcoinLib::setMagicByteDefaults('bitcoin');
-
         try {
             BitcoinLib::verifyMessage("mkiPAxhzUMo8mAwW3q95q7aNuXt6HzbbUA", "IND22TSMS2uuWyIn2Be49ajaGwNmiQtiCXrozev00cPFXpACe8LQYU/t6xp8YXb5SIVAnqEn/DailZw+OM85TM0=", "mkiPAxhzUMo8mAwW3q95q7aNuXt6HzbbUA");
             $this->fail("verifyMessage should throw exception when address is invalid");
@@ -70,8 +71,6 @@ class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
 
     public function testVerifyMessageDataSet()
     {
-        BitcoinLib::setMagicByteDefaults('bitcoin');
-
         $data = json_decode(file_get_contents(__DIR__ . "/data/signverify.json"), true);
         $data = array_map(function ($k) use ($data) {
             return $data[$k];
@@ -84,8 +83,6 @@ class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
 
     public function testSignMessageDataSet()
     {
-        BitcoinLib::setMagicByteDefaults('bitcoin');
-
         $data = json_decode(file_get_contents(__DIR__ . "/data/signverify.json"), true);
         $data = array_map(function ($k) use ($data) {
             return $data[$k];
@@ -101,9 +98,7 @@ class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
 
     public function testSignMessageDataSetAgainstRPC()
     {
-        BitcoinLib::setMagicByteDefaults('bitcoin');
-
-        if (!$this->againstRPC) {
+        if (!getenv('BITCOINLIB_TEST_AGAINST_RPC')) {
             return $this->markTestSkipped("Not testing against RPC");
         }
 

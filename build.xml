@@ -17,9 +17,8 @@
         <delete dir="${project.basedir}/build/docs/code-coverage" />
         <mkdir dir="${project.basedir}/build/docs/code-coverage" />
         <exec executable="${project.basedir}/vendor/bin/phpunit" passthru="true">
-            <arg value="-c" />
-            <arg path="${project.basedir}/build" />
             <arg value="--debug" />
+            <arg value="${project.basedir}/tests" />
         </exec>
     </target>
 
