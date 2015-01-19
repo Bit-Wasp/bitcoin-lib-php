@@ -1,5 +1,9 @@
 language: php
 
+# factor between 1 and ~50
+#  10 seems okay for travis-CI
+env: BITCOINLIB_EXTENSIVE_TESTING=10
+
 php:
   - 5.4
   - 5.5

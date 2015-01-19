@@ -201,10 +201,6 @@ class BIP32Test extends PHPUnit_Framework_TestCase
 
     }
 
-    public function __helpTestChildKeyDerivation() {
-
-    }
-
     public function testChildKeyDerivationOne() {
 
         $test_vectors = [
