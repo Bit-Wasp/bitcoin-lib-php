@@ -1,5 +1,7 @@
 language: php
 
+env: BITCOINLIB_EXTENSIVE_TESTING=10
+
 php:
   - 5.4
   - 5.5
