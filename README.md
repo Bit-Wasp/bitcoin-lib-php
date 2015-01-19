@@ -1,6 +1,8 @@
 bitcoin-lib-php
 ===============
 
+[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Bit-Wasp/bitcoin-lib-php?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 PHP libraries implementing bitcoin key functions, as well as BIP32 and electrum.
 
 The library intends to expose a lot of general functionality which isn't 
