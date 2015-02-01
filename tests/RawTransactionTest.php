@@ -122,7 +122,10 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
         ];*/
 
         $data = [
-            1 => [
+            /*
+             * test a real transaction
+             */
+            [
                 'inputs' => [
                     [
                         "txid" => "5a373fd13679fc55f479f08bef25d5e808031f97331a48f950ced89d7e99c269",
@@ -169,12 +172,35 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
                     "15XjXdS1qTBy3i8vCCriWSAbm1qx5JgJVz" => 0.14750000,
                     "1L6hCPsCq7C5rNzq7wSyu4eaQCq8LeipmG" => 0.01373172
                 ]
+            ],
+            /*
+             * test a transaction where float rounding can mess things up
+             */
+            [
+                'inputs' => [
+                    [
+                        "txid" => "d79ef324ffdeacbad1d8f02ec9dd3707277f1ec1365a2f0e8fa5d027bfab0dbc",
+                        "vout" => 17,
+                        "scriptPubKey" => "76a914d17e062579b71bfe199a80991a253d929f8bd35b88ac"
+                    ]
+                ],
+                'outputs' => [
+                    "1L6hCPsCq7C5rNzq7wSyu4eaQCq8LeipmG" => 1.23456789
+                ]
             ]
         ];
 
         foreach($data as $test) {
             $create = RawTransaction::create($test['inputs'], $test['outputs'], '00');
             $this->assertTrue(is_string($create));
+
+            $tx = RawTransaction::decode($create);
+
+            foreach ($tx['vout'] as $output) {
+                $address = $output['scriptPubKey']['addresses'][0];
+                $this->assertTrue(isset($test['outputs'][$address]));
+                $this->assertEquals($test['outputs'][$address], $output['value']);
+            }
         }
     }
 
