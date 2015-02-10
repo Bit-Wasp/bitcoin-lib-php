@@ -1055,4 +1055,50 @@ class BitcoinLib
 
         return str_pad($hex, $length, "0", STR_PAD_LEFT);
     }
+
+    /**
+     * convert a Satoshi value (int) to a BTC value (float value but as a string)
+     *
+     * @param int $satoshi
+     * @return string
+     */
+    public static function toBTC($satoshi)
+    {
+        return bcdiv((int)(string)$satoshi, 100000000, 8);
+    }
+
+    /**
+     * convert a Satoshi value (int) to a BTC value (float)
+     *  and return it as a string formatted with 8 decimals
+     *
+     * @param int $satoshi
+     * @return string
+     */
+    public static function toBTCString($satoshi)
+    {
+        return self::toBTC($satoshi);
+    }
+
+    /**
+     * convert a BTC value (float) to a Satoshi value (int)
+     *
+     * @param float $btc
+     * @return int
+     */
+    public static function toSatoshi($btc)
+    {
+        return (int)self::toSatoshiString($btc);
+    }
+
+    /**
+     * convert a BTC value (float) to a Satoshi value (int)
+     *  and return it as a string
+     *
+     * @param float $btc
+     * @return string
+     */
+    public static function toSatoshiString($btc)
+    {
+        return bcmul(sprintf("%.8f", (float)$btc), 100000000, 0);
+    }
 }

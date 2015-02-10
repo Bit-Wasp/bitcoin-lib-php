@@ -7,7 +7,6 @@ require_once(__DIR__. '/../vendor/autoload.php');
 
 class RawTransactionTest extends PHPUnit_Framework_TestCase
 {
-    public $bitcoin;
     public $testHexEncode_i;
 
     public function __construct() {
@@ -72,7 +71,7 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
             )
         );
         $outputs = array(
-            "n3P94USXs7LzfF4BKJVyGv2uCfBQRbvMZJ" => 0.00010000
+            "n3P94USXs7LzfF4BKJVyGv2uCfBQRbvMZJ" => BitcoinLib::toSatoshi(0.00010000)
         );
         $raw_transaction = RawTransaction::create($inputs, $outputs);
 
@@ -164,8 +163,8 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
                     ]
                 ],
                 'outputs' => [
-                    "15XjXdS1qTBy3i8vCCriWSAbm1qx5JgJVz" => 0.14750000,
-                    "1L6hCPsCq7C5rNzq7wSyu4eaQCq8LeipmG" => 0.01373172
+                    "15XjXdS1qTBy3i8vCCriWSAbm1qx5JgJVz" => BitcoinLib::toSatoshi(0.14750000),
+                    "1L6hCPsCq7C5rNzq7wSyu4eaQCq8LeipmG" => BitcoinLib::toSatoshi(0.01373172)
                 ]
             ]
         ];
@@ -326,5 +325,50 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
         $this->assertTrue(BitcoinLib::validate_address($multisig['address']));
     }
 
+    public function testValidInput()
+    {
+        $inputs = [
+            [
+                "txid" => "5a373fd13679fc55f479f08bef25d5e808031f97331a48f950ced89d7e99c269",
+                "vout" => 31,
+                "scriptPubKey" => "76a914d17e062579b71bfe199a80991a253d929f8bd35b88ac"
+            ]
+        ];
 
-};
+        RawTransaction::create($inputs, ['15XjXdS1qTBy3i8vCCriWSAbm1qx5JgJVz' => 10000]);
+        RawTransaction::create($inputs, ['15XjXdS1qTBy3i8vCCriWSAbm1qx5JgJVz' => BitcoinLib::toSatoshi(10000.0)]);
+        RawTransaction::create($inputs, ['15XjXdS1qTBy3i8vCCriWSAbm1qx5JgJVz' => BitcoinLib::toSatoshi(10000000000.0)]);
+    }
+
+    public function testInvalidInput()
+    {
+        $inputs = [
+            [
+                "txid" => "5a373fd13679fc55f479f08bef25d5e808031f97331a48f950ced89d7e99c269",
+                "vout" => 31,
+                "scriptPubKey" => "76a914d17e062579b71bfe199a80991a253d929f8bd35b88ac"
+            ]
+        ];
+
+        $this->createRawExpectException($inputs, ['15XjXdS1qTBy3i8vCCriWSAbm1qx5JgJVx' => 10000], "invalid address");
+        $this->createRawExpectException($inputs, ['45XjXdS1qTBy3i8vCCriWSAbm1qx5JgJVz' => 10000], "invalid address");
+
+        $this->createRawExpectException($inputs, ['15XjXdS1qTBy3i8vCCriWSAbm1qx5JgJVz' => 0.1], "float output value");
+        $this->createRawExpectException($inputs, ['15XjXdS1qTBy3i8vCCriWSAbm1qx5JgJVz' => 1.1], "float output value");
+        $this->createRawExpectException($inputs, ['15XjXdS1qTBy3i8vCCriWSAbm1qx5JgJVz' => 1.0], "float output value");
+        $this->createRawExpectException($inputs, ['15XjXdS1qTBy3i8vCCriWSAbm1qx5JgJVz' => "0.1"], "float output value");
+        $this->createRawExpectException($inputs, ['15XjXdS1qTBy3i8vCCriWSAbm1qx5JgJVz' => "1.1"], "float output value");
+        $this->createRawExpectException($inputs, ['15XjXdS1qTBy3i8vCCriWSAbm1qx5JgJVz' => "1.0"], "float output value");
+        $this->createRawExpectException($inputs, ['15XjXdS1qTBy3i8vCCriWSAbm1qx5JgJVz' => "0,1"], "float output value");
+        $this->createRawExpectException($inputs, ['15XjXdS1qTBy3i8vCCriWSAbm1qx5JgJVz' => "1,1"], "float output value");
+        $this->createRawExpectException($inputs, ['15XjXdS1qTBy3i8vCCriWSAbm1qx5JgJVz' => "1,0"], "float output value");
+    }
+
+    private function createRawExpectException($inputs, $outputs, $message = "") {
+        $e = null;
+        try {
+            RawTransaction::create($inputs, $outputs);
+        } catch (\Exception $e) {}
+        $this->assertTrue(!!$e, "should have thrown exception [{$message}]");
+    }
+}

@@ -460,7 +460,6 @@ class RawTransaction
             // Pop 8 bytes (flipped) from the $tx string, convert to decimal,
             // and then convert to Satoshis.
             $satoshis = $math->hexDec(self::_return_bytes($tx, 8, true), 16, 10);
-            $amount = number_format($satoshis / 1e8, 8, ".", "");
 
             // Decode the varint for the length of the scriptPubKey
             $script_length = self::_get_vint($tx); // decimal number of bytes
@@ -478,7 +477,8 @@ class RawTransaction
                 $scriptPubKey['message'] = 'unable to decode tx type!';
             }
 
-            $outputs[$i] = array('value' => $amount,
+            $outputs[$i] = array(
+                'value' => $satoshis,
                 'vout' => $i,
                 'scriptPubKey' => $scriptPubKey);
 
@@ -506,7 +506,7 @@ class RawTransaction
 
         $outputs = '';
         for ($i = 0; $i < $output_count; $i++) {
-            $satoshis = $vout_arr[$i]['value'] * 1e8;
+            $satoshis = $vout_arr[$i]['value'];
             $amount = self::_dec_to_bytes($satoshis, 8);
             $amount = self::_flip_byte_order($amount);
 
@@ -1033,7 +1033,11 @@ class RawTransaction
         $tx_array['vout'] = array();
         foreach ($outputs as $address => $value) {
             if (!BitcoinLib::validate_address($address, $magic_byte, $magic_p2sh_byte)) {
-                return false;
+                throw new \Exception("Invalid address [{$address}]");
+            }
+
+            if (!is_int($value)) {
+                throw new \Exception("Values should be in Satoshis [{$value}]");
             }
 
             $decode_address = BitcoinLib::base58_decode($address);
