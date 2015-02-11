@@ -120,13 +120,12 @@ class BIP32Test extends PHPUnit_Framework_TestCase
         $this->assertEquals("xprvA4A9CuBXhdBtCaLxwrw64Jaran4n1rgzeS5mjH47Ds8V67uZS8tTkG8jV3BZi83QqYXPcN4v8EjK2Aof4YcEeqLt688mV57gF4j6QZWdP9U", $bip44ChildKey[0]);
 
         // we're expecting an exception
+        $e = null;
         try {
             $bip44ChildKey = $this->bip32->build_key($masterKey, "m/44'/0'/0'/0/0");
             $this->bip32->build_key($bip44ChildKey, "m/44'/1'/0'/0/0");
-            $this->fail("build_key should throw exception with bad path");
-        } catch (\Exception $e) {
-            $this->assertTrue(!!$e);
-        }
+        } catch (\Exception $e) {}
+        $this->assertTrue(!!$e, "build_key should throw exception with bad path");
     }
 
     public function testCKDPrivateToPublic() {
@@ -179,14 +178,12 @@ class BIP32Test extends PHPUnit_Framework_TestCase
         $this->assertEquals("xpub6H9VcQiRXzkBR4RS3tU6RSXb8ouGRKQr1f1NXfTinCfTxvEhygCiJ4TDLHz1dyQ6d2Vz8Ne7eezkrViwaPo2ZMsNjVtFwvzsQXCDV6HJ3cV", $bip44ChildKey[0]);
 
         // we're expecting an exception
+        $e = null;
         try {
             $bip44ChildKey = $this->bip32->build_key($masterKey, "M/44'/0'");
             $bip44ChildKey = $this->bip32->build_key($bip44ChildKey, "0'");
-
-            $this->fail("build_key should throw exception with bad path");
-        } catch (\Exception $e) {
-            $this->assertTrue(!!$e);
-        }
+        } catch (\Exception $e) {}
+        $this->assertTrue(!!$e, "build_key should throw exception with bad path");
     }
 
     public function testMasterKeyFromSeed() {

@@ -177,30 +177,27 @@ class BIP39Test extends PHPUnit_Framework_TestCase {
     }
 
     public function testMnemonicWrongLength() {
+        $e = null;
         try {
             BIP39::mnemonicToEntropy("sleep kitten");
-            $this->fail("No exception was thrown for invalid mnemonic");
-        } catch (\Exception $e) {
-            // ok
-        }
+        } catch (\Exception $e) {}
+        $this->assertTrue(!!$e, "No exception was thrown for invalid mnemonic");
     }
 
     public function testMnemonicUnknownWords() {
+        $e = null;
         try {
             BIP39::mnemonicToEntropy("turtle front uncle idea crush write shrug there lottery flower risky shell");
-            $this->fail("No exception was thrown for unknown words");
-        } catch (\Exception $e) {
-            // ok
-        }
+        } catch (\Exception $e) {}
+        $this->assertTrue(!!$e, "No exception was thrown for unknown words");
     }
 
     public function testInvalidChecksum() {
+        $e = null;
         try {
             BIP39::mnemonicToEntropy("sleep kitten sleep kitten sleep kitten sleep kitten sleep kitten sleep kitten");
-            $this->fail("No exception was thrown for checksum mismatch");
-        } catch (\Exception $e) {
-            // ok
-        }
+        } catch (\Exception $e) {}
+        $this->assertTrue(!!$e, "No exception was thrown for checksum mismatch");
     }
 
     public function testUTF8Passwords() {
