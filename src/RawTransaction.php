@@ -1015,11 +1015,11 @@ class RawTransaction
 
         // Inputs is the set of [txid/vout/scriptPubKey]
         $tx_array['vin'] = array();
-        foreach ($inputs as $input) {
+        foreach ($inputs as $i => $input) {
             if (!isset($input['txid']) || strlen($input['txid']) !== 64
                 || !isset($input['vout']) || !is_numeric($input['vout'])
             ) {
-                return false;
+                throw new \InvalidArgumentException("Invalid input [{$i}]");
             }
 
             $tx_array['vin'][] = array('txid' => $input['txid'],
@@ -1033,11 +1033,11 @@ class RawTransaction
         $tx_array['vout'] = array();
         foreach ($outputs as $address => $value) {
             if (!BitcoinLib::validate_address($address, $magic_byte, $magic_p2sh_byte)) {
-                throw new \Exception("Invalid address [{$address}]");
+                throw new \InvalidArgumentException("Invalid address [{$address}]");
             }
 
             if (!is_int($value)) {
-                throw new \Exception("Values should be in Satoshis [{$value}]");
+                throw new \InvalidArgumentException("Values should be in Satoshis [{$value}]");
             }
 
             $decode_address = BitcoinLib::base58_decode($address);
