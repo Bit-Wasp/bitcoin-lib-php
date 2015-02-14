@@ -186,7 +186,7 @@ class RawTransaction
         } else if ($length <= 0xffff) {
             $l = self::_dec_to_bytes($length, 2, true);
             $string = '4d' . $l . $script;
-        } else if ($length <= 0xffff) {
+        } else if ($length <= 0xffffffff) {
             $l = self::_dec_to_bytes($length, 4, true);
             $string = '4e' . $l . $script;
         } else {
