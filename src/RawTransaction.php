@@ -1164,7 +1164,6 @@ class RawTransaction
                     $point = new \Mdanter\Ecc\Point($generator->getCurve(), $x, $y, $generator->getOrder(), $math);
                     $_public_key = new PublicKey($generator, $point, $math);
                     $_private_key = new PrivateKey($_public_key, $key_dec, $math);
-
                     $sign = $_private_key->sign($math->hexDec($message_hash[$vin]), $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
                     if ($sign !== false) {
                         $sign_count++;
