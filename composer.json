@@ -15,7 +15,7 @@
         }
     },
     "require": {
-        "mdanter/ecc": "0.2.0",
+        "mdanter/ecc": "dev-master#89640a0873e212a723212e7f374f973b7d1fe6f6",
         "php": ">=5.3.3",
         "rych/hash_pbkdf2-compat": "~1.0",
         "ext-gmp": "*",
