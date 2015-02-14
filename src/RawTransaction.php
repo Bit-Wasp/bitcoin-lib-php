@@ -1111,7 +1111,6 @@ class RawTransaction
 
         // Generate digests of inputs to sign.
         $message_hash = self::_create_txin_signature_hash($raw_transaction, $inputs);
-        print_r($message_hash);
 
         $inputs_arr = (array)json_decode($inputs);
 
