@@ -171,6 +171,31 @@ class RawTransaction
         return ($num_bytes == 0) ? $hint : $hint . self::_dec_to_bytes($decimal, $num_bytes, true);
     }
 
+    public function pushdata($script)
+    {
+        $length = strlen($script) / 2;
+
+        /** Note that larger integers are serialized without flipping bits - Big endian */
+        $string = '';
+        if ($length < 75) {
+            $l = self::_dec_to_bytes($length, 1);
+            $string = $l . $script;
+        } else if ($length <= 0xff) {
+            $l = self::_dec_to_bytes($length, 1);
+            $string = '4c' . $l . $script;
+        } else if ($length <= 0xffff) {
+            $l = self::_dec_to_bytes($length, 2, true);
+            $string = '4d' . $l . $script;
+        } else if ($length <= 0xffff) {
+            $l = self::_dec_to_bytes($length, 4, true);
+            $string = '4e' . $l . $script;
+        } else {
+            throw new \RuntimeException('Size of pushdata too large');
+        }
+
+        return $string;
+    }
+
     /**
      * Decode Script
      *
@@ -1086,6 +1111,7 @@ class RawTransaction
 
         // Generate digests of inputs to sign.
         $message_hash = self::_create_txin_signature_hash($raw_transaction, $inputs);
+        print_r($message_hash);
 
         $inputs_arr = (array)json_decode($inputs);
 
@@ -1139,6 +1165,7 @@ class RawTransaction
                     $point = new \Mdanter\Ecc\Point($generator->getCurve(), $x, $y, $generator->getOrder(), $math);
                     $_public_key = new PublicKey($generator, $point, $math);
                     $_private_key = new PrivateKey($_public_key, $key_dec, $math);
+                    echo $message_hash[$vin]."\n";
                     $sign = $_private_key->sign($math->hexDec($message_hash[$vin]), $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
                     if ($sign !== false) {
                         $sign_count++;
@@ -1224,11 +1251,9 @@ class RawTransaction
         $der_sig = '30'
             . self::_dec_to_bytes((4 + ((strlen($r) + strlen($s)) / 2)), 1) //((strlen($r)+strlen($s)+16)/2),1)
             . '02'
-            . self::_dec_to_bytes(strlen($r) / 2, 1)
-            . $r
+            . self::pushdata($r)
             . '02'
-            . self::_dec_to_bytes(strlen($s) / 2, 1)
-            . $s
+            . self::pushdata($s)
             . '01';
 
         return $der_sig;
@@ -1246,15 +1271,7 @@ class RawTransaction
      */
     public static function _apply_sig_pubkeyhash($sig, $public_key)
     {
-
-        // Prepend the length of the signature.
-        $sig = self::_dec_to_bytes(strlen($sig) / 2, 1)
-            . $sig;
-
-        // Now add the public key to the end.
-        return $sig
-        . self::_dec_to_bytes(strlen($public_key) / 2, 1)
-        . $public_key;
+        return self::pushdata($sig) . self::pushdata($public_key);
     }
 
     /**
@@ -1278,12 +1295,11 @@ class RawTransaction
         // Sig array is in order of the redeem script
         foreach ($script_info['public_keys'] as $key) {
             if (isset($sig_array[$key])) {
-                $generated .= self::_dec_to_bytes(strlen($sig_array[$key]) / 2, 1)
-                    . $sig_array[$key];
+                $generated .= self::pushdata($sig_array[$key]);
             }
         }
-        $generated .= '4c' . self::_dec_to_bytes(strlen($script_info['script']) / 2, 1)
-            . $script_info['script'];
+        $generated .= self::pushdata($script_info['script']);
+
         return $generated;
     }
 
