@@ -171,7 +171,7 @@ class RawTransaction
         return ($num_bytes == 0) ? $hint : $hint . self::_dec_to_bytes($decimal, $num_bytes, true);
     }
 
-    public function pushdata($script)
+    public static function pushdata($script)
     {
         $length = strlen($script) / 2;
 
