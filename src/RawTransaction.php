@@ -980,6 +980,7 @@ class RawTransaction
                     foreach ($redeemScript['keys'] as $public_key) {
                         if (self::_check_sig($signature, $message_hash[$i], $public_key) == true) {
                             $pubkey_found = true;
+                            break 2;
                         }
                     }
                 }
@@ -1188,6 +1189,7 @@ class RawTransaction
                     foreach ($script_info['public_keys'] as $key) {
                         if (self::_check_sig($sig, $message_hash, $key) == true) {
                             $signatures[$key] = $sig;
+                            break;
                         }
                     }
                 }
