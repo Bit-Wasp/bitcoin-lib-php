@@ -15,11 +15,13 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
     }
 
     public function setup() {
-        $this->bitcoin = new RawTransaction();
+        // ensure we're set to bitcoin and not bitcoin-testnet
+        BitcoinLib::setMagicByteDefaults('bitcoin');
     }
 
     public function tearDown() {
-        $this->rawtransaction = null;
+        // ensure we're set to bitcoin and not bitcoin-testnet
+        BitcoinLib::setMagicByteDefaults('bitcoin');
     }
 
     public function testDecodeRedeemScript() {
@@ -51,10 +53,6 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
         }
     }
 
-    /**
-     * !! TESTNET !!
-     *
-     */
     public function testSignP2SH() {
         BitcoinLib::setMagicByteDefaults('bitcoin-testnet');
 
@@ -175,6 +173,41 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
         foreach($data as $test) {
             $create = RawTransaction::create($test['inputs'], $test['outputs'], '00');
             $this->assertTrue(is_string($create));
+        }
+    }
+
+    public function testSign() {
+        // 1 loop takes ~0.22s
+        $cnt = (getenv('BITCOINLIB_EXTENSIVE_TESTING') ?: 1) * 5;
+
+        $inputs = array(
+            array(
+                'txid' => '6737e1355be0566c583eecd48bf8a5e1fcdf2d9f51cc7be82d4393ac9555611c',
+                'vout' => 0
+            )
+        );
+
+        $outputs = array('1PGa6cMAzzrBpTtfvQTzX5PmUxsDiFzKyW' => "0.00015");
+
+        $json_inputs = json_encode(
+            array(
+                array(
+                    'txid' => '6737e1355be0566c583eecd48bf8a5e1fcdf2d9f51cc7be82d4393ac9555611c',
+                    'vout' => 0,
+                    // OP_DUP OP_HASH160 push14bytes PkHash OP_EQUALVERIFY OP_CHECKSIG
+                    'scriptPubKey' => '76a914' . '7e3f939e8ded8c0d93695310d6d481ae5da39616' . '88ac'
+                )
+            )
+        );
+
+        $wallet = array();
+        RawTransaction::private_keys_to_wallet($wallet, array('L2V4QgXVUyWVoMGejTj7PrRUUCEi9D9Y1AhUM8E6f5yJm7gemgN6'), '00');
+
+        $raw_transaction = RawTransaction::create($inputs, $outputs);
+
+        for ($i = 0; $i < $cnt; $i++) {
+            $sign = RawTransaction::sign($wallet, $raw_transaction, $json_inputs);
+            $this->assertTrue(RawTransaction::validate_signed_transaction($sign['hex'], $json_inputs));
         }
     }
 
