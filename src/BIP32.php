@@ -77,12 +77,24 @@ class BIP32
      * @param    string       $seed
      * @param    string(opt)  $network
      * @param    boolean(opt) $testnet
+     * @param    boolean(opt) $ignoreLengthCheck        disable the length checks
      * @return    string
      */
-    public static function master_key($seed, $network = 'bitcoin', $testnet = false)
+    public static function master_key($seed, $network = 'bitcoin', $testnet = false, $ignoreLengthCheck = false)
     {
+        $seed = pack("H*", $seed);
+
+        // seed min length is 128 bits (16 bytes)
+        if (!$ignoreLengthCheck && strlen($seed) < 16) {
+            throw new \Exception("Seed should be at least 128 bits'");
+        }
+        // seed max length is 512 bits (64 bytes)
+        if (!$ignoreLengthCheck && strlen($seed) > 64) {
+            throw new \Exception("Seed should be at most 512 bits'");
+        }
+
         // Generate HMAC hash, and the key/chaincode.
-        $I = hash_hmac('sha512', pack("H*", $seed), "Bitcoin seed");
+        $I = hash_hmac('sha512', $seed, "Bitcoin seed");
         $I_l = substr($I, 0, 64);
         $I_r = substr($I, 64, 64);
 

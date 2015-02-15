@@ -1,5 +1,6 @@
 <?php
 
+use BitWasp\BitcoinLib\BIP32;
 use BitWasp\BitcoinLib\BIP39\BIP39;
 
 require_once(__DIR__. '/../vendor/autoload.php');
@@ -228,6 +229,9 @@ class BIP39Test extends PHPUnit_Framework_TestCase {
             $entropy2 = BIP39::mnemonicToEntropy($mnemonic);
             $this->assertTrue(!!$entropy2);
             $this->assertEquals($entropy, $entropy2);
+
+            $bip32 = BIP32::master_key(BIP39::mnemonicToSeedHex($mnemonic, 'PASSWORD'));
+            $this->assertTrue(!!$bip32);
         }
 
         for ($i = 0; $i < 100; $i++) {
@@ -240,6 +244,9 @@ class BIP39Test extends PHPUnit_Framework_TestCase {
             $entropy2 = BIP39::mnemonicToEntropy($mnemonic);
             $this->assertTrue(!!$entropy2);
             $this->assertEquals($entropy, $entropy2);
+
+            $bip32 = BIP32::master_key(BIP39::mnemonicToSeedHex($mnemonic, 'PASSWORD'));
+            $this->assertTrue(!!$bip32);
         }
 
         for ($i = 0; $i < 100; $i++) {
@@ -252,6 +259,9 @@ class BIP39Test extends PHPUnit_Framework_TestCase {
             $entropy2 = BIP39::mnemonicToEntropy($mnemonic);
             $this->assertTrue(!!$entropy2);
             $this->assertEquals($entropy, $entropy2);
+
+            $bip32 = BIP32::master_key(BIP39::mnemonicToSeedHex($mnemonic, 'PASSWORD'));
+            $this->assertTrue(!!$bip32);
         }
     }
 }
