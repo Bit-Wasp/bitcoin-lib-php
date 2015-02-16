@@ -604,8 +604,7 @@ class BitcoinLib
             return $public_key;
         }
 
-        // Not a valid public key
-        return false;
+        throw new \InvalidArgumentException("Invalid public key");
     }
 
     /**
@@ -663,7 +662,7 @@ class BitcoinLib
             $y0 = $theory->squareRootModP($y2, $curve->getPrime());
 
             if ($y0 == null) {
-                return false;
+                throw new \InvalidArgumentException("Invalid public key");
             }
 
             $y1 = $math->sub($curve->getPrime(), $y0);
@@ -675,13 +674,15 @@ class BitcoinLib
             $y_coordinate = str_pad($math->decHex($y), 64, '0', STR_PAD_LEFT);
             $point = new Point($curve, $x, $y, $generator->getOrder(), $math);
         } catch (\Exception $e) {
-            return false;
+            throw new \InvalidArgumentException("Invalid public key");
         }
 
-        return array('x' => $x_coordinate,
+        return array(
+            'x' => $x_coordinate,
             'y' => $y_coordinate,
             'point' => $point,
-            'public_key' => '04' . $x_coordinate . $y_coordinate);
+            'public_key' => '04' . $x_coordinate . $y_coordinate
+        );
     }
 
     /**
