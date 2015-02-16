@@ -418,7 +418,7 @@ class BIP32
         $magic_byte_info = self::describe_magic_bytes($key['magic_bytes']);
         // Die if key type isn't supported by this library.
         if ($magic_byte_info == false) {
-            throw new \Exception("Unsupported magic byte");
+            throw new \InvalidArgumentException("Unsupported magic byte");
         }
 
         $key['type'] = $magic_byte_info['type'];

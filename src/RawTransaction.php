@@ -1346,20 +1346,20 @@ class RawTransaction
 
         $length = strlen($signature);
         if ($math->cmp($length, 18) < 0) {
-            throw new \Exception("Non-canonical signature: too short");
+            throw new \InvalidArgumentException("Non-canonical signature: too short");
         }
 
         if ($math->cmp($length, 146) > 0) {
-            throw new \Exception("Non-canonical signature: too long");
+            throw new \InvalidArgumentException("Non-canonical signature: too long");
         }
 
         // Non-canonical signature: too long
         if (substr($signature, 0, 2) !== '30') {
-            throw new \Exception("Non-canonical signature: wrong type");
+            throw new \InvalidArgumentException("Non-canonical signature: wrong type");
         }
 
         if (substr($signature, 2, 2) !== $math->decHex((strlen($signature) / 2) - 3)) {
-            throw new \Exception("Non-canonical signature: wrong length marker");
+            throw new \InvalidArgumentException("Non-canonical signature: wrong length marker");
         }
 
         $len_r_bytes = $math->hexDec(substr($signature, 6, 2));
@@ -1371,49 +1371,49 @@ class RawTransaction
         $s_first = substr($s, 0, 2);
 
         if ((5 + $len_r_bytes) >= $length) {
-            throw new \Exception("Non-canonical signature: S length misplaced");
+            throw new \InvalidArgumentException("Non-canonical signature: S length misplaced");
         }
 
         if (($len_r_bytes + $len_s_bytes + 7) * 2 !== $length) {
-            throw new \Exception("Non-canonical signature: R+S length mismatched");
+            throw new \InvalidArgumentException("Non-canonical signature: R+S length mismatched");
         }
 
         // This is the length of r: number of bytes, in hex.
 
         if (substr($signature, 4, 2) !== '02') {
-            throw new \Exception("Non-canonical signature: R value type mismatch");
+            throw new \InvalidArgumentException("Non-canonical signature: R value type mismatch");
         }
 
         if ($len_r_bytes == 0) {
-            throw new \Exception("Non-canonical signature: R length is zero");
+            throw new \InvalidArgumentException("Non-canonical signature: R length is zero");
         }
 
         $r_and = unpack("H*", (pack('H*', $r_first) & pack('H*', '80')));
         if ($r_and[1] == '80') {
-            throw new \Exception("Non-canonical signature: R value negative");
+            throw new \InvalidArgumentException("Non-canonical signature: R value negative");
         }
 
         /*$r1_and = unpack( "H*", (pack('H*',substr($r, 0, 2)) & pack('H*', '80')));
         if($r_first == '00' && !($r1_and[1] == '80')) {
-            throw new \Exception("Non-canonical signature: R value excessively padded");
+            throw new \InvalidArgumentException("Non-canonical signature: R value excessively padded");
         }*/
 
         if (substr($signature, (4 + $len_r_bytes) * 2, 2) !== '02') {
-            throw new \Exception("Non-canonical signature: S value type mismatch");
+            throw new \InvalidArgumentException("Non-canonical signature: S value type mismatch");
         }
 
         if ($len_s_bytes == 0) {
-            throw new \Exception("Non-canonical signature: S length is zero");
+            throw new \InvalidArgumentException("Non-canonical signature: S length is zero");
         }
 
         $s_and = unpack("H*", (pack('H*', $s_first) & pack('H*', '80')));
         if ($s_and[1] == '80') {
-            throw new \Exception("Non-canonical signature: S value negative");
+            throw new \InvalidArgumentException("Non-canonical signature: S value negative");
         }
 
         /*$s1_and = unpack( "H*", (pack('H*',substr($s, 0, 2)) & pack('H*', '80')));
         if($s_first == '00' && !($s1_and[1] == '80')) {
-            throw new \Exception("Non-canonical signature: S value excessively padded");
+            throw new \InvalidArgumentException("Non-canonical signature: S value excessively padded");
         }*/
 
         return true;
