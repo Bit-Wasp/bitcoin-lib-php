@@ -419,7 +419,6 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
 
         }
     }
-
     public function testSignAndIsCanonical()
     {
         $math = EccFactory::getAdapter();
@@ -427,20 +426,16 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
         $private = $G->createPrivateKey();
 
         for ($i = 0; $i < 100; $i++) {
-            $random = hash('sha256', 'random'.$i);
-            $sign = $private->sign($math->hexDec($random), $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
-<<<<<<< HEAD
+            $randomMsgHash = $math->hexDec((string)hash('sha256', 'random' . $i));
+            $randomK = $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM)));
+
+            $signer = new \Mdanter\Ecc\Signature\Signer($math);
+            $sign = $signer->sign($private, $randomMsgHash, $randomK);
             $this->assertInstanceOf('Mdanter\Ecc\Signature\Signature', $sign);
-=======
-            $this->assertInstanceOf('Mdanter\Ecc\Signature', $sign);
->>>>>>> Add test that 100 random signatures are verified as canonical
+
             $sig = RawTransaction::encode_signature($sign);
             $this->assertTrue(RawTransaction::is_canonical_signature($sig));
         }
     }
 
-<<<<<<< HEAD
 };
-=======
-};
->>>>>>> Add test that 100 random signatures are verified as canonical
