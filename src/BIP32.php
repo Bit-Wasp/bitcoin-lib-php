@@ -140,11 +140,9 @@ class BIP32
         if ($previous['type'] == 'private') {
             $private_key = $previous['key'];
             $public_key = null;
-        } else if ($previous['type'] == 'public') {
+        } else {
             $private_key = null;
             $public_key = $previous['key'];
-        } else {
-            throw new \InvalidArgumentException("Unknown previous type in CKD");
         }
 
         $i = array_pop($address_definition);
@@ -158,10 +156,6 @@ class BIP32
         } else if ($is_prime == 0) {
             $public_key = $public_key ?: BitcoinLib::private_key_to_public_key($private_key, true);
             $data = $public_key . $i;
-        }
-
-        if (!isset($data)) {
-            throw new \Exception(); // I don't think this can happen
         }
 
         /*
@@ -555,12 +549,11 @@ class BIP32
     public static function key_to_address($extended_key)
     {
         $import = self::import($extended_key);
+
         if ($import['type'] == 'public') {
             $public = $import['key'];
-        } else if ($import['type'] == 'private') {
-            $public = BitcoinLib::private_key_to_public_key($import['key'], true);
         } else {
-            throw new \InvalidArgumentException("Unknown type");
+            $public = BitcoinLib::private_key_to_public_key($import['key'], true);
         }
 
         // Convert the public key to the address.
