@@ -882,7 +882,7 @@ class RawTransaction
      *
      * @param    int   $m
      * @param    array $public_keys
-     * @param   string $address_version
+     * @param   string $magic_p2sh_byte
      * @return  array/FALSE
      */
     public static function create_multisig($m, $public_keys = array(), $magic_p2sh_byte = null)
@@ -1484,20 +1484,23 @@ class RawTransaction
                 }
 
                 $pubkey = BitcoinLib::private_key_to_public_key($key['key'], $key['is_compressed']);
-                $pk_hash = BitcoinLib::hash160($pubkey);
+                if ($pubkey) {
+                    $pk_hash = BitcoinLib::hash160($pubkey);
 
-                if ($key['is_compressed'] == true) {
-                    $uncompressed_key = BitcoinLib::decompress_public_key($pubkey);
-                    $uncompressed_key = $uncompressed_key['public_key'];
-                } else {
-                    $uncompressed_key = $pubkey;
+                    if ($key['is_compressed'] == true) {
+                        $uncompressed_key = BitcoinLib::decompress_public_key($pubkey);
+                        $uncompressed_key = $uncompressed_key['public_key'];
+                    } else {
+                        $uncompressed_key = $pubkey;
+                    }
+                    $wallet[$pk_hash] = array('type' => 'pubkeyhash',
+                        'private_key' => $key['key'],
+                        'public_key' => $pubkey,
+                        'uncompressed_key' => $uncompressed_key,
+                        'is_compressed' => $key['is_compressed'],
+                        'address' => BitcoinLib::hash160_to_address($pk_hash, $magic_byte)
+                    );
                 }
-                $wallet[$pk_hash] = array('type' => 'pubkeyhash',
-                    'private_key' => $key['key'],
-                    'public_key' => $pubkey,
-                    'uncompressed_key' => $uncompressed_key,
-                    'is_compressed' => $key['is_compressed'],
-                    'address' => BitcoinLib::hash160_to_address($pk_hash, $magic_byte));
             }
         }
     }
