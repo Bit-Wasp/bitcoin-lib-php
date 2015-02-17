@@ -161,7 +161,7 @@ class RawTransaction
             $hint = 'ff';
             $num_bytes = 8;
         } else {
-            throw new \InvalidArgumentException();
+            throw new \InvalidArgumentException("Invalid decimal");
         }
 
         // If the number needs no extra bytes, just return the 1-byte number.
@@ -237,7 +237,7 @@ class RawTransaction
             if (strlen($raw_transaction) < 74
                 || !((hexdec(substr($raw_transaction, 72, 2)) + 74 + 8) < strlen($raw_transaction))
             ) {
-                throw new \InvalidArgumentException();
+                throw new \InvalidArgumentException("Transaction is too short to contain all input data");
             }
 
             // Load the TxID (32bytes) and vout (4bytes)
@@ -453,7 +453,7 @@ class RawTransaction
             if (strlen($tx) < 8
                 || !(($math->hexDec(substr($tx, 8, 2)) + 8 + 2) < strlen($tx))
             ) {
-                throw new \InvalidArgumentException();
+                throw new \InvalidArgumentException("Transaction is too short to contain all output data");
             }
 
             // Pop 8 bytes (flipped) from the $tx string, convert to decimal,
@@ -654,18 +654,18 @@ class RawTransaction
 
         $inputs = (array)json_decode($json_inputs);
         if ($specific_input !== -1 && !is_numeric($specific_input)) {
-            throw new \InvalidArgumentException();
+            throw new \InvalidArgumentException("Specified input should be numeric");
         }
 
         // Check that $raw_transaction and $json_inputs correspond to the right inputs
         for ($i = 0; $i < count($decode['vin']); $i++) {
             if (!isset($inputs[$i])) {
-                throw new \InvalidArgumentException();
+                throw new \InvalidArgumentException("Raw transaction does not match expected inputs");
             }
             if ($decode['vin'][$i]['txid'] !== $inputs[$i]->txid ||
                 $decode['vin'][$i]['vout'] !== $inputs[$i]->vout
             ) {
-                throw new \InvalidArgumentException();
+                throw new \InvalidArgumentException("Raw transaction does not match expected inputs");
             }
         }
 
@@ -760,7 +760,7 @@ class RawTransaction
 
         // Fail if the redeem_script has an uneven number of characters.
         if (strlen($redeem_script) % 2 !== 0) {
-            throw new \InvalidArgumentException();
+            throw new \InvalidArgumentException("Redeem script is invalid hex");
         }
 
         // First step is to get m, the required number of signatures
@@ -799,13 +799,13 @@ class RawTransaction
                 // Finish the script - obtain n
                 $data['n'] = $math->sub($math->hexDec($next_op), $math->hexDec('50'));
                 if ($redeem_script !== 'ae') {
-                    throw new \InvalidArgumentException();
+                    throw new \InvalidArgumentException("Redeem script should be 'ae'");
                 }
 
                 $redeem_script = '';
             } else {
                 // Something weird, malformed redeemScript.
-                throw new \InvalidArgumentException();
+                throw new \InvalidArgumentException("Malformed redeem script");
             }
         }
         return self::decode_redeem_script($redeem_script, $data);
