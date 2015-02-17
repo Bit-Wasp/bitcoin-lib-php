@@ -6,7 +6,8 @@ use Mdanter\Ecc\EccFactory;
 use Mdanter\Ecc\Point;
 use Mdanter\Ecc\PrivateKey;
 use Mdanter\Ecc\PublicKey;
-use Mdanter\Ecc\Signature;
+use Mdanter\Ecc\Signature\Signature;
+use Mdanter\Ecc\Signature\Signer;
 
 /**
  * Raw Transaction Library
@@ -740,10 +741,12 @@ class RawTransaction
     public static function _check_sig($sig, $hash, $key)
     {
         $math = \Mdanter\Ecc\EccFactory::getAdapter();
-        $signature = self::decode_signature($sig);
-        $test_signature = new Signature($math->hexDec($signature['r']), $math->hexDec($signature['s']));
         $generator = \Mdanter\Ecc\EccFactory::getSecgCurves()->generator256k1();
         $curve = $generator->getCurve();
+
+        $hash = $math->hexDec($hash);
+        $signature = self::decode_signature($sig);
+        $test_signature = new Signature($math->hexDec($signature['r']), $math->hexDec($signature['s']));
 
         if (strlen($key) == '66') {
             $decompress = BitcoinLib::decompress_public_key($key);
@@ -752,14 +755,13 @@ class RawTransaction
             $x = $math->hexDec(substr($key, 2, 64));
             $y = $math->hexDec(substr($key, 66, 64));
 
-            $public_key_point = new Point($curve, $x, $y, $generator->getOrder(), $math);
+            $public_key_point = $curve->getPoint($x, $y);
         }
 
-        $public_key = new PublicKey($generator, $public_key_point, $math);
-        $hash = $math->hexDec($hash);
+        $signer = new Signer($math);
+        $public_key = new PublicKey($math, $generator, $public_key_point);
 
-        return $public_key->verifies($hash, $test_signature) == true;
-
+        return $signer->verify($public_key, $test_signature, $hash) == true;
     }
 
     /**
@@ -1127,24 +1129,20 @@ class RawTransaction
             if (isset($wallet[$tx_info['hash160']])) {
 
                 $key_info = $wallet[$tx_info['hash160']];
+                $message_hash_dec = $math->hexDec($message_hash[$vin]);
 
                 if ($key_info['type'] == 'scripthash') {
-
                     $signatures = self::extract_input_signatures_p2sh($input, $message_hash[$vin], $key_info);
-
                     $sign_count += count($signatures);
 
                     // Create Signature
                     foreach ($key_info['keys'] as $key) {
-
-                        $x = $math->hexDec(substr($key['uncompressed_key'], 2, 64));
-                        $y = $math->hexDec(substr($key['uncompressed_key'], 66, 64));
                         $key_dec = $math->hexDec($key['private_key']);
 
-                        $point = new \Mdanter\Ecc\Point($generator->getCurve(), $x, $y, $generator->getOrder(), $math);
-                        $_public_key = new PublicKey($generator, $point, $math);
-                        $_private_key = new PrivateKey($_public_key, $key_dec, $math);
-                        $sign = $_private_key->sign($math->hexDec($message_hash[$vin]), $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
+                        $signer = new Signer($math);
+                        $_private_key = $generator->getPrivateKeyFrom($key_dec);
+                        $sign = $signer->sign($_private_key, $message_hash_dec, $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
+
                         if ($sign !== false) {
                             $sign_count++;
                             $signatures[$key['public_key']] = self::encode_signature($sign);
@@ -1156,15 +1154,11 @@ class RawTransaction
                 }
 
                 if ($key_info['type'] == 'pubkeyhash') {
-                    $x = $math->hexDec(substr($key_info['uncompressed_key'], 2, 64));
-                    $y = $math->hexDec(substr($key_info['uncompressed_key'], 66, 64));
                     $key_dec = $math->hexDec($key_info['private_key']);
 
-                    // Create Signature
-                    $point = new \Mdanter\Ecc\Point($generator->getCurve(), $x, $y, $generator->getOrder(), $math);
-                    $_public_key = new PublicKey($generator, $point, $math);
-                    $_private_key = new PrivateKey($_public_key, $key_dec, $math);
-                    $sign = $_private_key->sign($math->hexDec($message_hash[$vin]), $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
+                    $signer = new Signer($math);
+                    $_private_key = $generator->getPrivateKeyFrom($key_dec);
+                    $sign = $signer->sign($_private_key, $message_hash_dec, $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
                     if ($sign !== false) {
                         $sign_count++;
                         $decode['vin'][$vin]['scriptSig']['hex'] = self::_apply_sig_pubkeyhash(self::encode_signature($sign), $key_info['public_key']);

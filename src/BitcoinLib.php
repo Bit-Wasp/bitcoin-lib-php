@@ -9,7 +9,8 @@ use Mdanter\Ecc\Point;
 use Mdanter\Ecc\PointInterface;
 use Mdanter\Ecc\PrivateKey;
 use Mdanter\Ecc\PublicKey;
-use Mdanter\Ecc\Signature;
+use Mdanter\Ecc\Signature\Signature;
+use Mdanter\Ecc\Signature\Signer;
 
 /**
  * BitcoinLib
@@ -672,7 +673,8 @@ class BitcoinLib
                 : (($math->mod($y0, 2) !== '0') ? $y0 : $y1);
 
             $y_coordinate = str_pad($math->decHex($y), 64, '0', STR_PAD_LEFT);
-            $point = new Point($curve, $x, $y, $generator->getOrder(), $math);
+            $point = $curve->getPoint($x, $y);
+
         } catch (\Exception $e) {
             throw new \InvalidArgumentException("Invalid public key");
         }
@@ -713,7 +715,7 @@ class BitcoinLib
             // Attempt to create the point. Point returns false in the
             // constructor if anything is invalid.
             try {
-                $point = new Point($generator->getCurve(), $x, $y, $generator->getOrder(), $math);
+                $point = $generator->getCurve()->getPoint($x, $y);
                 return true;
             } catch (\Exception $e) {
                 return false;
@@ -822,25 +824,22 @@ class BitcoinLib
 
         $messageHash = "\x18Bitcoin Signed Message:\n" . hex2bin(RawTransaction::_encode_vint(strlen($message))) . $message;
         $messageHash = hash('sha256', hash('sha256', $messageHash, true), true);
-
-        $pubKey = self::private_key_to_public_key($privateKey['key'], $privateKey['is_compressed']);
-
-        $uncompressedKey = self::decompress_public_key($pubKey);
-        $uncompressedKey = $uncompressedKey['public_key'];
-
-        $x = $math->hexDec(substr($uncompressedKey, 2, 64));
-        $y = $math->hexDec(substr($uncompressedKey, 66, 64));
+        $messageHash = $math->hexDec(bin2hex($messageHash));
         $key_dec = $math->hexDec($privateKey['key']);
 
-        $point = new Point($generator->getCurve(), $x, $y, $generator->getOrder(), $math);
-        $_publicKey = new PublicKey($generator, $point, $math);
-        $_privateKey = new PrivateKey($_publicKey, $key_dec, $math);
+        $pubKey = self::private_key_to_public_key($privateKey['key'], false);
+        $x = $math->hexDec(substr($pubKey, 2, 64));
+        $y = $math->hexDec(substr($pubKey, 66, 64));
+        $point = $generator->getCurve()->getPoint($x, $y);
 
-        $sign = $_privateKey->sign($math->hexDec((string)bin2hex($messageHash)), $k ?: $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
+        $_publicKey = new PublicKey($math, $generator, $point);
+        $_privateKey = $generator->getPrivateKeyFrom($key_dec);
+        $signer = new Signer($math);
+        $sign = $signer->sign($_privateKey, $messageHash, $k ?: $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
 
         // calculate the recovery param
         //  there should be a way to get this when signing too, but idk how ...
-        $i = self::calcPubKeyRecoveryParam($sign->getR(), $sign->getS(), $math->hexDec((string)bin2hex($messageHash)), $_publicKey->getPoint());
+        $i = self::calcPubKeyRecoveryParam($sign->getR(), $sign->getS(), $messageHash, $_publicKey->getPoint());
 
         return base64_encode(self::encodeMessageSignature($sign, $i, true));
     }
@@ -942,11 +941,11 @@ class BitcoinLib
             $y = $beta;
         }
 
-        // 1.4 Check that nR is at infinity (implicitly done in construtor)
-        $R = new Point($curve, $x, $y, $G->getOrder(), $math);
+        // 1.4 Check that nR is at infinity (implicitly done in constructor)
+        $R = $G->getCurve()->getPoint($x, $y);
 
-        $point_negate = function (PointInterface $p) use ($math) {
-            return new Point($p->getCurve(), $p->getX(), $math->mul($p->getY(), -1), $p->getOrder(), $math);
+        $point_negate = function (PointInterface $p) use ($math, $G) {
+            return $G->getCurve()->getPoint($p->getX(), $math->mul($p->getY(), -1));
         };
 
         // 1.6.1 Compute a candidate public key Q = r^-1 (sR - eG)
@@ -955,8 +954,9 @@ class BitcoinLib
         $Q = $R->mul($s)->add($eGNeg)->mul($rInv);
 
         // 1.6.2 Test Q as a public key
-        $Qk = new PublicKey($G, $Q, $math);
-        if ($Qk->verifies($e, $signature)) {
+        $signer = new Signer($math);
+        $Qk = new PublicKey($math, $G, $Q);
+        if ($signer->verify($Qk, $signature, $e)) {
             return $Qk;
         }
 
