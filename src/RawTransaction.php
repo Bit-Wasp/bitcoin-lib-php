@@ -423,6 +423,7 @@ class RawTransaction
         }
 
         // Attempt to validate against each of these rules.
+        $matches = array();
         foreach ($data as $index => $test) {
             foreach ($rule as $tx_type => $def) {
                 $matches[$tx_type] = array();
