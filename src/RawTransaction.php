@@ -464,7 +464,7 @@ class RawTransaction
      * @param    int    $output_count
      * @param    string $magic_byte
      * @param    string $magic_p2sh_byte
-     * @return    array/FALSE
+     * @return   array|FALSE
      */
     public static function _decode_outputs(&$tx, $output_count, $magic_byte = null, $magic_p2sh_byte = null)
     {
