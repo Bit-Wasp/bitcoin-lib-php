@@ -188,7 +188,7 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
             )
         );
 
-        $outputs = array('1PGa6cMAzzrBpTtfvQTzX5PmUxsDiFzKyW' => "0.00015");
+        $outputs = array('1PGa6cMAzzrBpTtfvQTzX5PmUxsDiFzKyW' => BitcoinLib::toSatoshi(0.00015));
 
         $json_inputs = json_encode(
             array(
