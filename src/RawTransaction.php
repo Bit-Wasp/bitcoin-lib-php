@@ -144,7 +144,7 @@ class RawTransaction
      * Returns FALSE if the number is bigger than 64bit.
      *
      * @param    int $decimal
-     * @return    string/FALSE
+     * @return    string|FALSE
      */
     public static function _encode_vint($decimal)
     {
