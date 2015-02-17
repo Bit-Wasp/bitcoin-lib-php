@@ -2,6 +2,7 @@
 
 use BitWasp\BitcoinLib\BitcoinLib;
 use BitWasp\BitcoinLib\RawTransaction as RawTransaction;
+use Mdanter\Ecc\EccFactory;
 
 require_once(__DIR__. '/../vendor/autoload.php');
 
@@ -394,4 +395,47 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals("3BMH67dedFZTbbtMQ3e7nnKEzHfkwB6VpU", $multisig['address']);
     }
-}
+    public function testSigCanonical()
+    {
+        $f    = file_get_contents(__DIR__ . '/data/sig_canonical.json');
+        $json = json_decode($f);
+        foreach ($json->test as $test) {
+            $this->assertTrue(RawTransaction::is_canonical_signature($test));
+        }
+    }
+
+    public function testSigNonCanonical()
+    {
+        $f    = file_get_contents(__DIR__ . '/data/sig_noncanonical.json');
+        $json = json_decode($f);
+        foreach ($json->test as $c => $test) {
+            $result = RawTransaction::is_canonical_signature($test[1]);
+            if ($result == false) {
+                $this->assertTrue(true);
+                continue;
+            }
+
+            $this->fail('Failed testing for case: '.$test[0]);
+
+        }
+    }
+    public function testSignAndIsCanonical()
+    {
+        $math = EccFactory::getAdapter();
+        $G = EccFactory::getSecgCurves()->generator256k1();
+        $private = $G->createPrivateKey();
+
+        for ($i = 0; $i < 100; $i++) {
+            $randomMsgHash = $math->hexDec((string)hash('sha256', 'random' . $i));
+            $randomK = $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM)));
+
+            $signer = new \Mdanter\Ecc\Signature\Signer($math);
+            $sign = $signer->sign($private, $randomMsgHash, $randomK);
+            $this->assertInstanceOf('Mdanter\Ecc\Signature\Signature', $sign);
+
+            $sig = RawTransaction::encode_signature($sign);
+            $this->assertTrue(RawTransaction::is_canonical_signature($sig));
+        }
+    }
+
+};
