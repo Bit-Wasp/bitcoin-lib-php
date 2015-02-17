@@ -1120,10 +1120,11 @@ class RawTransaction
                     // Create Signature
                     foreach ($key_info['keys'] as $key) {
                         $key_dec = $math->hexDec($key['private_key']);
+                        $k = $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
 
                         $signer = new Signer($math);
                         $_private_key = $generator->getPrivateKeyFrom($key_dec);
-                        $sign = $signer->sign($_private_key, $message_hash_dec, $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
+                        $sign = $signer->sign($_private_key, $message_hash_dec, $k);
 
                         if ($sign !== false) {
                             $sign_count++;
