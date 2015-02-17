@@ -400,7 +400,7 @@ class BIP32
      * as much information as possible to allow compatibility with the
      * encode function, which accepts a similarly constructed array.
      *
-     * @param	string	$ext_public_key
+     * @param	string	$ext_key
      * @return	array
      */
     public static function import($ext_key)
@@ -478,8 +478,8 @@ class BIP32
      * Converts the encoded private key to a public key, and alters the
      * properties so it's displayed as a public key.
      *
-     * @param    string $ext_private_key
-     * @return    string
+     * @param    string $input
+     * @return   string
      */
     public static function extended_private_to_public($input)
     {
@@ -516,8 +516,8 @@ class BIP32
      * key if it's an extended private key, or just extracts the public
      * key if it's an extended public key.
      *
-     * @param    array /string    $input
-     * @return    FALSE/string
+     * @param    array|string    $input
+     * @return   FALSE|string
      */
     public static function extract_public_key($input)
     {
@@ -542,8 +542,7 @@ class BIP32
      * bitcoin address.
      *
      * @param    string $extended_key
-     * @param    string $address_version
-     * return    string/FALSE
+     * return    string|FALSE
      */
     public static function key_to_address($extended_key)
     {
@@ -568,7 +567,7 @@ class BIP32
      * a boolean for whether its a testnet key, and the cryptocoin network.
      *
      * @param    string $magic_bytes
-     * @return    array/FALSE
+     * @return    array|FALSE
      */
     public static function describe_magic_bytes($magic_bytes)
     {
