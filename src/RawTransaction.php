@@ -381,7 +381,7 @@ class RawTransaction
      * @param    string $data
      * @param    string $magic_byte
      * @param    string $magic_p2sh_byte
-     * @return    array/FALSE
+     * @return   array|FALSE
      */
     public static function _get_transaction_type($data, $magic_byte = null, $magic_p2sh_byte = null)
     {
