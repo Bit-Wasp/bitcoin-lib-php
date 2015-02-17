@@ -520,7 +520,7 @@ class RawTransaction
      *
      * @param    array
      * @param    int
-     * @return    string/FALSE
+     * @return   string|FALSE
      */
     public static function _encode_outputs($vout_arr, $output_count)
     {
@@ -849,7 +849,7 @@ class RawTransaction
      *
      * @param    int   $m
      * @param    array $public_keys
-     * @return    string/FALSE
+     * @return   string|FALSE
      */
     public static function create_redeem_script($m, $public_keys = array())
     {
@@ -1008,7 +1008,7 @@ class RawTransaction
      * @param   array  $outputs
      * @param   string $magic_byte
      * @param   string $magic_p2sh_byte
-     * @return    string/FALSE
+     * @return  string|FALSE
      */
     public static function create($inputs, $outputs, $magic_byte = null, $magic_p2sh_byte = null)
     {
