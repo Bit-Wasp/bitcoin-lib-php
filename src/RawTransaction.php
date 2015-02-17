@@ -1231,7 +1231,7 @@ class RawTransaction
 
         // Create the signature.
         $der_sig = '30'
-            . self::_dec_to_bytes((4 + ((strlen($r) + strlen($s)) / 2)), 1) //((strlen($r)+strlen($s)+16)/2),1)
+            . self::_dec_to_bytes((4 + ((strlen($r) + strlen($s)) / 2)), 1) 
             . '02'
             . self::pushdata($r)
             . '02'
