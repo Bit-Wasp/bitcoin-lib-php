@@ -781,8 +781,7 @@ class RawTransaction
     {
         $math = \Mdanter\Ecc\EccFactory::getAdapter();
 
-        // If there is no more work to be done (script is fully parsed,
-        // return the array)
+        // If there is no more work to be done (script is fully parsed, return the array)
         if (strlen($redeem_script) == 0) {
             return $data;
         }
