@@ -75,9 +75,9 @@ class BIP32
      * Returns false if the key is invalid, or 'm' - the extended master private key.
      *
      * @param    string       $seed
-     * @param    string(opt)  $network
-     * @param    boolean(opt) $testnet
-     * @param    boolean(opt) $ignoreLengthCheck        disable the length checks
+     * @param    string  $network
+     * @param    boolean $testnet
+     * @param    boolean $ignoreLengthCheck        disable the length checks
      * @return    string
      */
     public static function master_key($seed, $network = 'bitcoin', $testnet = false, $ignoreLengthCheck = false)
@@ -351,8 +351,7 @@ class BIP32
      *
      * @param    string $master
      * @param    string $string_def
-     * @param    string $address_version
-     * @return    string
+     * @return   string
      */
     public static function build_address($master, $string_def)
     {
