@@ -176,7 +176,6 @@ class RawTransaction
         $length = strlen($script) / 2;
 
         /** Note that larger integers are serialized without flipping bits - Big endian */
-        $string = '';
         if ($length < 75) {
             $l = self::_dec_to_bytes($length, 1);
             $string = $l . $script;
