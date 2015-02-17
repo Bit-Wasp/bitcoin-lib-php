@@ -684,7 +684,8 @@ class RawTransaction
         }
 
         // Check that $raw_transaction and $json_inputs correspond to the right inputs
-        for ($i = 0; $i < count($decode['vin']); $i++) {
+        $inputCount = count($decode['vin']);
+        for ($i = 0; $i < $inputCount; $i++) {
             if (!isset($inputs[$i])) {
                 throw new \InvalidArgumentException("Raw transaction does not match expected inputs");
             }
