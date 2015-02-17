@@ -1,4 +1,4 @@
-bitcoin-lib-php
+bitcoin-lib-php v1.0
 ===============
 
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Bit-Wasp/bitcoin-lib-php?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
