@@ -1,6 +1,7 @@
 <?php
 
 use BitWasp\BitcoinLib\BIP32;
+use BitWasp\BitcoinLib\BitcoinLib;
 use BitWasp\BitcoinLib\RawTransaction;
 
 require_once(__DIR__. '/../vendor/autoload.php');
@@ -37,7 +38,7 @@ $inputs = array(
     )
 );
 // Set up outputs here
-$outputs = array('1KuE17Fbcdsn3Ns5T9Wzi1epurRnKC9qVr' => "0.0004");
+$outputs = array('1KuE17Fbcdsn3Ns5T9Wzi1epurRnKC9qVr' => BitcoinLib::toSatoshi(0.0004));
 
 ////////////////////////////
 // Parameters for signing.
