@@ -107,6 +107,8 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(2, $sign['req_sigs']);
         $this->assertEquals(3, $sign['sign_count']);
         $this->assertEquals('true', $sign['complete']);
+
+        BitcoinLib::setMagicByteDefaults('bitcoin');
     }
 
     public function testCreateRaw() {
@@ -186,7 +188,7 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
             )
         );
 
-        $outputs = array('1PGa6cMAzzrBpTtfvQTzX5PmUxsDiFzKyW' => "0.00015");
+        $outputs = array('1PGa6cMAzzrBpTtfvQTzX5PmUxsDiFzKyW' => BitcoinLib::toSatoshi(0.00015));
 
         $json_inputs = json_encode(
             array(
@@ -306,7 +308,6 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
         $this->assertEquals($hash, RawTransaction::hash_from_txid($tx['txid']));
     }
 
-
     public function testP2SHMultisig() {
         $n = 3;
         $m = 2;
@@ -319,7 +320,7 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
             $pk_list[] = $k[$i]['pubKey'];
         }
 
-        $multisig = RawTransaction::create_multisig($m, $pk_list);
+        $multisig = RawTransaction::create_multisig($m, RawTransaction::sort_multisig_keys($pk_list));
 
         $this->assertTrue(!!$multisig['address']);
         $this->assertTrue(BitcoinLib::validate_address($multisig['address']));
@@ -364,11 +365,33 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
         $this->createRawExpectException($inputs, ['15XjXdS1qTBy3i8vCCriWSAbm1qx5JgJVz' => "1,0"], "float output value");
     }
 
-    private function createRawExpectException($inputs, $outputs, $message = "") {
+    private function createRawExpectException($inputs, $outputs, $message = "")
+    {
         $e = null;
         try {
             RawTransaction::create($inputs, $outputs);
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+        }
         $this->assertTrue(!!$e, "should have thrown exception [{$message}]");
+    }
+
+    public function testP2SHMultisig2() {
+        $n = 3;
+        $m = 2;
+
+        $privKeys = [
+            "a56a29f79648d95c5666989c9b2b8d40bfe29c4f65b6fbc3e28ed15f8bc46691",
+            "df3fa8db488c6ab6eb31f6b8979dcffd9a7c334196db88b1705bf8bfada41bb2",
+            "2c44e5a2b83abded4e02aae1c3c02a95bf68a4ca56b5473c7f55b8940a5dcfa6",
+        ];
+        $pubKeys = array_map(function($privKey) {
+            return BitcoinLib::private_key_to_public_key($privKey, true);
+        }, $privKeys);
+
+        $pubKeys = RawTransaction::sort_multisig_keys($pubKeys);
+
+        $multisig = RawTransaction::create_multisig($m, $pubKeys);
+
+        $this->assertEquals("3BMH67dedFZTbbtMQ3e7nnKEzHfkwB6VpU", $multisig['address']);
     }
 }

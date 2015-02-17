@@ -27,7 +27,10 @@ class BitcoinLibTestNetTest extends BitcoinLibTest
     }
     
 	public function tearDown() {
-        $this->bitcoin = null;
+        if ($this->bitcoin) {
+            $this->bitcoin->setMagicByteDefaults('bitcoin');
+            $this->bitcoin = null;
+        }
     }
 }
 
