@@ -86,11 +86,11 @@ class BIP32
 
         // seed min length is 128 bits (16 bytes)
         if (!$ignoreLengthCheck && strlen($seed) < 16) {
-            throw new \Exception("Seed should be at least 128 bits'");
+            throw new \InvalidArgumentException("Seed should be at least 128 bits'");
         }
         // seed max length is 512 bits (64 bytes)
         if (!$ignoreLengthCheck && strlen($seed) > 64) {
-            throw new \Exception("Seed should be at most 512 bits'");
+            throw new \InvalidArgumentException("Seed should be at most 512 bits'");
         }
 
         // Generate HMAC hash, and the key/chaincode.
@@ -100,7 +100,7 @@ class BIP32
 
         // Error checking!
         if (self::check_valid_hmac_key($I_l) == false) {
-            return false;
+            throw new \InvalidArgumentException("Seed results in invalid key");
         }
 
         $data = array(
@@ -140,11 +140,9 @@ class BIP32
         if ($previous['type'] == 'private') {
             $private_key = $previous['key'];
             $public_key = null;
-        } else if ($previous['type'] == 'public') {
+        } else {
             $private_key = null;
             $public_key = $previous['key'];
-        } else {
-            throw new \Exception("Unknown previous type in CKD");
         }
 
         $i = array_pop($address_definition);
@@ -152,16 +150,12 @@ class BIP32
         $is_prime = self::check_is_prime_hex($i);
         if ($is_prime == 1) {
             if ($previous['type'] == 'public') {
-                throw new \Exception("Can't derive private key from public key");
+                throw new \InvalidArgumentException("Can't derive private key from public key");
             }
             $data = '00' . $private_key . $i;
         } else if ($is_prime == 0) {
             $public_key = $public_key ?: BitcoinLib::private_key_to_public_key($private_key, true);
             $data = $public_key . $i;
-        }
-
-        if (!isset($data)) {
-            return false;
         }
 
         /*
@@ -216,11 +210,8 @@ class BIP32
             $new_x = str_pad(BitcoinLib::hex_encode($new_point->getX()), 64, '0', STR_PAD_LEFT);
             $new_y = str_pad(BitcoinLib::hex_encode($new_point->getY()), 64, '0', STR_PAD_LEFT);
             $key = BitcoinLib::compress_public_key('04' . $new_x . $new_y);
-
-        }
-
-        if (!isset($key)) {
-            return false;
+        } else {
+            throw new \InvalidArgumentException("Unknown previous type in CKD");
         }
 
         $data = array(
@@ -304,11 +295,11 @@ class BIP32
             $parent = $input;
             $def = "m";
         } else {
-            return false;
+            throw new \InvalidArgumentException("input should be string or [key, path]");
         }
 
         if (!preg_match("#^[mM/0-9']*$#", $string_def)) {
-            throw new \Exception("Path can only contain chars: [mM/0-9']");
+            throw new \InvalidArgumentException("Path can only contain chars: [mM/0-9']");
         }
 
         // if the desired path is public while the input is private
@@ -323,7 +314,7 @@ class BIP32
         if (strtolower(substr($string_def, 0, 1)) == 'm') {
             // the desired definition should start with the definition
             if (strpos($string_def, $def) !== 0) {
-                throw new \Exception("Path ({$string_def}) should match parent path ({$def}) when building key by absolute path");
+                throw new \InvalidArgumentException("Path ({$string_def}) should match parent path ({$def}) when building key by absolute path");
             }
 
             // unshift the definition to make the desired definition relative
@@ -421,7 +412,7 @@ class BIP32
         $magic_byte_info = self::describe_magic_bytes($key['magic_bytes']);
         // Die if key type isn't supported by this library.
         if ($magic_byte_info == false) {
-            return false;
+            throw new \InvalidArgumentException("Unsupported magic byte");
         }
 
         $key['type'] = $magic_byte_info['type'];
@@ -444,12 +435,19 @@ class BIP32
         }
         $key['key'] = substr($hex, $key_start_position, $offset);
 
-        // Validate obtained key:
-        $validation = ($key['type'] == 'public')
-            ? BitcoinLib::validate_public_key($key['key'])
-            : self::check_valid_hmac_key($key['key']);
+        if (!in_array($key['type'], ['public', 'private'])) {
+            throw new \InvalidArgumentException("Invalid type");
+        }
 
-        return ($validation) ? $key : false;
+        // Validate obtained key
+        if ($key['type'] == 'public' && !BitcoinLib::validate_public_key($key['key'])) {
+            throw new \InvalidArgumentException("Invalid public key");
+        }
+        if ($key['type'] == 'private' && !self::check_valid_hmac_key($key['key'])) {
+            throw new \InvalidArgumentException("Invalid private key");
+        }
+
+        return $key;
     }
 
     /**
@@ -493,12 +491,12 @@ class BIP32
             $ext_private_key = $input;
             $generated = false;
         } else {
-            return false; // Exception? Not an array, or string?
+            throw new \InvalidArgumentException("input should be string or [key, path]");
         }
 
         $pubkey = self::import($ext_private_key);
         if ($pubkey['type'] !== 'private') {
-            return false; // Exception?
+            throw new \InvalidArgumentException("input is not a private key");
         }
 
         $pubkey['key'] = BitcoinLib::private_key_to_public_key($pubkey['key'], true);
@@ -531,7 +529,7 @@ class BIP32
             $ext_key = $input;
             $generated = false;
         } else {
-            return false;            // Exception?
+            throw new \InvalidArgumentException("input should be string or [key, path]");
         }
 
         $import = self::import($ext_key);
@@ -551,12 +549,11 @@ class BIP32
     public static function key_to_address($extended_key)
     {
         $import = self::import($extended_key);
+
         if ($import['type'] == 'public') {
             $public = $import['key'];
-        } else if ($import['type'] == 'private') {
-            $public = BitcoinLib::private_key_to_public_key($import['key'], true);
         } else {
-            return false;
+            $public = BitcoinLib::private_key_to_public_key($import['key'], true);
         }
 
         // Convert the public key to the address.
@@ -727,7 +724,7 @@ class BIP32
 
         // Check for invalid data
         if ($_equal_zero == 0 || $_GE_n == 1 || $_GE_n == 0) {
-            return false; // Exception?
+            return false;
         }
 
         return true;

@@ -147,7 +147,6 @@ class RawTransaction
      */
     public static function _encode_vint($decimal)
     {
-
         $hex = dechex($decimal);
         if ($decimal < 253) {
             $hint = self::_dec_to_bytes($decimal, 1);
@@ -162,7 +161,7 @@ class RawTransaction
             $hint = 'ff';
             $num_bytes = 8;
         } else {
-            return false;
+            throw new \InvalidArgumentException("Invalid decimal");
         }
 
         // If the number needs no extra bytes, just return the 1-byte number.
@@ -238,7 +237,7 @@ class RawTransaction
             if (strlen($raw_transaction) < 74
                 || !((hexdec(substr($raw_transaction, 72, 2)) + 74 + 8) < strlen($raw_transaction))
             ) {
-                return false;
+                throw new \InvalidArgumentException("Transaction is too short to contain all input data");
             }
 
             // Load the TxID (32bytes) and vout (4bytes)
@@ -454,7 +453,7 @@ class RawTransaction
             if (strlen($tx) < 8
                 || !(($math->hexDec(substr($tx, 8, 2)) + 8 + 2) < strlen($tx))
             ) {
-                return false;
+                throw new \InvalidArgumentException("Transaction is too short to contain all output data");
             }
 
             // Pop 8 bytes (flipped) from the $tx string, convert to decimal,
@@ -543,7 +542,7 @@ class RawTransaction
         if (((bool)preg_match('/^[0-9a-fA-F]{2,}$/i', $raw_transaction) !== true)
             || (strlen($raw_transaction)) % 2 !== 0
         ) {
-            return false;
+            throw new \InvalidArgumentException("Raw transaction is invalid hex");
         }
 
         $txid = hash('sha256', hash('sha256', pack("H*", trim($raw_transaction)), true));
@@ -552,22 +551,22 @@ class RawTransaction
         $info['txid'] = $txid;
         $info['version'] = $math->hexDec(self::_return_bytes($raw_transaction, 4, true), 16);
         if (!in_array($info['version'], array('1'))) {
-            return false;
+            throw new \InvalidArgumentException("Invalid transaction version");
         }
 
         $input_count = self::_get_vint($raw_transaction);
         if (!($input_count >= 0 && $input_count <= 4294967296)) {
-            return false;
+            throw new \InvalidArgumentException("Invalid input count");
         }
 
         $info['vin'] = self::_decode_inputs($raw_transaction, $input_count);
         if ($info['vin'] == false) {
-            return false;
+            throw new \InvalidArgumentException("No inputs in transaction");
         }
 
         $output_count = self::_get_vint($raw_transaction);
         if (!($output_count >= 0 && $output_count <= 4294967296)) {
-            return false;
+            throw new \InvalidArgumentException("Invalid output count");
         }
 
         $info['vout'] = self::_decode_outputs($raw_transaction, $output_count, $magic_byte, $magic_p2sh_byte);
@@ -655,18 +654,18 @@ class RawTransaction
 
         $inputs = (array)json_decode($json_inputs);
         if ($specific_input !== -1 && !is_numeric($specific_input)) {
-            return false;
+            throw new \InvalidArgumentException("Specified input should be numeric");
         }
 
         // Check that $raw_transaction and $json_inputs correspond to the right inputs
         for ($i = 0; $i < count($decode['vin']); $i++) {
             if (!isset($inputs[$i])) {
-                return false;
+                throw new \InvalidArgumentException("Raw transaction does not match expected inputs");
             }
             if ($decode['vin'][$i]['txid'] !== $inputs[$i]->txid ||
                 $decode['vin'][$i]['vout'] !== $inputs[$i]->vout
             ) {
-                return false;
+                throw new \InvalidArgumentException("Raw transaction does not match expected inputs");
             }
         }
 
@@ -761,7 +760,7 @@ class RawTransaction
 
         // Fail if the redeem_script has an uneven number of characters.
         if (strlen($redeem_script) % 2 !== 0) {
-            return false;
+            throw new \InvalidArgumentException("Redeem script is invalid hex");
         }
 
         // First step is to get m, the required number of signatures
@@ -800,13 +799,13 @@ class RawTransaction
                 // Finish the script - obtain n
                 $data['n'] = $math->sub($math->hexDec($next_op), $math->hexDec('50'));
                 if ($redeem_script !== 'ae') {
-                    return false;
+                    throw new \InvalidArgumentException("Redeem script should be 'ae'");
                 }
 
                 $redeem_script = '';
             } else {
                 // Something weird, malformed redeemScript.
-                return false;
+                throw new \InvalidArgumentException("Malformed redeem script");
             }
         }
         return self::decode_redeem_script($redeem_script, $data);
@@ -830,10 +829,11 @@ class RawTransaction
         $math = \Mdanter\Ecc\EccFactory::getAdapter();
 
         if (count($public_keys) == 0) {
-            return false;
+            throw new \InvalidArgumentException("No public keys provided");
         }
+
         if ($m == 0) {
-            return false;
+            throw new \InvalidArgumentException("M should be larger than 0");
         }
 
         $redeemScript = $math->decHex(0x50 + $m);
@@ -862,16 +862,14 @@ class RawTransaction
         $magic_p2sh_byte = BitcoinLib::magicP2SHByte($magic_p2sh_byte);
 
         if ($m == 0) {
-            return false;
+            throw new \InvalidArgumentException("M should be larger than 0");
         }
+
         if (count($public_keys) == 0) {
-            return false;
+            throw new \InvalidArgumentException("No public keys provided");
         }
 
         $redeem_script = self::create_redeem_script($m, $public_keys);
-        if ($redeem_script == false) {
-            return false;
-        }
 
         return array(
             'redeemScript' => $redeem_script,
@@ -934,9 +932,6 @@ class RawTransaction
         $magic_p2sh_byte = BitcoinLib::magicP2SHByte($magic_p2sh_byte);
 
         $decode = self::decode($raw_tx, $magic_byte, $magic_p2sh_byte);
-        if ($decode == false) {
-            return false;
-        }
 
         $json_arr = (array)json_decode($json_string);
 
@@ -1331,37 +1326,44 @@ class RawTransaction
      */
     public static function is_canonical_signature($signature)
     {
+        try {
+            return self::check_canonical_signature($signature);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Check Canonical Signature
+     *
+     * Performs some checking on the given $signature to see if it
+     * it conforms to the standard.
+     *
+     * Throw exception when it's non canonical.
+     *
+     * @param   string $signature
+     * @return  bool
+     */
+    public static function check_canonical_signature($signature)
+    {
         $math = \Mdanter\Ecc\EccFactory::getAdapter();
 
-        $loud = false;
         $length = strlen($signature);
         if ($math->cmp($length, 18) < 0) {
-            if ($loud == true) {
-                echo "Non-canonical signature: too short\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: too short");
         }
 
         if ($math->cmp($length, 146) > 0) {
-            if ($loud == true) {
-                echo "Non-canonical signature: too long\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: too long");
         }
 
         // Non-canonical signature: too long
         if (substr($signature, 0, 2) !== '30') {
-            if ($loud == true) {
-                echo "Non-canonical signature: wrong type\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: wrong type");
         }
 
         if (substr($signature, 2, 2) !== $math->decHex((strlen($signature) / 2) - 3)) {
-            if ($loud == true) {
-                echo "Non-canonical signature: wrong length marker\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: wrong length marker");
         }
 
         $len_r_bytes = $math->hexDec(substr($signature, 6, 2));
@@ -1373,75 +1375,49 @@ class RawTransaction
         $s_first = substr($s, 0, 2);
 
         if ((5 + $len_r_bytes) >= $length) {
-            if ($loud == true) {
-                echo "Non-canonical signature: S length misplaced\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: S length misplaced");
         }
 
         if (($len_r_bytes + $len_s_bytes + 7) * 2 !== $length) {
-            if ($loud == true) {
-                echo "Non-canonical signature: R+S length mismatched\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: R+S length mismatched");
         }
 
         // This is the length of r: number of bytes, in hex.
 
         if (substr($signature, 4, 2) !== '02') {
-            if ($loud == true) {
-                echo "Non-canonical signature: R value type mismatch\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: R value type mismatch");
         }
 
         if ($len_r_bytes == 0) {
-            if ($loud == true) {
-                echo "Non-canonical signature: R length is zero\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: R length is zero");
         }
 
         $r_and = unpack("H*", (pack('H*', $r_first) & pack('H*', '80')));
         if ($r_and[1] == '80') {
-            if ($loud == true) {
-                echo "Non-canonical signature: R value negative\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: R value negative");
         }
 
         /*$r1_and = unpack( "H*", (pack('H*',substr($r, 0, 2)) & pack('H*', '80')));
         if($r_first == '00' && !($r1_and[1] == '80')) {
-            if($loud == true) echo "Non-canonical signature: R value excessively padded\n";
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: R value excessively padded");
         }*/
 
         if (substr($signature, (4 + $len_r_bytes) * 2, 2) !== '02') {
-            if ($loud == true) {
-                echo "Non-canonical signature: S value type mismatch\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: S value type mismatch");
         }
 
         if ($len_s_bytes == 0) {
-            if ($loud == true) {
-                echo "Non-canonical signature: S length is zero\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: S length is zero");
         }
 
         $s_and = unpack("H*", (pack('H*', $s_first) & pack('H*', '80')));
         if ($s_and[1] == '80') {
-            if ($loud == true) {
-                echo "Non-canonical signature: S value negative\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: S value negative");
         }
 
         /*$s1_and = unpack( "H*", (pack('H*',substr($s, 0, 2)) & pack('H*', '80')));
         if($s_first == '00' && !($s1_and[1] == '80')) {
-            if($loud == true) echo "Non-canonical signature: S value excessively padded\n";
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: S value excessively padded");
         }*/
 
         return true;
