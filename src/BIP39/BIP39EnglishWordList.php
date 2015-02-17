@@ -21,7 +21,7 @@ class BIP39EnglishWordList extends BIP39WordList
     public function getWord($idx)
     {
         if (!isset($this->words)) {
-            throw new \Exception(__CLASS__ . " does not contain a word for index [{$idx}]");
+            throw new \InvalidArgumentException(__CLASS__ . " does not contain a word for index [{$idx}]");
         }
 
         return $this->words[$idx];
@@ -35,7 +35,7 @@ class BIP39EnglishWordList extends BIP39WordList
         }
 
         if (!isset($this->wordsFlipped[$word])) {
-            throw new \Exception(__CLASS__ . " does not contain word  [{$word}]");
+            throw new \InvalidArgumentException(__CLASS__ . " does not contain word  [{$word}]");
         }
 
         return $this->wordsFlipped[$word];

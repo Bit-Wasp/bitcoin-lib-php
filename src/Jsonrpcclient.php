@@ -111,7 +111,7 @@ class Jsonrpcclient
 
         // check the method/function
         if (!is_scalar($method)) {
-            throw new \Exception('Method name has no scalar value');
+            throw new \InvalidArgumentException('Method name has no scalar value');
         }
 
         // check the params are entered as an array
@@ -119,7 +119,7 @@ class Jsonrpcclient
             // no keys
             $params = array_values($params);
         } else {
-            throw new \Exception('Params must be given as array');
+            throw new \InvalidArgumentException('Params must be given as array');
         }
 
         // sets notification or request task

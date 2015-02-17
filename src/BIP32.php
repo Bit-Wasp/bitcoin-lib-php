@@ -86,11 +86,11 @@ class BIP32
 
         // seed min length is 128 bits (16 bytes)
         if (!$ignoreLengthCheck && strlen($seed) < 16) {
-            throw new \Exception("Seed should be at least 128 bits'");
+            throw new \InvalidArgumentException("Seed should be at least 128 bits'");
         }
         // seed max length is 512 bits (64 bytes)
         if (!$ignoreLengthCheck && strlen($seed) > 64) {
-            throw new \Exception("Seed should be at most 512 bits'");
+            throw new \InvalidArgumentException("Seed should be at most 512 bits'");
         }
 
         // Generate HMAC hash, and the key/chaincode.
@@ -150,7 +150,7 @@ class BIP32
         $is_prime = self::check_is_prime_hex($i);
         if ($is_prime == 1) {
             if ($previous['type'] == 'public') {
-                throw new \Exception("Can't derive private key from public key");
+                throw new \InvalidArgumentException("Can't derive private key from public key");
             }
             $data = '00' . $private_key . $i;
         } else if ($is_prime == 0) {
@@ -314,7 +314,7 @@ class BIP32
         if (strtolower(substr($string_def, 0, 1)) == 'm') {
             // the desired definition should start with the definition
             if (strpos($string_def, $def) !== 0) {
-                throw new \Exception("Path ({$string_def}) should match parent path ({$def}) when building key by absolute path");
+                throw new \InvalidArgumentException("Path ({$string_def}) should match parent path ({$def}) when building key by absolute path");
             }
 
             // unshift the definition to make the desired definition relative

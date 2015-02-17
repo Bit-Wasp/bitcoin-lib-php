@@ -17,7 +17,7 @@ class BIP39
     public static function generateEntropy($size = 256)
     {
         if ($size % 32 !== 0) {
-            throw new \Exception("Entropy must be in a multiple of 32");
+            throw new \InvalidArgumentException("Entropy must be in a multiple of 32");
         }
 
         return bin2hex(mcrypt_create_iv($size / 8, \MCRYPT_DEV_URANDOM));
@@ -99,7 +99,7 @@ class BIP39
         $words = explode(" ", $mnemonic);
 
         if (count($words) % 3 !== 0) {
-            throw new \Exception("Invalid mnemonic");
+            throw new \InvalidArgumentException("Invalid mnemonic");
         }
 
         // wordList or default
@@ -130,7 +130,7 @@ class BIP39
 
         // validate
         if ($checksum !== self::entropyChecksum($entropyHex)) {
-            throw new \Exception("Checksum does not match!");
+            throw new \InvalidArgumentException("Checksum does not match!");
         }
 
         return $entropyHex;
