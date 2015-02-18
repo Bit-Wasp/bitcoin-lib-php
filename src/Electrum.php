@@ -66,18 +66,14 @@ class Electrum
             $seed = $seed['seed'];
         }
 
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
-        $g = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+        $math = EccFactory::getAdapter();
+        $g = EccFactory::getSecgCurves($math)->generator256k1();
 
-        $seed = gmp_init($seed, 16);
-        try {
-            $secretG = $g->mul($seed);
-            $x = str_pad($math->decHex($secretG->getX()), 64, '0', STR_PAD_LEFT);
-            $y = str_pad($math->decHex($secretG->getY()), 64, '0', STR_PAD_LEFT);
+        $seed = gmp_strval(gmp_init($seed, 16), 10);
 
-        } catch (\Exception $e) {
-            throw new \ErrorException($e->getMessage());        // Exception a good idea?
-        }
+        $secretG = $g->mul($seed);
+        $x = str_pad($math->decHex($secretG->getX()), 64, '0', STR_PAD_LEFT);
+        $y = str_pad($math->decHex($secretG->getY()), 64, '0', STR_PAD_LEFT);
 
         // Return the master public key.
         return $x . $y;
@@ -105,8 +101,8 @@ class Electrum
 
         $mpk = self::generate_mpk($seed);
 
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
-        $g = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+        $math = EccFactory::getAdapter();
+        $g = EccFactory::getSecgCurves($math)->generator256k1();
         $n = $g->getOrder();
         // Generate the private key by calculating:
         // ($seed + (sha256(sha256($iteration:$change:$binary_mpk))) % $n)h
@@ -134,8 +130,8 @@ class Electrum
     {
         $change = ($change == 0) ? '0' : '1';
 
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
-        $gen = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+        $math = EccFactory::getAdapter();
+        $gen = EccFactory::getSecgCurves($math)->generator256k1();
         // Generate the curve, and the generator point.
         $curve = $gen->getCurve();
 
@@ -146,19 +142,15 @@ class Electrum
         // Generate a scalar from the $iteration and $mpk
         $z = $math->hexDec(hash('sha256', hash('sha256', "$iteration:$change:" . pack('H*', $mpk), true)));
 
-        try {
-            // Add the Point defined by $x and $y, to the result of EC multiplication of $z by $gen
-            $pt = new \Mdanter\Ecc\Point($curve, $x, $y, $gen->getOrder(), $math);
-            $pt = $pt->add($gen->mul($z));
+        // Add the Point defined by $x and $y, to the result of EC multiplication of $z by $gen
+        $pt = new Point($math, $curve, $x, $y, $gen->getOrder());
+        $pt = $pt->add($gen->mul($z));
 
-            // Generate the uncompressed public key.
-            $keystr = '04'
-                . str_pad($math->decHex($pt->getX()), 64, '0', STR_PAD_LEFT)
-                . str_pad($math->decHex($pt->getY()), 64, '0', STR_PAD_LEFT);
-        } catch (\Exception $e) {
-            throw new \ErrorException($e->getMessage());
-        }
-
+        // Generate the uncompressed public key.
+        $keystr = '04'
+            . str_pad($math->decHex($pt->getX()), 64, '0', STR_PAD_LEFT)
+            . str_pad($math->decHex($pt->getY()), 64, '0', STR_PAD_LEFT);
+        
         return ($compressed == true) ? BitcoinLib::compress_public_key($keystr) : $keystr;
     }
 
@@ -193,7 +185,7 @@ class Electrum
      */
     public static function decode_mnemonic($words)
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $math = EccFactory::getAdapter();
 
         $words = explode(" ", $words);
         $out = '';

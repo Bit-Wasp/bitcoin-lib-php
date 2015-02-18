@@ -2,17 +2,17 @@
 
 use BitWasp\BitcoinLib\BIP32;
 use BitWasp\BitcoinLib\BIP39\BIP39;
+use BitWasp\BitcoinLib\BitcoinLib;
 
-require_once(__DIR__. '/../vendor/autoload.php');
-
-
-class BIP39Test extends PHPUnit_Framework_TestCase {
+class BIP39Test extends PHPUnit_Framework_TestCase
+{
 
     /**
      * test vectors as defined here: https://github.com/trezor/python-mnemonic/blob/master/vectors.json
+     *
      * @var array
      */
-    protected $vectors = array(
+    private $vectors = array(
         "english" => array(
             array(
                 "00000000000000000000000000000000",
@@ -142,15 +142,22 @@ class BIP39Test extends PHPUnit_Framework_TestCase {
         ),
         "japanese" => array(
             array(
-              "00000000000000000000000000000000",
-              "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
-              "ba553eedefe76e67e2602dc20184c564010859faada929a090dd2c57aacb204ceefd15404ab50ef3e8dbeae5195aeae64b0def4d2eead1cdc728a33ced520ffd"
+                "00000000000000000000000000000000",
+                "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+                "ba553eedefe76e67e2602dc20184c564010859faada929a090dd2c57aacb204ceefd15404ab50ef3e8dbeae5195aeae64b0def4d2eead1cdc728a33ced520ffd"
             )
         ),
     );
 
-    public function testPBKDF2() {
-        $mnemonic ="legal winner thank year wave sausage worth useful legal winner thank yellow";
+    public function setup()
+    {
+        // ensure we're set to bitcoin and not bitcoin-testnet
+        BitcoinLib::setMagicByteDefaults('bitcoin');
+    }
+
+    public function testPBKDF2()
+    {
+        $mnemonic = "legal winner thank year wave sausage worth useful legal winner thank yellow";
         $passphrase = "TREZOR";
         $salt = "mnemonic{$passphrase}";
         $result = "2e8905819b8723fe2c1d161860e5ee1830318dbf49a83bd451cfb8440c28bd6fa457fe1296106559a3c80937a1c1069be3a3a5bd381ee6260e8d9739fce1f607";
@@ -159,49 +166,59 @@ class BIP39Test extends PHPUnit_Framework_TestCase {
         $this->assertEquals($result, hash_pbkdf2("sha512", $mnemonic, $salt, 2048, 64 * 2, false));
     }
 
-    public function testEntropyToMnemonicVectors() {
+    public function testEntropyToMnemonicVectors()
+    {
         foreach ($this->vectors["english"] as $vector) {
             $this->assertEquals($vector[1], BIP39::entropyToMnemonic($vector[0]));
         }
     }
 
-    public function testMnemonicToEntropyVectors() {
+    public function testMnemonicToEntropyVectors()
+    {
         foreach ($this->vectors["english"] as $vector) {
             $this->assertEquals($vector[0], BIP39::mnemonicToEntropy($vector[1]));
         }
     }
 
-    public function testMnemonicToSeedHexVectors() {
+    public function testMnemonicToSeedHexVectors()
+    {
         foreach ($this->vectors["english"] as $vector) {
             $this->assertEquals($vector[2], BIP39::mnemonicToSeedHex($vector[1], 'TREZOR'));
         }
     }
 
-    public function testMnemonicWrongLength() {
+    public function testMnemonicWrongLength()
+    {
         $e = null;
         try {
             BIP39::mnemonicToEntropy("sleep kitten");
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+        }
         $this->assertTrue(!!$e, "No exception was thrown for invalid mnemonic");
     }
 
-    public function testMnemonicUnknownWords() {
+    public function testMnemonicUnknownWords()
+    {
         $e = null;
         try {
             BIP39::mnemonicToEntropy("turtle front uncle idea crush write shrug there lottery flower risky shell");
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+        }
         $this->assertTrue(!!$e, "No exception was thrown for unknown words");
     }
 
-    public function testInvalidChecksum() {
+    public function testInvalidChecksum()
+    {
         $e = null;
         try {
             BIP39::mnemonicToEntropy("sleep kitten sleep kitten sleep kitten sleep kitten sleep kitten sleep kitten");
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+        }
         $this->assertTrue(!!$e, "No exception was thrown for checksum mismatch");
     }
 
-    public function testUTF8Passwords() {
+    public function testUTF8Passwords()
+    {
         // UTF-8 passphrase
         $this->assertEquals($this->vectors["japanese"][0][2], BIP39::mnemonicToSeedHex($this->vectors["japanese"][0][1], "㍍ガバヴァぱばぐゞちぢ十人十色"));
 
@@ -209,7 +226,8 @@ class BIP39Test extends PHPUnit_Framework_TestCase {
         $this->assertEquals($this->vectors["japanese"][0][2], BIP39::mnemonicToSeedHex($this->vectors["japanese"][0][1], "メートルガバヴァぱばぐゞちぢ十人十色"));
     }
 
-    public function testValidChars() {
+    public function testValidChars()
+    {
         $letters = array_flip(str_split("abcdefghijklmnopqrstuvwxyz"));
         foreach (BIP39::defaultWordList()->getWords() as $word) {
             foreach (str_split($word) as $letter) {
@@ -218,7 +236,8 @@ class BIP39Test extends PHPUnit_Framework_TestCase {
         }
     }
 
-    public function testGenerate() {
+    public function testGenerate()
+    {
         for ($i = 0; $i < 100; $i++) {
             $entropy = BIP39::generateEntropy(128);
             $this->assertTrue(!!$entropy);

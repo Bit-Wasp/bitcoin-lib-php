@@ -2,10 +2,6 @@
 
 use BitWasp\BitcoinLib\RawTransaction;
 
-require_once(__DIR__. '/../vendor/autoload.php');
-
-
-
 class ScriptTest extends PHPUnit_Framework_TestCase
 {
     public function testPushData()
@@ -36,5 +32,4 @@ class ScriptTest extends PHPUnit_Framework_TestCase
             $this->assertSame($row['op'], $op);
         }
     }
-
 }

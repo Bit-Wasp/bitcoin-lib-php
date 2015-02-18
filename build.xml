@@ -16,9 +16,7 @@
     <target name="phpunit">
         <delete dir="${project.basedir}/build/docs/code-coverage" />
         <mkdir dir="${project.basedir}/build/docs/code-coverage" />
-        <exec executable="${project.basedir}/vendor/bin/phpunit" passthru="true">
-            <arg value="--debug" />
-            <arg value="${project.basedir}/tests" />
+        <exec command="${project.basedir}/vendor/bin/phpunit -c ${project.basedir}/build/phpunit.xml --debug" passthru="true">
         </exec>
     </target>
 
