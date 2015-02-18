@@ -1484,7 +1484,7 @@ class RawTransaction
                 }
 
                 $pubkey = BitcoinLib::private_key_to_public_key($key['key'], $key['is_compressed']);
-                if ($pubkey) {
+                if ($pubkey !== false) {
                     $pk_hash = BitcoinLib::hash160($pubkey);
 
                     if ($key['is_compressed'] == true) {
