@@ -144,7 +144,7 @@ class RawTransaction
      * Returns FALSE if the number is bigger than 64bit.
      *
      * @param    int $decimal
-     * @return    string/FALSE
+     * @return    string|FALSE
      */
     public static function _encode_vint($decimal)
     {
@@ -176,7 +176,6 @@ class RawTransaction
         $length = strlen($script) / 2;
 
         /** Note that larger integers are serialized without flipping bits - Big endian */
-        $string = '';
         if ($length < 75) {
             $l = self::_dec_to_bytes($length, 1);
             $string = $l . $script;
@@ -382,7 +381,7 @@ class RawTransaction
      * @param    string $data
      * @param    string $magic_byte
      * @param    string $magic_p2sh_byte
-     * @return    array/FALSE
+     * @return   array|FALSE
      */
     public static function _get_transaction_type($data, $magic_byte = null, $magic_p2sh_byte = null)
     {
@@ -423,6 +422,7 @@ class RawTransaction
         }
 
         // Attempt to validate against each of these rules.
+        $matches = array();
         foreach ($data as $index => $test) {
             foreach ($rule as $tx_type => $def) {
                 $matches[$tx_type] = array();
@@ -464,7 +464,7 @@ class RawTransaction
      * @param    int    $output_count
      * @param    string $magic_byte
      * @param    string $magic_p2sh_byte
-     * @return    array/FALSE
+     * @return   array|FALSE
      */
     public static function _decode_outputs(&$tx, $output_count, $magic_byte = null, $magic_p2sh_byte = null)
     {
@@ -520,7 +520,7 @@ class RawTransaction
      *
      * @param    array
      * @param    int
-     * @return    string/FALSE
+     * @return   string|FALSE
      */
     public static function _encode_outputs($vout_arr, $output_count)
     {
@@ -684,7 +684,8 @@ class RawTransaction
         }
 
         // Check that $raw_transaction and $json_inputs correspond to the right inputs
-        for ($i = 0; $i < count($decode['vin']); $i++) {
+        $inputCount = count($decode['vin']);
+        for ($i = 0; $i < $inputCount; $i++) {
             if (!isset($inputs[$i])) {
                 throw new \InvalidArgumentException("Raw transaction does not match expected inputs");
             }
@@ -779,8 +780,7 @@ class RawTransaction
     {
         $math = \Mdanter\Ecc\EccFactory::getAdapter();
 
-        // If there is no more work to be done (script is fully parsed,
-        // return the array)
+        // If there is no more work to be done (script is fully parsed, return the array)
         if (strlen($redeem_script) == 0) {
             return $data;
         }
@@ -849,7 +849,7 @@ class RawTransaction
      *
      * @param    int   $m
      * @param    array $public_keys
-     * @return    string/FALSE
+     * @return   string|FALSE
      */
     public static function create_redeem_script($m, $public_keys = array())
     {
@@ -881,7 +881,7 @@ class RawTransaction
      *
      * @param    int   $m
      * @param    array $public_keys
-     * @param   string $address_version
+     * @param   string $magic_p2sh_byte
      * @return  array/FALSE
      */
     public static function create_multisig($m, $public_keys = array(), $magic_p2sh_byte = null)
@@ -1008,7 +1008,7 @@ class RawTransaction
      * @param   array  $outputs
      * @param   string $magic_byte
      * @param   string $magic_p2sh_byte
-     * @return    string/FALSE
+     * @return  string|FALSE
      */
     public static function create($inputs, $outputs, $magic_byte = null, $magic_p2sh_byte = null)
     {
@@ -1120,10 +1120,11 @@ class RawTransaction
                     // Create Signature
                     foreach ($key_info['keys'] as $key) {
                         $key_dec = $math->hexDec($key['private_key']);
+                        $k = $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM)));
 
                         $signer = new Signer($math);
                         $_private_key = $generator->getPrivateKeyFrom($key_dec);
-                        $sign = $signer->sign($_private_key, $message_hash_dec, $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
+                        $sign = $signer->sign($_private_key, $message_hash_dec, $k);
 
                         if ($sign !== false) {
                             $sign_count++;
@@ -1230,7 +1231,7 @@ class RawTransaction
 
         // Create the signature.
         $der_sig = '30'
-            . self::_dec_to_bytes((4 + ((strlen($r) + strlen($s)) / 2)), 1) //((strlen($r)+strlen($s)+16)/2),1)
+            . self::_dec_to_bytes((4 + ((strlen($r) + strlen($s)) / 2)), 1)
             . '02'
             . self::pushdata($r)
             . '02'
@@ -1483,20 +1484,23 @@ class RawTransaction
                 }
 
                 $pubkey = BitcoinLib::private_key_to_public_key($key['key'], $key['is_compressed']);
-                $pk_hash = BitcoinLib::hash160($pubkey);
+                if ($pubkey !== false) {
+                    $pk_hash = BitcoinLib::hash160($pubkey);
 
-                if ($key['is_compressed'] == true) {
-                    $uncompressed_key = BitcoinLib::decompress_public_key($pubkey);
-                    $uncompressed_key = $uncompressed_key['public_key'];
-                } else {
-                    $uncompressed_key = $pubkey;
+                    if ($key['is_compressed'] == true) {
+                        $uncompressed_key = BitcoinLib::decompress_public_key($pubkey);
+                        $uncompressed_key = $uncompressed_key['public_key'];
+                    } else {
+                        $uncompressed_key = $pubkey;
+                    }
+                    $wallet[$pk_hash] = array('type' => 'pubkeyhash',
+                        'private_key' => $key['key'],
+                        'public_key' => $pubkey,
+                        'uncompressed_key' => $uncompressed_key,
+                        'is_compressed' => $key['is_compressed'],
+                        'address' => BitcoinLib::hash160_to_address($pk_hash, $magic_byte)
+                    );
                 }
-                $wallet[$pk_hash] = array('type' => 'pubkeyhash',
-                    'private_key' => $key['key'],
-                    'public_key' => $pubkey,
-                    'uncompressed_key' => $uncompressed_key,
-                    'is_compressed' => $key['is_compressed'],
-                    'address' => BitcoinLib::hash160_to_address($pk_hash, $magic_byte));
             }
         }
     }

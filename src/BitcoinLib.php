@@ -26,13 +26,6 @@ class BitcoinLib
 {
 
     /**
-     * HexChars
-     *
-     * This is a string containing the allowed characters in base16.
-     */
-    private static $hexchars = "0123456789ABCDEF";
-
-    /**
      * Base58Chars
      *
      * This is a string containing the allowed characters in base58.
