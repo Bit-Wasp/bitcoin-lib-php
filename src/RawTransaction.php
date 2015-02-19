@@ -1343,114 +1343,70 @@ class RawTransaction
      */
     public static function check_canonical_signature($signature)
     {
-
-        $loud   = false;
         $signature = pack("H*", $signature);
         $length = strlen($signature);
 
         if ($length < 9) {
-            if ($loud == true) {
-                echo "Non-canonical signature: too short\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: too short");
         }
 
         if ($length > 73) {
-            if ($loud == true) {
-                echo "Non-canonical signature: too long\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: too long");
         }
 
         if (ord($signature[0]) !== 0x30) {
-            if ($loud == true) {
-                echo 'Signature has wrong type\n';
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: wrong type");
         }
 
         if (ord($signature[1]) !== $length - 3) {
-            if ($loud == true) {
-                echo "Non-canonical signature: wrong length marker\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: wrong length marker");
         }
 
         $lenR   = ord($signature[3]);
         $r      = substr($signature, 4, $lenR);
         if (5 + $lenR >= $length) {
-            if ($loud == true) {
-                echo "Non-canonical signature: S length misplaced\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: S length misplaced");
         }
 
         $lenS   = ord($signature[5 + $lenR]);
         $startS = 4 + $lenR + 2;
         $s      = substr($signature, $startS, $lenS);
         if (($lenR + $lenS + 7) !== $length) {
-            if ($loud == true) {
-                echo "Non-canonical signature: R+S length mismatched\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: R+S length mismatched");
         }
 
         if (ord(substr($signature, 2, 1)) !== 0x02) {
-            if ($loud == true) {
-                echo "Non-canonical signature: R value type mismatch\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: R value type mismatch");
         }
 
         if ($lenR == 0) {
-            if ($loud == true) {
-                echo "Non-canonical signature: R length is zero\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: R length is zero");
         }
 
         $rAnd   = $r[0] & pack('H*', '80');
         if (ord($rAnd) == 128) {
-            if ($loud == true) {
-                echo "Non-canonical signature: R value negative\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: R value negative");
         }
 
         if ($lenR > 1 && ord($r[0]) == 0x00 && !ord(($r[1] & pack('H*', '80')))) {
-            if ($loud == true) {
-                echo "Non-canonical signature: R value excessively padded\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: R value excessively padded");
         }
 
         if (ord(substr($signature, $startS - 2, 1)) !== 0x02) {
-            if ($loud == true) {
-                echo "Non-canonical signature: S value type mismatch\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: S value type mismatch");
         }
 
         if ($lenS == 0) {
-            if ($loud == true) {
-                echo "Non-canonical signature: S length is zero\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: S length is zero");
         }
 
         $sAnd   = $s[0] & pack('H*', '80');
         if (ord($sAnd) == 128) {
-            if ($loud == true) {
-                echo "Non-canonical signature: S value negative\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: S value negative");
         }
 
         if ($lenS > 1 && ord($s[0]) == 0x00 && !ord(($s[1] & pack("H*", '80'))) == 0x80) {
-            if ($loud == true) {
-                echo "Non-canonical signature: S value excessively padded\n";
-            }
-            return false;
+            throw new \InvalidArgumentException("Non-canonical signature: S value excessively padded");
         }
 
         return true;
