@@ -435,11 +435,7 @@ class BitcoinLib
         $g = EccFactory::getSecgCurves($math)->generator256k1();
         $privKey = self::hex_decode($privKey);
 
-        try {
-            $secretG = $g->mul($privKey, $g, $math);
-        } catch (\Exception $e) {
-            return false;
-        }
+        $secretG = $g->mul($privKey);
 
         $xHex = self::hex_encode($secretG->getX());
         $yHex = self::hex_encode($secretG->getY());
