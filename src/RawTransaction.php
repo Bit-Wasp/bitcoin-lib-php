@@ -555,7 +555,7 @@ class RawTransaction
      * @param    string $raw_transaction
      * @param    string $magic_byte
      * @param    string $magic_p2sh_byte
-     * @return  array/FALSE
+     * @return  array|FALSE
      */
     public static function decode($raw_transaction, $magic_byte = null, $magic_p2sh_byte = null)
     {
@@ -613,7 +613,7 @@ class RawTransaction
      */
     public static function encode($raw_transaction_array)
     {
-        $encoded_version = $bytes = self::_dec_to_bytes($raw_transaction_array['version'], 4, true); // TRUE - get little endian
+        $encoded_version = self::_dec_to_bytes($raw_transaction_array['version'], 4, true); // TRUE - get little endian
 
         // $encoded_inputs - set the encoded varint, then work out if any input hex is to be displayed.
         $decimal_inputs_count = count($raw_transaction_array['vin']);
@@ -667,11 +667,11 @@ class RawTransaction
      * each input, and these values returned as an array for comparison
      * during another script.
      *
-     * @param    string $raw_transaction
+     * @param   string  $raw_transaction
      * @param   string  $json_inputs
      * @param   int     $specific_input
      * @param   array   $e
-     * @return    string
+     * @return  string
      */
     public static function _create_txin_signature_hash($raw_transaction, $json_inputs, $specific_input = -1, $e = null)
     {
@@ -882,7 +882,7 @@ class RawTransaction
      * @param    int   $m
      * @param    array $public_keys
      * @param   string $magic_p2sh_byte
-     * @return  array/FALSE
+     * @return  array|FALSE
      */
     public static function create_multisig($m, $public_keys = array(), $magic_p2sh_byte = null)
     {
@@ -1080,7 +1080,7 @@ class RawTransaction
      *
      * @param   array  $wallet
      * @param   string $raw_transaction
-     * @param   array  $inputs
+     * @param   string $inputs
      * @param   string $magic_byte
      * @param   string $magic_p2sh_byte
      * @return  array

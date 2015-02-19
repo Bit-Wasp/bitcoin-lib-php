@@ -153,7 +153,7 @@ class BIP32
                 throw new \InvalidArgumentException("Can't derive private key from public key");
             }
             $data = '00' . $private_key . $i;
-        } else if ($is_prime == 0) {
+        } else {
             $public_key = $public_key ?: BitcoinLib::private_key_to_public_key($private_key, true);
             $data = $public_key . $i;
         }
@@ -406,6 +406,8 @@ class BIP32
     public static function import($ext_key)
     {
         $hex = BitcoinLib::base58_decode($ext_key);
+
+        $key = [];
         $key['magic_bytes'] = substr($hex, 0, 8);
 
         $magic_byte_info = self::describe_magic_bytes($key['magic_bytes']);
@@ -478,7 +480,7 @@ class BIP32
      * Converts the encoded private key to a public key, and alters the
      * properties so it's displayed as a public key.
      *
-     * @param    string $input
+     * @param    string|array $input            xpriv or [xpriv, path]
      * @return   string
      */
     public static function extended_private_to_public($input)
@@ -523,10 +525,8 @@ class BIP32
     {
         if (is_array($input) && count($input) == 2) {
             $ext_key = $input[0];
-            $generated = $input[1];
         } else if (is_string($input) == true) {
             $ext_key = $input;
-            $generated = false;
         } else {
             throw new \InvalidArgumentException("input should be string or [key, path]");
         }
@@ -751,5 +751,3 @@ class BIP32
         return $n;
     }
 }
-
-;
