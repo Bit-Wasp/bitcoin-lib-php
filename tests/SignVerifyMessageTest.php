@@ -3,16 +3,11 @@
 use BitWasp\BitcoinLib\BitcoinLib;
 use BitWasp\BitcoinLib\Jsonrpcclient;
 
-require_once(__DIR__ . '/../vendor/autoload.php');
-
 class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
 {
-    protected $extensiveTesting = false;
-
-    protected $againstRPC = false;
-
     public function setup()
     {
+        // ensure we're set to bitcoin and not bitcoin-testnet
         BitcoinLib::setMagicByteDefaults('bitcoin');
     }
 
@@ -74,10 +69,12 @@ class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
 
     public function testVerifyMessageDataSet()
     {
+        $cnt = (getenv('BITCOINLIB_EXTENSIVE_TESTING') ?: 1) * 10;
+
         $data = json_decode(file_get_contents(__DIR__ . "/data/signverify.json"), true);
         $data = array_map(function ($k) use ($data) {
             return $data[$k];
-        }, array_rand($data, $this->extensiveTesting ? 100 : 5));
+        }, array_rand($data, $cnt));
 
         foreach ($data as $row) {
             $this->assertTrue(BitcoinLib::verifyMessage($row['address'], $row['signature'], $row['address']));
@@ -86,10 +83,13 @@ class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
 
     public function testSignMessageDataSet()
     {
+        // special case, when undefined we do 1, otherwise we do ENV * 5 (50 on travis)
+        $cnt = getenv('BITCOINLIB_EXTENSIVE_TESTING') ? (getenv('BITCOINLIB_EXTENSIVE_TESTING') * 5) : 1;
+
         $data = json_decode(file_get_contents(__DIR__ . "/data/signverify.json"), true);
         $data = array_map(function ($k) use ($data) {
             return $data[$k];
-        }, array_rand($data, $this->extensiveTesting ? 100 : 5));
+        }, (array)array_rand($data, $cnt));
 
         foreach ($data as $row) {
             $privKey = BitcoinLib::WIF_to_private_key($row['wif']);
@@ -105,12 +105,23 @@ class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
             return $this->markTestSkipped("Not testing against RPC");
         }
 
-        $rpc = new Jsonrpcclient(array('url' => 'http://bitcoin:fsJoJupAXx@127.0.0.1:8332'));
+        // special case, when undefined we do 1, otherwise we do ENV * 5 (50 on travis)
+        $cnt = getenv('BITCOINLIB_EXTENSIVE_TESTING') ? (getenv('BITCOINLIB_EXTENSIVE_TESTING') * 5) : 1;
+
+        $rpcHost = getenv('BITCOINLIB_RPC_HOST') ?: '127.0.0.1';
+        $rpcUser = getenv('BITCOINLIB_RPC_USER') ?: 'bitcoinrpc';
+        $rpcPassword = getenv('BITCOINLIB_RPC_PASSWORD') ?: '6Wk1SYL7JmPYoUeWjYRSdqij4xrM5rGBvC4kbJipLVJK';
+
+        $rpc = new Jsonrpcclient(['url' => "http://{$rpcUser}:{$rpcPassword}@{$rpcHost}:8332"]);
+
+        if ($rpc->getinfo() == null) {
+            $this->fail("Can't connect to bitcoind");
+        }
 
         $data = json_decode(file_get_contents(__DIR__ . "/data/signverify.json"), true);
         $data = array_map(function ($k) use ($data) {
             return $data[$k];
-        }, array_rand($data, $this->extensiveTesting ? 100 : 5));
+        }, (array)array_rand($data, $cnt));
 
         foreach ($data as $row) {
             $privKey = BitcoinLib::WIF_to_private_key($row['wif']);

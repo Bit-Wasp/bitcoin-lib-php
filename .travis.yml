@@ -12,7 +12,7 @@ install:
   - "composer update"
 
 script:
- - ./vendor/bin/phpunit ./tests
+ - ./vendor/bin/phpunit -c build/phpunit.xml --debug
  - ./vendor/bin/phpcs --standard=./build/phpcs.xml -n -a ./src/
 
 notifications:
