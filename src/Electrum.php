@@ -104,8 +104,6 @@ class Electrum
         $math = EccFactory::getAdapter();
         $g = EccFactory::getSecgCurves($math)->generator256k1();
         $n = $g->getOrder();
-        // Generate the private key by calculating:
-        // ($seed + (sha256(sha256($iteration:$change:$binary_mpk))) % $n)h
 
         $seedDec = $math->hexDec($seed);
         $offsetDec = $math->hexDec(hash('sha256', hash('sha256', "$iteration:$change:" . pack('H*', $mpk), true)));

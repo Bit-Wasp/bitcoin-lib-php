@@ -181,7 +181,7 @@ class BIP39
      */
     public static function defaultWordList()
     {
-        if (is_null(self::$defaultWordList)) {
+        if (self::$defaultWordList === null) {
             self::$defaultWordList = new BIP39EnglishWordList();
         }
 

@@ -91,11 +91,11 @@ class BitcoinLib
      */
     public static function magicByte($magic_byte = null)
     {
-        if (is_null(self::$magic_byte)) {
+        if (self::$magic_byte === null) {
             self::setMagicByteDefaults('bitcoin');
         }
 
-        if (is_null($magic_byte)) {
+        if ($magic_byte === null) {
             return self::$magic_byte;
         }
 
@@ -135,11 +135,11 @@ class BitcoinLib
      */
     public static function magicP2SHByte($magic_byte = null)
     {
-        if (is_null(self::$magic_p2sh_byte)) {
+        if (self::$magic_p2sh_byte === null) {
             self::setMagicByteDefaults('bitcoin');
         }
 
-        if (is_null($magic_byte)) {
+        if ($magic_byte === null) {
             return self::$magic_p2sh_byte;
         }
 
@@ -171,16 +171,16 @@ class BitcoinLib
      *  - '<alias>'                        -> pair for specified alias
      *
      * @param   string $magic_byte_pair
-     * @return  array[string, string]
+     * @return  string[]                    [magic_byte, magic_p2sh_byte]
      * @throws  \Exception
      */
     public static function magicBytePair($magic_byte_pair = null)
     {
-        if (is_null(self::$magic_byte) || is_null(self::$magic_p2sh_byte)) {
+        if (self::$magic_byte === null || self::$magic_p2sh_byte === null) {
             self::setMagicByteDefaults('bitcoin');
         }
 
-        if (is_null($magic_byte_pair)) {
+        if ($magic_byte_pair === null) {
             return array(self::$magic_byte, self::$magic_p2sh_byte);
         }
 
@@ -407,10 +407,8 @@ class BitcoinLib
         $g = EccFactory::getSecgCurves($math)->generator256k1();
 
         $privKey = gmp_strval(gmp_init(bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM)), 16));
-        //while($math->cmp($privkey, $g->getOrder()) >= 0) {
         while ($privKey >= $g->getOrder()) {
             $privKey = gmp_strval(gmp_init(bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM)), 16));
-            //$privkey = bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM));
         }
 
         $privKeyHex = $math->dechex($privKey);
@@ -435,11 +433,7 @@ class BitcoinLib
         $g = EccFactory::getSecgCurves($math)->generator256k1();
         $privKey = self::hex_decode($privKey);
 
-        try {
-            $secretG = $g->mul($privKey, $g, $math);
-        } catch (\Exception $e) {
-            return false;
-        }
+        $secretG = $g->mul($privKey);
 
         $xHex = self::hex_encode($secretG->getX());
         $yHex = self::hex_encode($secretG->getY());
@@ -512,10 +506,12 @@ class BitcoinLib
             $public_address = self::public_key_to_address($key_pair['pubKey'], $address_version);
         } while (!self::validate_address($public_address, $address_version));
 
-        return array('privKey' => $key_pair['privKey'],
+        return array(
+            'privKey' => $key_pair['privKey'],
             'pubKey' => $key_pair['pubKey'],
             'privWIF' => $private_WIF,
-            'pubAdd' => $public_address);
+            'pubAdd' => $public_address
+        );
     }
 
     /**
@@ -708,7 +704,7 @@ class BitcoinLib
             // Attempt to create the point. Point returns false in the
             // constructor if anything is invalid.
             try {
-                $point = $generator->getCurve()->getPoint($x, $y);
+                $generator->getCurve()->getPoint($x, $y);
                 return true;
             } catch (\Exception $e) {
                 return false;

@@ -30,7 +30,7 @@ class BIP39EnglishWordList extends BIP39WordList
     public function getIndex($word)
     {
         // create a flipped word list to speed up the searching of words
-        if (is_null($this->wordsFlipped)) {
+        if ($this->wordsFlipped === null) {
             $this->wordsFlipped = array_flip($this->words);
         }
 
