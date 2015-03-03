@@ -571,7 +571,7 @@ class RawTransaction
             throw new \InvalidArgumentException("Raw transaction is invalid hex");
         }
 
-        $txid = hash('sha256', hash('sha256', pack("H*", trim($raw_transaction)), true));
+        $txid = self::_flip_byte_order(hash('sha256', hash('sha256', pack("H*", trim($raw_transaction)), true)));
 
         $info = array();
         $info['txid'] = $txid;
