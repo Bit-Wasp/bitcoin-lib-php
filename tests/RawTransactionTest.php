@@ -310,7 +310,8 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals($tx['txid'], $txid);
         $this->assertEquals($txid, $tx['txid']);
-        $this->assertEquals($txid, RawTransaction::hash_from_raw($raw));
+
+        $this->assertEquals(RawTransaction::_flip_byte_order($txid), RawTransaction::hash_from_raw($raw));
         $this->assertEquals(RawTransaction::_flip_byte_order($txid), RawTransaction::hash_from_txid($tx['txid']));
     }
 
