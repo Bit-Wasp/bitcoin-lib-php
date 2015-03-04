@@ -300,7 +300,7 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
         }
     }
 
-    public function testTxHash()
+    public function testTxId()
     {
         // https://www.blocktrail.com/BTC/tx/6395e16150c6b4c3499740c7b9ea902747410d9e1ca8398d81d0ddd2e4bf2822
         $txid = "6395e16150c6b4c3499740c7b9ea902747410d9e1ca8398d81d0ddd2e4bf2822";
@@ -308,11 +308,8 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
 
         $tx = RawTransaction::decode($raw);
 
-        $this->assertEquals($tx['txid'], $txid);
         $this->assertEquals($txid, $tx['txid']);
-
-        $this->assertEquals(RawTransaction::_flip_byte_order($txid), RawTransaction::hash_from_raw($raw));
-        $this->assertEquals(RawTransaction::_flip_byte_order($txid), RawTransaction::hash_from_txid($tx['txid']));
+        $this->assertEquals($txid, RawTransaction::txid_from_raw($raw));
     }
 
     public function testP2SHMultisig()
