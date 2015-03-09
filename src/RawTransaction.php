@@ -71,6 +71,10 @@ class RawTransaction
      */
     public static function _return_bytes(&$string, $byte_count, $reverse = false)
     {
+        if (strlen($string) < $byte_count * 2) {
+            throw new \InvalidArgumentException("Could not read enough bytes");
+        }
+
         $requested_bytes = substr($string, 0, $byte_count * 2);
 
         // Overwrite $string, starting $byte_count bytes from the start.
@@ -257,14 +261,6 @@ class RawTransaction
         // Loop until $input count is reached, sequentially removing the
         // leading data from $raw_transaction reference.
         for ($i = 0; $i < $input_count; $i++) {
-            // Check that the variable has at least 36 bytes, and that the
-            // required length for this input is less than the length of the raw_transaction string.
-            if (strlen($raw_transaction) < 74
-                || !((hexdec(substr($raw_transaction, 72, 2)) + 74 + 8) < strlen($raw_transaction))
-            ) {
-                throw new \InvalidArgumentException("Transaction is too short to contain all input data");
-            }
-
             // Load the TxID (32bytes) and vout (4bytes)
             $txid = self::_return_bytes($raw_transaction, 32, true);
             $vout = self::_return_bytes($raw_transaction, 4, true);
@@ -475,13 +471,6 @@ class RawTransaction
 
         $outputs = array();
         for ($i = 0; $i < $output_count; $i++) {
-            // Check the $tx has sufficient length to cover this input.
-            if (strlen($tx) < 8
-                || !(($math->hexDec(substr($tx, 8, 2)) + 8 + 2) < strlen($tx))
-            ) {
-                throw new \InvalidArgumentException("Transaction is too short to contain all output data");
-            }
-
             // Pop 8 bytes (flipped) from the $tx string, convert to decimal,
             // and then convert to Satoshis.
             $satoshis = $math->hexDec(self::_return_bytes($tx, 8, true), 16, 10);

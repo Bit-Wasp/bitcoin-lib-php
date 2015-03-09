@@ -447,6 +447,33 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
         }
     }
 
-}
+    public function testDecodeTx() {
+        $hex = "0100000001552eed137888e6a6c2c69ded505d9e573c3d78ab0f478ecbdaf74b99b40f350d010000006b483045022100d958e320b5bbc700e7862b7832fc86d18f50be7a272399c38b35a6aecd471d68022014a02f0387a0971c4e06cac086d662615a3e07a0323e1f138d96c54c7f6aaead012102af6034f808ee5989a7ea0304cc7d464edb22a86d362739aeb4e52e759436b7f5ffffffff0240480801000000001976a91415df9c5643a3ef61ee05a92a7703f47a4ffbbcdb88ac8b0361695e0000001976a91490967f997eda3a1c0bd4358b3cd19824e46538b688ac00000000";
 
-;
+        $tx = RawTransaction::decode($hex);
+
+        $this->assertEquals("fd07ba46ae08d639577b12d3fe91f44de37152768a6db5e9685828054fed5feb", $tx['txid']);
+        $this->assertEquals("1", $tx['version']);
+        $this->assertEquals(1, count($tx['vin']));
+        $this->assertEquals(2, count($tx['vout']));
+        $this->assertEquals("0d350fb4994bf7dacb8e470fab783d3c579e5d50ed9dc6c2a6e6887813ed2e55", $tx['vin'][0]['txid']);
+        $this->assertEquals(1, $tx['vin'][0]['vout']);
+        $this->assertEquals("17320000", $tx['vout'][0]['value']);
+        $this->assertEquals("76a91415df9c5643a3ef61ee05a92a7703f47a4ffbbcdb88ac", $tx['vout'][0]['scriptPubKey']['hex']);
+        $this->assertEquals("405494891403", $tx['vout'][1]['value']);
+        $this->assertEquals("76a91490967f997eda3a1c0bd4358b3cd19824e46538b688ac", $tx['vout'][1]['scriptPubKey']['hex']);
+    }
+
+    /**
+     * took a valid TX hex and removed 1 byte from a output script
+     */
+    public function testDecodeBadTx() {
+        $e = null;
+        try {
+            $hex = "0100000001552eed137888e6a6c2c69ded505d9e573c3d78ab0f478ecbdaf74b99b40f350d010000006b483045022100d958e320b5bbc700e7862b7832fc86d18f50be7a272399c38b35a6aecd471d68022014a02f0387a0971c4e06cac086d662615a3e07a0323e1f138d96c54c7f6aaead012102af6034f808ee5989a7ea0304cc7d464edb22a86d362739aeb4e52e759436b7f5ffffffff0240480801000000001976a91415df9c5643a3ef61ee05a92a7703f47a4ffbbcdb88ac8b0361695e0000001976a91490967f997eda3a1c0bd4358b3cd19824e46538b6ac00000000";
+            $tx = RawTransaction::decode($hex);
+        } catch (\Exception $e) {}
+        $this->assertTrue(!!$e);
+    }
+
+}
