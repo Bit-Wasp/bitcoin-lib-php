@@ -310,14 +310,14 @@ class RawTransaction
 
             if (isset($vin[$i]['coinbase'])) {
                 // Coinbase
-                $txid = '0000000000000000000000000000000000000000000000000000000000000000';
+                $txHash = '0000000000000000000000000000000000000000000000000000000000000000';
                 $vout = 'ffffffff';
                 $script_size = strlen($vin[$i]['coinbase']) / 2; // Decimal number of bytes
                 $script_varint = self::_encode_vint($script_size); // Varint
                 $scriptSig = $script_varint . $vin[$i]['coinbase'];
             } else {
                 // Regular transaction
-                $txid = self::_flip_byte_order($vin[$i]['txid']);
+                $txHash = self::_flip_byte_order($vin[$i]['txid']);
                 $vout = self::_dec_to_bytes($vin[$i]['vout'], 4, true);
 
                 $script_size = strlen($vin[$i]['scriptSig']['hex']) / 2; // decimal number of bytes
@@ -328,7 +328,7 @@ class RawTransaction
             $sequence = self::_dec_to_bytes($vin[$i]['sequence'], true);
 
             // Append this encoded input to the byte string.
-            $inputs .= $txid . $vout . $scriptSig . $sequence;
+            $inputs .= $txHash . $vout . $scriptSig . $sequence;
         }
         return $inputs;
     }
@@ -571,7 +571,8 @@ class RawTransaction
             throw new \InvalidArgumentException("Raw transaction is invalid hex");
         }
 
-        $txid = hash('sha256', hash('sha256', pack("H*", trim($raw_transaction)), true));
+        $txHash = hash('sha256', hash('sha256', pack("H*", trim($raw_transaction)), true));
+        $txid = self::_flip_byte_order($txHash);
 
         $info = array();
         $info['txid'] = $txid;
@@ -631,28 +632,14 @@ class RawTransaction
     }
 
     /**
-     * Get the transaction hash from the raw transaction hex
+     * Get the txid from the raw transaction hex
      *
      * @param $raw_transaction
      * @return string
      */
-    public static function hash_from_raw($raw_transaction)
+    public static function txid_from_raw($raw_transaction)
     {
-        $decode = self::decode($raw_transaction);
-
-        return self::hash_from_txid($decode['txid']);
-    }
-
-    /**
-     * Get the transaction hash from the txid
-     *  by flipping the endian
-     *
-     * @param $txid
-     * @return string
-     */
-    public static function hash_from_txid($txid)
-    {
-        return self::_flip_byte_order($txid);
+        return self::decode($raw_transaction)['txid'];
     }
 
     /**
