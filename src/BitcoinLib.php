@@ -407,7 +407,7 @@ class BitcoinLib
         $g = EccFactory::getSecgCurves($math)->generator256k1();
 
         $privKey = gmp_strval(gmp_init(bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM)), 16));
-        while ($privKey >= $g->getOrder()) {
+        while ($math->cmp($privKey, $g->getOrder()) !== -1) {
             $privKey = gmp_strval(gmp_init(bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM)), 16));
         }
 
