@@ -480,4 +480,13 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
         $this->assertTrue(!!$e);
     }
 
+    public function testTxEncode() {
+        $txId = "fcbe95cd172371d9c35569fbb441774d0fa1adcc2426eff500a4c00a4eb2b6c4";
+        $raw = "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff2703681e05062f503253482f048dcc9854087400023054c704000d4254434368696e6120506f6f6c0000000001ff702896000000001976a9142c30a6aaac6d96687291475d7d52f4b469f665a688ac00000000";
+
+        $tx = RawTransaction::decode($raw);
+
+        $this->assertEquals($raw, RawTransaction::encode($tx));
+        $this->assertEquals($txId, RawTransaction::txid_from_raw(RawTransaction::encode($tx)));
+    }
 }

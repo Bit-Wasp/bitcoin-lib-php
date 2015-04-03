@@ -321,7 +321,7 @@ class RawTransaction
                 $scriptSig = $script_varint . $vin[$i]['scriptSig']['hex'];
             }
             // Add the sequence number.
-            $sequence = self::_dec_to_bytes($vin[$i]['sequence'], true);
+            $sequence = self::_dec_to_bytes($vin[$i]['sequence'], 4, true);
 
             // Append this encoded input to the byte string.
             $inputs .= $txHash . $vout . $scriptSig . $sequence;
