@@ -343,17 +343,20 @@ class RawTransaction
         $data = array();
         while (strlen($script) !== 0) {
             $byte = self::_return_bytes($script, 1);
+
             if (isset(self::$op_code[$byte])) {
                 // This checks if the OPCODE is defined from the list of constants.
                 $data[] = self::$op_code[$byte];
 
-            } else if ($byte >= 0x01 && $byte <= 0x4b) {
+            } else if (hexdec($byte) >= 0x01 && hexdec($byte) <= 0x4b) {
                 // This checks if the OPCODE falls in the PUSHDATA range
                 $data[] = self::_return_bytes($script, hexdec($byte));
 
-            } else if ($byte >= 0x52 && $byte <= 0x60) {
+            } else if (hexdec($byte) >= 0x52 && hexdec($byte) <= 0x60) {
                 // This checks if the CODE falls in the OP_X range
                 $data[] = 'OP_' . ($byte - 0x52);
+            } else {
+                throw new \RuntimeException("Failed to decode scriptPubKey");
             }
         }
         return implode(" ", $data);
