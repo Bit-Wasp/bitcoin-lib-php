@@ -482,9 +482,17 @@ class RawTransaction
             $script_length = self::_get_vint($tx); // decimal number of bytes
             $script = self::_return_bytes($tx, $script_length);
 
+            try {
+                $asm = self::_decode_scriptPubKey($script);
+            } catch (\Exception $e) {
+                $asm = null;
+            }
+
             // Begin building scriptPubKey
-            $scriptPubKey = array('asm' => self::_decode_scriptPubKey($script),
-                'hex' => $script);
+            $scriptPubKey = array(
+                'asm' => $asm,
+                'hex' => $script
+            );
 
             // Try to decode the scriptPubKey['asm'] to learn the transaction type.
             $txn_info = self::_get_transaction_type($scriptPubKey['asm'], $magic_byte, $magic_p2sh_byte);
