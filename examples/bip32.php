@@ -4,10 +4,7 @@ use BitWasp\BitcoinLib\BIP32;
 
 require_once(__DIR__. '/../vendor/autoload.php');
 
-$seed = bin2hex(openssl_random_pseudo_bytes(128));
-$master = BIP32::master_key($seed);
-
-
+$master = BIP32::master_key(bin2hex(mcrypt_create_iv(64, \MCRYPT_DEV_URANDOM)));
 
 // Load a 128 bit key, and convert this to extended key format.
 //$master = BIP32::master_key('41414141414141414141414141414141414141');

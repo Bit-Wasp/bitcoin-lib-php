@@ -3,8 +3,14 @@
 namespace BitWasp\BitcoinLib;
 
 use Mdanter\Ecc\EccFactory;
+use Mdanter\Ecc\GeneratorPoint;
 use Mdanter\Ecc\NumberTheory;
 use Mdanter\Ecc\Point;
+use Mdanter\Ecc\PointInterface;
+use Mdanter\Ecc\PrivateKey;
+use Mdanter\Ecc\PublicKey;
+use Mdanter\Ecc\Signature\Signature;
+use Mdanter\Ecc\Signature\Signer;
 
 /**
  * BitcoinLib
@@ -18,13 +24,6 @@ use Mdanter\Ecc\Point;
  */
 class BitcoinLib
 {
-
-    /**
-     * HexChars
-     *
-     * This is a string containing the allowed characters in base16.
-     */
-    private static $hexchars = "0123456789ABCDEF";
 
     /**
      * Base58Chars
@@ -70,7 +69,7 @@ class BitcoinLib
         $magic_byte_defaults = explode('|', $magic_byte_defaults);
 
         if (count($magic_byte_defaults) != 2) {
-            throw new \Exception("magic_byte_defaults should magic_byte|magic_p2sh_byte");
+            throw new \InvalidArgumentException("magic_byte_defaults should magic_byte|magic_p2sh_byte");
         }
 
         self::$magic_byte = $magic_byte_defaults[0];
@@ -92,11 +91,11 @@ class BitcoinLib
      */
     public static function magicByte($magic_byte = null)
     {
-        if (is_null(self::$magic_byte)) {
+        if (self::$magic_byte === null) {
             self::setMagicByteDefaults('bitcoin');
         }
 
-        if (is_null($magic_byte)) {
+        if ($magic_byte === null) {
             return self::$magic_byte;
         }
 
@@ -118,7 +117,7 @@ class BitcoinLib
             return $preset_magic_byte[0];
         }
 
-        throw new \Exception("Failed to determine magic_byte");
+        throw new \InvalidArgumentException("Failed to determine magic_byte");
     }
 
 
@@ -136,11 +135,11 @@ class BitcoinLib
      */
     public static function magicP2SHByte($magic_byte = null)
     {
-        if (is_null(self::$magic_p2sh_byte)) {
+        if (self::$magic_p2sh_byte === null) {
             self::setMagicByteDefaults('bitcoin');
         }
 
-        if (is_null($magic_byte)) {
+        if ($magic_byte === null) {
             return self::$magic_p2sh_byte;
         }
 
@@ -159,7 +158,7 @@ class BitcoinLib
             return $preset_magic_byte[1];
         }
 
-        throw new \Exception("Failed to determine magic_p2sh_byte");
+        throw new \InvalidArgumentException("Failed to determine magic_p2sh_byte");
     }
 
     /**
@@ -172,17 +171,17 @@ class BitcoinLib
      *  - '<alias>'                        -> pair for specified alias
      *
      * @param   string $magic_byte_pair
-     * @return  array[string, string]
+     * @return  string[]                    [magic_byte, magic_p2sh_byte]
      * @throws  \Exception
      */
     public static function magicBytePair($magic_byte_pair = null)
     {
-        if (is_null(self::$magic_byte) || is_null(self::$magic_p2sh_byte)) {
+        if (self::$magic_byte === null || self::$magic_p2sh_byte === null) {
             self::setMagicByteDefaults('bitcoin');
         }
 
-        if (is_null($magic_byte_pair)) {
-            return [self::$magic_byte, self::$magic_p2sh_byte];
+        if ($magic_byte_pair === null) {
+            return array(self::$magic_byte, self::$magic_p2sh_byte);
         }
 
         if (strlen($magic_byte_pair) == 5 && strpos($magic_byte_pair, '|') == 2) {
@@ -194,7 +193,7 @@ class BitcoinLib
             return $preset_magic_byte;
         }
 
-        throw new \Exception("Failed to determine magic_byte_pair");
+        throw new \InvalidArgumentException("Failed to determine magic_byte_pair");
     }
 
     /**
@@ -404,16 +403,12 @@ class BitcoinLib
      */
     public static function get_new_private_key()
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
-        $g = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+        $math = EccFactory::getAdapter();
+        $g = EccFactory::getSecgCurves($math)->generator256k1();
 
-        $privkey = bin2hex(openssl_random_pseudo_bytes(32));
-
-        $privKey = gmp_strval(gmp_init(bin2hex(openssl_random_pseudo_bytes(32)), 16));
-        //while($math->cmp($privkey, $g->getOrder()) >= 0) {
-        while ($privKey >= $g->getOrder()) {
-            $privKey = gmp_strval(gmp_init(bin2hex(openssl_random_pseudo_bytes(32)), 16));
-            //$privkey = bin2hex(openssl_random_pseudo_bytes(32));
+        $privKey = gmp_strval(gmp_init(bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM)), 16));
+        while ($math->cmp($privKey, $g->getOrder()) !== -1) {
+            $privKey = gmp_strval(gmp_init(bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM)), 16));
         }
 
         $privKeyHex = $math->dechex($privKey);
@@ -434,15 +429,11 @@ class BitcoinLib
      */
     public static function private_key_to_public_key($privKey, $compressed = false)
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
-        $g = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+        $math = EccFactory::getAdapter();
+        $g = EccFactory::getSecgCurves($math)->generator256k1();
         $privKey = self::hex_decode($privKey);
 
-        try {
-            $secretG = $g->mul($privKey, $g, $math);
-        } catch (\Exception $e) {
-            return false;
-        }
+        $secretG = $g->mul($privKey);
 
         $xHex = self::hex_encode($secretG->getX());
         $yHex = self::hex_encode($secretG->getY());
@@ -515,10 +506,12 @@ class BitcoinLib
             $public_address = self::public_key_to_address($key_pair['pubKey'], $address_version);
         } while (!self::validate_address($public_address, $address_version));
 
-        return array('privKey' => $key_pair['privKey'],
+        return array(
+            'privKey' => $key_pair['privKey'],
             'pubKey' => $key_pair['pubKey'],
             'privWIF' => $private_WIF,
-            'pubAdd' => $public_address);
+            'pubAdd' => $public_address
+        );
     }
 
     /**
@@ -601,8 +594,7 @@ class BitcoinLib
             return $public_key;
         }
 
-        // Not a valid public key
-        return false;
+        throw new \InvalidArgumentException("Invalid public key");
     }
 
     /**
@@ -619,7 +611,7 @@ class BitcoinLib
      */
     public static function compress_public_key($public_key)
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $math = EccFactory::getAdapter();
 
         $x_hex = substr($public_key, 2, 64);
         $y = $math->hexDec(substr($public_key, 66, 64));
@@ -642,14 +634,14 @@ class BitcoinLib
      */
     public static function decompress_public_key($key)
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $math = EccFactory::getAdapter();
         $y_byte = substr($key, 0, 2);
         $x_coordinate = substr($key, 2);
 
         $x = self::hex_decode($x_coordinate);
 
-        $theory = \Mdanter\Ecc\EccFactory::getNumberTheory($math);
-        $generator = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+        $theory = EccFactory::getNumberTheory($math);
+        $generator = EccFactory::getSecgCurves($math)->generator256k1();
         $curve = $generator->getCurve();
 
         try {
@@ -660,7 +652,7 @@ class BitcoinLib
             $y0 = $theory->squareRootModP($y2, $curve->getPrime());
 
             if ($y0 == null) {
-                return false;
+                throw new \InvalidArgumentException("Invalid public key");
             }
 
             $y1 = $math->sub($curve->getPrime(), $y0);
@@ -670,15 +662,18 @@ class BitcoinLib
                 : (($math->mod($y0, 2) !== '0') ? $y0 : $y1);
 
             $y_coordinate = str_pad($math->decHex($y), 64, '0', STR_PAD_LEFT);
-            $point = new \Mdanter\Ecc\Point($curve, $x, $y, $generator->getOrder(), $math);
+            $point = $curve->getPoint($x, $y);
+
         } catch (\Exception $e) {
-            return false;
+            throw new \InvalidArgumentException("Invalid public key");
         }
 
-        return array('x' => $x_coordinate,
+        return array(
+            'x' => $x_coordinate,
             'y' => $y_coordinate,
             'point' => $point,
-            'public_key' => '04' . $x_coordinate . $y_coordinate);
+            'public_key' => '04' . $x_coordinate . $y_coordinate
+        );
     }
 
     /**
@@ -699,8 +694,8 @@ class BitcoinLib
             $decompressed = self::decompress_public_key($public_key);
             return $decompressed == true;
         } else if (strlen($public_key) == '130') {
-            $math = \Mdanter\Ecc\EccFactory::getAdapter();
-            $generator = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+            $math = EccFactory::getAdapter();
+            $generator = EccFactory::getSecgCurves($math)->generator256k1();
             // Uncompressed key, try to create the point
 
             $x = $math->hexDec(substr($public_key, 2, 64));
@@ -709,7 +704,7 @@ class BitcoinLib
             // Attempt to create the point. Point returns false in the
             // constructor if anything is invalid.
             try {
-                $point = new \Mdanter\Ecc\Point($generator->getCurve(), $x, $y, $generator->getOrder(), $math);
+                $generator->getCurve()->getPoint($x, $y);
                 return true;
             } catch (\Exception $e) {
                 return false;
@@ -728,11 +723,15 @@ class BitcoinLib
      * address, otherwise returns TRUE;
      *
      * @param    string $address
-     * @param    string $address_version
+     * @param    string $magic_byte
+     * @param    string $magic_p2sh_byte
      * @return    boolean
      */
-    public static function validate_address($address, $address_version = null)
+    public static function validate_address($address, $magic_byte = null, $magic_p2sh_byte = null)
     {
+        $magic_byte = $magic_byte !== false ? self::magicByte($magic_byte) : false;
+        $magic_p2sh_byte = $magic_p2sh_byte !== false ? self::magicP2SHByte($magic_p2sh_byte) : false;
+
         // Check the address is decoded correctly.
         $decode = self::base58_decode($address);
         if (strlen($decode) !== 50) {
@@ -741,13 +740,12 @@ class BitcoinLib
 
         // Compare the version.
         $version = substr($decode, 0, 2);
-        if (hexdec($version) > hexdec(self::magicByte($address_version))) {
+        if ($version !== $magic_byte && $version !== $magic_p2sh_byte) {
             return false;
         }
 
         // Finally compare the checksums.
         return substr($decode, -8) == substr(self::hash256(substr($decode, 0, 42)), 0, 8);
-
     }
 
     /**
@@ -786,8 +784,8 @@ class BitcoinLib
         }
 
         // Check private key within limit.
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
-        $generator = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+        $math = EccFactory::getAdapter();
+        $generator = EccFactory::getSecgCurves($math)->generator256k1();
         $n = $generator->getOrder();
         if ($math->cmp($math->hexDec($hex), $n) > 0) {
             return false;
@@ -797,5 +795,300 @@ class BitcoinLib
         $checksum = self::hash256($version . $hex . (($compressed) ? '01' : ''));
         $checksum = substr($checksum, 0, 8);
         return $checksum == $crc;
+    }
+
+    /**
+     * sign a message with specified private key
+     *
+     * @param      $message
+     * @param      $privateKey
+     * @param null $k               used for testing, don't use it!
+     * @return string
+     * @throws \Exception
+     */
+    public static function signMessage($message, $privateKey, $k = null)
+    {
+        $math = EccFactory::getAdapter();
+        $generator = EccFactory::getSecgCurves($math)->generator256k1();
+
+        $messageHash = "\x18Bitcoin Signed Message:\n" . hex2bin(RawTransaction::_encode_vint(strlen($message))) . $message;
+        $messageHash = hash('sha256', hash('sha256', $messageHash, true), true);
+        $messageHash = $math->hexDec(bin2hex($messageHash));
+        $key_dec = $math->hexDec($privateKey['key']);
+
+        $pubKey = self::private_key_to_public_key($privateKey['key'], false);
+        $x = $math->hexDec(substr($pubKey, 2, 64));
+        $y = $math->hexDec(substr($pubKey, 66, 64));
+        $point = $generator->getCurve()->getPoint($x, $y);
+
+        $_publicKey = new PublicKey($math, $generator, $point);
+        $_privateKey = $generator->getPrivateKeyFrom($key_dec);
+        $signer = new Signer($math);
+        $sign = $signer->sign($_privateKey, $messageHash, $k ?: $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
+
+        // calculate the recovery param
+        //  there should be a way to get this when signing too, but idk how ...
+        $i = self::calcPubKeyRecoveryParam($sign->getR(), $sign->getS(), $messageHash, $_publicKey->getPoint());
+
+        return base64_encode(self::encodeMessageSignature($sign, $i, true));
+    }
+
+    /**
+     * attempt to calculate the public key recovery param by trial and error
+     *
+     * @param                $r
+     * @param                $s
+     * @param                $e
+     * @param PointInterface $Q
+     * @return int
+     * @throws \Exception
+     */
+    private static function calcPubKeyRecoveryParam($r, $s, $e, PointInterface $Q)
+    {
+        $math = EccFactory::getAdapter();
+        $generator = EccFactory::getSecgCurves($math)->generator256k1();
+
+        for ($i = 0; $i < 4; $i++) {
+            if ($pubKey = self::recoverPubKey($r, $s, $e, $i, $generator)) {
+
+                if ($pubKey->getPoint()->getX() == $Q->getX() && $pubKey->getPoint()->getY() == $Q->getY()) {
+                    return $i;
+                }
+            }
+        }
+
+        throw new \Exception("Failed to find valid recovery factor");
+    }
+
+    /**
+     * encode a message signature
+     *
+     * @param Signature $signature
+     * @param           $i
+     * @param bool      $compressed
+     * @return string
+     * @throws \Exception
+     */
+    private static function encodeMessageSignature(Signature $signature, $i, $compressed = false)
+    {
+        if (!$compressed) {
+            throw new \Exception("Uncompressed message signing not supported!");
+        }
+
+        $val = $i + 27;
+        if ($compressed) {
+            $val += 4;
+        }
+
+        return hex2bin(implode("", [
+            BitcoinLib::hex_encode($val),
+            str_pad(BitcoinLib::hex_encode($signature->getR()), 64, '0', STR_PAD_LEFT),
+            str_pad(BitcoinLib::hex_encode($signature->getS()), 64, '0', STR_PAD_LEFT),
+        ]));
+    }
+
+    /**
+     * based on php-bitcoin-signature-routines implementation (which is based on bitcoinjs-lib's implementation)
+     * which is SEC 1: Elliptic Curve Cryptography, section 4.1.6, "Public Key Recovery Operation"
+     * http://www.secg.org/sec1-v2.pdf
+     *
+     * @param                $r
+     * @param                $s
+     * @param                $e
+     * @param                $recoveryFlags
+     * @param GeneratorPoint $G
+     * @return bool|PublicKey
+     */
+    private static function recoverPubKey($r, $s, $e, $recoveryFlags, GeneratorPoint $G)
+    {
+        $math = EccFactory::getAdapter();
+
+        $isYEven = ($recoveryFlags & 1) != 0;
+        $isSecondKey = ($recoveryFlags & 2) != 0;
+        $curve = $G->getCurve();
+        $signature = new Signature($r, $s);
+
+        // Precalculate (p + 1) / 4 where p is the field order
+        $p_over_four = $math->div($math->add($curve->getPrime(), 1), 4);
+
+        // 1.1 Compute x
+        if (!$isSecondKey) {
+            $x = $r;
+        } else {
+            $x = $math->add($r, $G->getOrder());
+        }
+
+        // 1.3 Convert x to point
+        $alpha = $math->mod($math->add($math->add($math->pow($x, 3), $math->mul($curve->getA(), $x)), $curve->getB()), $curve->getPrime());
+        $beta = $math->powmod($alpha, $p_over_four, $curve->getPrime());
+
+        // If beta is even, but y isn't or vice versa, then convert it,
+        // otherwise we're done and y == beta.
+        if (($math->mod($beta, 2) == 0) == $isYEven) {
+            $y = $math->sub($curve->getPrime(), $beta);
+        } else {
+            $y = $beta;
+        }
+
+        // 1.4 Check that nR is at infinity (implicitly done in constructor)
+        $R = $G->getCurve()->getPoint($x, $y);
+
+        $point_negate = function (PointInterface $p) use ($math, $G) {
+            return $G->getCurve()->getPoint($p->getX(), $math->mul($p->getY(), -1));
+        };
+
+        // 1.6.1 Compute a candidate public key Q = r^-1 (sR - eG)
+        $rInv = $math->inverseMod($r, $G->getOrder());
+        $eGNeg = $point_negate($G->mul($e));
+        $Q = $R->mul($s)->add($eGNeg)->mul($rInv);
+
+        // 1.6.2 Test Q as a public key
+        $signer = new Signer($math);
+        $Qk = new PublicKey($math, $G, $Q);
+        if ($signer->verify($Qk, $signature, $e)) {
+            return $Qk;
+        }
+
+        return false;
+    }
+
+    /**
+     * verify a signed message
+     * 
+     * @param $address
+     * @param $signature
+     * @param $message
+     * @return bool
+     */
+    public static function verifyMessage($address, $signature, $message)
+    {
+        $math = EccFactory::getAdapter();
+        $generator = EccFactory::getSecgCurves($math)->generator256k1();
+
+        // extract parameters
+        $address = substr(hex2bin(self::base58_decode($address)), 0, -4);
+        if (strlen($address) != 21 || $address[0] != hex2bin(self::magicByte())) {
+            throw new \InvalidArgumentException('invalid Bitcoin address');
+        }
+
+        $signature = base64_decode($signature, true);
+        if ($signature === false) {
+            throw new \InvalidArgumentException('invalid base64 signature');
+        }
+
+        if (strlen($signature) != 65) {
+            throw new \InvalidArgumentException('invalid signature length');
+        }
+
+        $recoveryFlags = ord($signature[0]) - 27;
+
+        if ($recoveryFlags < 0 || $recoveryFlags > 7) {
+            throw new \InvalidArgumentException('invalid signature type');
+        }
+
+        $isCompressed = ($recoveryFlags & 4) != 0;
+
+        // message is <varInt><prefix><varInt><message>
+        $messageHash = "\x18Bitcoin Signed Message:\n" . hex2bin(RawTransaction::_encode_vint(strlen($message))) . $message;
+        $messageHash = hash('sha256', hash('sha256', $messageHash, true), true);
+
+        try {
+            $pubkey = self::recoverPubKey(
+                $math->hexDec(bin2hex(substr($signature, 1, 32))),
+                $math->hexDec(bin2hex(substr($signature, 33, 32))),
+                $math->hexDec(bin2hex($messageHash)),
+                $recoveryFlags,
+                $generator
+            );
+        } catch (\Exception $e) {
+            throw new \Exception("unable to recover key", 0, $e);
+        }
+
+        if ($pubkey === false) {
+            throw new \Exception('unable to recover key');
+        }
+
+        $point = $pubkey->getPoint();
+
+        // see that the key we recovered is for the address given
+        if (!$isCompressed) {
+            $pubBinStr =
+                "\x04" .
+                str_pad(hex2bin(self::padHex($math->decHex($point->getX()))), 32, "\x00", STR_PAD_LEFT) .
+                str_pad(hex2bin(self::padHex($math->decHex($point->getY()))), 32, "\x00", STR_PAD_LEFT);
+        } else {
+            $pubBinStr =
+                (($math->mod($point->getY(), 2) == 0) ? "\x02" : "\x03") .
+                str_pad(hex2bin(self::padHex($math->decHex($point->getX()))), 32, "\x00", STR_PAD_LEFT);
+        }
+
+        $derivedAddress = hex2bin(self::magicByte()) . hash('ripemd160', hash('sha256', $pubBinStr, true), true);
+
+        return $address === $derivedAddress;
+    }
+
+    /**
+     * helper function to ensure a hex has all it's preceding 0's (which PHP tends to trim off)
+     * 
+     * @param      $hex
+     * @param null $length
+     * @return string
+     */
+    public static function padHex($hex, $length = null)
+    {
+        if (!$length) {
+            $length = strlen($hex);
+            if ($length % 2 !== 0) {
+                $length += 1;
+            }
+        }
+
+        return str_pad($hex, $length, "0", STR_PAD_LEFT);
+    }
+
+    /**
+     * convert a Satoshi value (int) to a BTC value (float value but as a string)
+     *
+     * @param int $satoshi
+     * @return string
+     */
+    public static function toBTC($satoshi)
+    {
+        return bcdiv((int)(string)$satoshi, 100000000, 8);
+    }
+
+    /**
+     * convert a Satoshi value (int) to a BTC value (float)
+     *  and return it as a string formatted with 8 decimals
+     *
+     * @param int $satoshi
+     * @return string
+     */
+    public static function toBTCString($satoshi)
+    {
+        return self::toBTC($satoshi);
+    }
+
+    /**
+     * convert a BTC value (float) to a Satoshi value (int)
+     *
+     * @param float $btc
+     * @return int
+     */
+    public static function toSatoshi($btc)
+    {
+        return (int)self::toSatoshiString($btc);
+    }
+
+    /**
+     * convert a BTC value (float) to a Satoshi value (int)
+     *  and return it as a string
+     *
+     * @param float $btc
+     * @return string
+     */
+    public static function toSatoshiString($btc)
+    {
+        return bcmul(sprintf("%.8f", (float)$btc), 100000000, 0);
     }
 }

@@ -5,68 +5,79 @@ use BitWasp\BitcoinLib\Jsonrpcclient;
 use BitWasp\BitcoinLib\RawTransaction;
 use BitWasp\BitcoinLib\Electrum;
 
-require_once(__DIR__. '/../vendor/autoload.php');
+class testAgainstRPC extends PHPUnit_Framework_TestCase
+{
+    /**
+     * @var Jsonrpcclient
+     */
+    private $client;
 
-class testAgainstRPC extends PHPUnit_Framework_TestCase {
+    public function __construct()
+    {
 
-    public function __construct() {
-        $this->magic_byte = '00';
-        $this->c = array('url' => 'http://bitcoinrpc:6Wk1SYL7JmPYoUeWjYRSdqij4xrM5rGBvC4kbJipLVJK@127.0.0.1:8332');
-        $this->client = new Jsonrpcclient($this->c);
-        if($this->client->getinfo() == null)
-            die("Can't connect to bitcoind");
     }
 
-    public function setup() {
-        $this->electrum = new Electrum();
-        $this->bitcoin = new BitcoinLib();
-        $this->rawtransaction = new RawTransaction();
+    public function setup()
+    {
+        if (!getenv('BITCOINLIB_TEST_AGAINST_RPC')) {
+            return $this->markTestSkipped("Not testing against RPC");
+        }
+
+        $rpcHost = getenv('BITCOINLIB_RPC_HOST') ?: '127.0.0.1';
+        $rpcUser = getenv('BITCOINLIB_RPC_USER') ?: 'bitcoinrpc';
+        $rpcPassword = getenv('BITCOINLIB_RPC_PASSWORD') ?: '6Wk1SYL7JmPYoUeWjYRSdqij4xrM5rGBvC4kbJipLVJK';
+
+        $this->client = new Jsonrpcclient(['url' => "http://{$rpcUser}:{$rpcPassword}@{$rpcHost}:8332"]);
+
+        if ($this->client->getinfo() == null) {
+            $this->fail("Can't connect to bitcoind");
+        }
     }
 
-    public function tearDown() {
-        $this->electrum = null;
-        $this->bitcoin = null;
-        $this->rawtransaction = null;
+    public function tearDown()
+    {
+
     }
 
-    public function testValidateAddresses() {
-        for($i = 0; $i < 5; $i++){
-            $set = $this->bitcoin->get_new_key_set($this->magic_byte, (bool)($i%2));
+    public function testValidateAddresses()
+    {
+        for ($i = 0; $i < 5; $i++) {
+            $set = BitcoinLib::get_new_key_set(null, (bool)($i % 2));
             $validate = $this->client->validateaddress($set['pubAdd']);
 
             // Ensure that the Bitcoind believes the address is valid, and that this matches what we think
             $this->assertTrue($validate['isvalid']);
-            $this->assertEquals($validate['isvalid'], $this->bitcoin->validate_address($set['pubAdd'],$this->magic_byte));
+            $this->assertEquals($validate['isvalid'], BitcoinLib::validate_address($set['pubAdd'], null, null));
 
         }
     }
 
-    public function testP2SHMultisig() {
+    public function testP2SHMultisig()
+    {
         $j = 0;
-        for($i = 0; $i < 5; $i++) {
-            $this->setup();
+        for ($i = 0; $i < 5; $i++) {
             $n = rand(1, 20);
             $m = rand(1, $n);
 
             $k = [];
             $pk_list = [];
 
-            for($i = 0; $i < $n; $i++){
-                $k[$i] = $this->bitcoin->get_new_key_set($this->magic_byte, (bool)($j++%2));
+            for ($i = 0; $i < $n; $i++) {
+                $k[$i] = BitcoinLib::get_new_key_set(null, (bool)($j++ % 2));
                 $pk_list[] = $k[$i]['pubKey'];
             }
 
-            $multisig = $this->rawtransaction->create_multisig($m, $pk_list);
+            $multisig = RawTransaction::create_multisig($m, $pk_list);
 
             $real = $this->client->createmultisig($m, $pk_list);
 
             $this->assertEquals($real['address'], $multisig['address']);
             $this->assertEquals($real['redeemScript'], $multisig['redeemScript']);
-            $this->tearDown();
         }
     }
 
-    public function testdecoderawtransaction() {
+    public function testdecoderawtransaction()
+    {
 
         $arr = [
             "010000000869c2997e9dd8ce50f9481a33971f0308e8d525ef8bf079f455fc7936d13f375a1f0000008a47304402202de0d834112506ed10549f751ce142094243390f3e035444f105b4764056314302205dfddc421b377c8b089182ddb3928ce02e73c86e5dfb9e66ca6a98810d7a2ac5014104b3d8c8c5896b0ed9537ccbdcfdf3f05cd4299988c72d078b841e0491bab198702c4befaa3da367c117c7c6217cd478c54b572e13de6ddd22c948f4b66c1562b5ffffffffab9aae4a00230f30795cd928225e9f69f7c0e6146c535b641541cb81aa09b5297b0000008a47304402205604456b1ed6dcae5e5f370568dd71c8bfb44823d583e3fa781ae8117ed831a30220154ee1c49bfca8bd1970953255498cb6bc347de1df267ed1b0f70385bca29184014104b3d8c8c5896b0ed9537ccbdcfdf3f05cd4299988c72d078b841e0491bab198702c4befaa3da367c117c7c6217cd478c54b572e13de6ddd22c948f4b66c1562b5ffffffffc036184c5aa93f74530359251e6ff63ab9e17ce7eb6f5d467c42675e318696e5010000008a47304402206c756a38757443794196d16e887c95b9b769b11c608b425e7580e4fcd8456642022040613fbff5e5412c8aa0c3a91b651a6fe6fcf793596a5e29bbc7bc5d73fc683a014104b3d8c8c5896b0ed9537ccbdcfdf3f05cd4299988c72d078b841e0491bab198702c4befaa3da367c117c7c6217cd478c54b572e13de6ddd22c948f4b66c1562b5ffffffff727107bfb37c254f12b4dfdda9ded7544ea6e44298a657ecb1863e00f88e0700110000008c493046022100c24b9c50820d19457fc5842a124500bf2371397144fc6166bdaa4a94275e9dda022100fc6c59286cfdc2fca4cca62d0a1b4e7dd8125a18aee59e630877f85101aa441a014104b3d8c8c5896b0ed9537ccbdcfdf3f05cd4299988c72d078b841e0491bab198702c4befaa3da367c117c7c6217cd478c54b572e13de6ddd22c948f4b66c1562b5fffffffffb862000126a61dba547524f7302bc68ea177cf00f7a49c5b834c0fd397c4dfe390000008b483045022100c837ec9105ddaa75250a38e9942a624754ecacb025feb024adfa8a77914e6eff0220538a1407d7ed8b7417421113ee29c3d9699f87780907b4121068740f1eb31d68014104b3d8c8c5896b0ed9537ccbdcfdf3f05cd4299988c72d078b841e0491bab198702c4befaa3da367c117c7c6217cd478c54b572e13de6ddd22c948f4b66c1562b5ffffffffdb35b57c65cf0fcdea54bfdebda43942d728001a06a9df0404a07801c87ccd8a090000008b483045022100b00faaa1b6a7c1cbe4c47791e302bbcbf1d4fee54cb3d1195d82ef05df0f8f0702207382b68bb44e8fadb0ae7b44f22a18df93e8e8e000d28c88f4fdff78d92a8316014104b3d8c8c5896b0ed9537ccbdcfdf3f05cd4299988c72d078b841e0491bab198702c4befaa3da367c117c7c6217cd478c54b572e13de6ddd22c948f4b66c1562b5ffffffff539ff8e14dab98db92dbbaff03dda50136470bb30bf9fb5b844eb356bc31362d1f0000008b48304502205e41d2112c190396173562d7957b16e0bba64a40adbe466cfe98778d30d91fa20221009f62ac2e345dbd16639b4269c86f156c050e5747013d2a452cdd8c25b8c9aeb9014104b3d8c8c5896b0ed9537ccbdcfdf3f05cd4299988c72d078b841e0491bab198702c4befaa3da367c117c7c6217cd478c54b572e13de6ddd22c948f4b66c1562b5ffffffffbc0dabbf27d0a58f0e2f5a36c11e7f270737ddc92ef0d8d1baacdeff24f39ed7110000008a473044021f3cfe420bd8a5baca342a3df2501f03165e8b8b76fea6fbc82dd05047c99fcd022100bfa829bce78d4f463abefbba943ea54dbbd931b5d7712e263eaf76d2779cf053014104b3d8c8c5896b0ed9537ccbdcfdf3f05cd4299988c72d078b841e0491bab198702c4befaa3da367c117c7c6217cd478c54b572e13de6ddd22c948f4b66c1562b5ffffffff023011e100000000001976a91431b07b8df3c19573388bb688b4fd89f6233f5d7988acf4f31400000000001976a914d17e062579b71bfe199a80991a253d929f8bd35b88ac00000000",
@@ -76,19 +87,21 @@ class testAgainstRPC extends PHPUnit_Framework_TestCase {
             "01000000011aaebeeb686e02c3471f0cf9f12eb6d69e45c3dd89cc0fa135e26ca72ec8d2c1020000006b483045022100f119173e52f8950dc0f369c64546746b900d621633f7a1d9b386232b5c21d6430220197f389584d087f34d250ffc8e5908a6ec9651fd02f64f200d3a60abe0df4287012102a1c5150347aa359ad363b7ccaf8602e7538de37935ebb2bb1656e20bfc6cd111ffffffff02b421e428000000001976a91443d6d50fb700dc1d98494942f8c378b8cbbb0def88ac80969800000000001976a9148e10169967933a59a77260277bb6f4d2869ed53088ac00000000"
         ];
 
-        foreach($arr as $tx) {
+        foreach ($arr as $tx) {
             $real = $this->client->decoderawtransaction($tx);
-            $decode = $this->rawtransaction->decode($tx);
+            $decode = RawTransaction::decode($tx);
             $count = count($real['vin']);
-            for($i = 0; $i < $count; $i++) {
+            for ($i = 0; $i < $count; $i++) {
                 $this->assertEquals($real['vin'][$i]['scriptSig']['hex'], $decode['vin'][$i]['scriptSig']['hex']);
             }
 
             $count = count($real['vout']);
-            for($i = 0; $i < $count; $i++) {
+            for ($i = 0; $i < $count; $i++) {
                 $this->assertEquals($real['vout'][$i]['scriptPubKey']['hex'], $decode['vout'][$i]['scriptPubKey']['hex']);
             }
         }
     }
 
-};
+}
+
+;
