@@ -156,13 +156,13 @@ class RawTransaction
         if ($decimal < 253) {
             $hint = self::_dec_to_bytes($decimal, 1);
             $num_bytes = 0;
-        } else if ($decimal < 65535) {
+        } elseif ($decimal < 65535) {
             $hint = 'fd';
             $num_bytes = 2;
-        } else if ($hex < 4294967295) {
+        } elseif ($hex < 4294967295) {
             $hint = 'fe';
             $num_bytes = 4;
-        } else if ($hex < 18446744073709551615) {
+        } elseif ($hex < 18446744073709551615) {
             $hint = 'ff';
             $num_bytes = 8;
         } else {
@@ -183,13 +183,13 @@ class RawTransaction
         if ($length < 75) {
             $l = self::_dec_to_bytes($length, 1);
             $string = $l . $script;
-        } else if ($length <= 0xff) {
+        } elseif ($length <= 0xff) {
             $l = self::_dec_to_bytes($length, 1);
             $string = '4c' . $l . $script;
-        } else if ($length <= 0xffff) {
+        } elseif ($length <= 0xffff) {
             $l = self::_dec_to_bytes($length, 2, true);
             $string = '4d' . $l . $script;
-        } else if ($length <= 0xffffffff) {
+        } elseif ($length <= 0xffffffff) {
             $l = self::_dec_to_bytes($length, 4, true);
             $string = '4e' . $l . $script;
         } else {
@@ -220,18 +220,18 @@ class RawTransaction
             if ($code < 1) {
                 // OP_FALSE
                 $push = '0';
-            } else if ($code <= 75) {
+            } elseif ($code <= 75) {
                 // $code bytes will be pushed to the stack.
                 $push = substr($script, $pos, ($code * 2));
                 $pos += $code * 2;
-            } else if ($code <= 78) {
+            } elseif ($code <= 78) {
                 // In this range, 2^($code-76) is the number of bytes to take for the *next* number onto the stack.
                 $szsz = 2 ^ ($code - 76); // decimal number of bytes.
                 $sz = hexdec(substr($script, $pos, ($szsz * 2))); // decimal number of bytes to load and push.
                 $pos += $szsz;
                 $push = substr($script, $pos, ($pos + $sz * 2)); // Load the data starting from the new position.
                 $pos += $sz * 2;
-            } else if ($code <= 96) {
+            } elseif ($code <= 96) {
                 // OP_x, where x = $code-80
                 $push = ($code - 80);
             } else {
@@ -303,7 +303,6 @@ class RawTransaction
     {
         $inputs = '';
         for ($i = 0; $i < $input_count; $i++) {
-
             if (isset($vin[$i]['coinbase'])) {
                 // Coinbase
                 $txHash = '0000000000000000000000000000000000000000000000000000000000000000';
@@ -348,11 +347,11 @@ class RawTransaction
                 // This checks if the OPCODE is defined from the list of constants.
                 $data[] = self::$op_code[$byte];
 
-            } else if (hexdec($byte) >= 0x01 && hexdec($byte) <= 0x4b) {
+            } elseif (hexdec($byte) >= 0x01 && hexdec($byte) <= 0x4b) {
                 // This checks if the OPCODE falls in the PUSHDATA range
                 $data[] = self::_return_bytes($script, hexdec($byte));
 
-            } else if (hexdec($byte) >= 0x52 && hexdec($byte) <= 0x60) {
+            } elseif (hexdec($byte) >= 0x52 && hexdec($byte) <= 0x60) {
                 // This checks if the CODE falls in the OP_X range
                 $data[] = 'OP_' . ($byte - 0x52);
             } else {
@@ -783,14 +782,14 @@ class RawTransaction
             $data['keys'] = array();
             $redeem_script = substr($redeem_script, 2);
 
-        } else if (count($data['keys']) == 0 && !isset($data['next_key_charlen'])) {
+        } elseif (count($data['keys']) == 0 && !isset($data['next_key_charlen'])) {
             // Next is to find out the length of the following public key.
             $hex = substr($redeem_script, 0, 2);
             // Set up the length of the following key.
             $data['next_key_charlen'] = $math->mul(2, $math->hexDec($hex));
 
             $redeem_script = substr($redeem_script, 2);
-        } else if (isset($data['next_key_charlen'])) {
+        } elseif (isset($data['next_key_charlen'])) {
             // Extract the key, and work out the next step for the code.
             $data['keys'][] = substr($redeem_script, 0, $data['next_key_charlen']);
             $next_op = substr($redeem_script, $data['next_key_charlen'], 2);
@@ -806,10 +805,9 @@ class RawTransaction
                 $data['next_key_charlen'] = $math->mul(2, $math->hexDec($next_op));
 
                 // If 52 <= $next_op >= 60 : End of keys, now have n.
-            } else if (in_array($math->cmp($math->hexDec($next_op), $math->hexDec('51')), array(0, 1))
+            } elseif (in_array($math->cmp($math->hexDec($next_op), $math->hexDec('51')), array(0, 1))
                 && in_array($math->cmp($math->hexDec($next_op), $math->hexDec('60')), array(-1, 0))
             ) {
-
                 // Finish the script - obtain n
                 $data['n'] = $math->sub($math->hexDec($next_op), $math->hexDec('50'));
                 if ($redeem_script !== 'ae') {
@@ -946,7 +944,7 @@ class RawTransaction
                 $o = self::_check_sig($signature, $message_hash[$i], $public_key);
                 $outcome = $outcome && $o;
 
-            } else if ($type_info['type'] == 'scripthash') {
+            } elseif ($type_info['type'] == 'scripthash') {
                 // Pay-to-script-hash. Check OP_FALSE <sig> ... <redeemScript>
                 $redeem_script_found = false;
                 $pubkey_found = false;
@@ -1091,12 +1089,10 @@ class RawTransaction
         $req_sigs = 0;
         $sign_count = 0;
         foreach ($decode['vin'] as $vin => $input) {
-
             $scriptPubKey = self::_decode_scriptPubKey($inputs_arr[$vin]->scriptPubKey);
             $tx_info = self::_get_transaction_type($scriptPubKey, $magic_byte, $magic_p2sh_byte);
 
             if (isset($wallet[$tx_info['hash160']])) {
-
                 $key_info = $wallet[$tx_info['hash160']];
                 $message_hash_dec = $math->hexDec($message_hash[$vin]);
 
@@ -1466,7 +1462,6 @@ class RawTransaction
 
         if (count($redeem_scripts) > 0) {
             foreach ($redeem_scripts as $script) {
-
                 $decode = self::decode_redeem_script($script);
                 if ($decode == false) {
                     continue;
