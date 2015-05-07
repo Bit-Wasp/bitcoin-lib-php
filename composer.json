@@ -26,8 +26,8 @@
         "ext-intl": "Required for BIP39 Mnemonic Seeds with UTF-8 passphrases"
     },
     "require-dev": {
-        "phpunit/phpunit": "~3.7",
-        "squizlabs/php_codesniffer": "~1.5"
+        "phpunit/phpunit": "~4.1",
+        "squizlabs/php_codesniffer": "~2"
     }
 }
 
