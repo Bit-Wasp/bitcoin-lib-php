@@ -253,7 +253,6 @@ class BIP32
 
         // Start building the address bytes tuple.
         foreach ($address_definition as &$def) {
-
             // Check if we want the prime derivation
             $want_prime = 0;
             if (strpos($def, "'") !== false) {

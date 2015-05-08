@@ -850,7 +850,6 @@ class BitcoinLib
 
         for ($i = 0; $i < 4; $i++) {
             if ($pubKey = self::recoverPubKey($r, $s, $e, $i, $generator)) {
-
                 if ($pubKey->getPoint()->getX() == $Q->getX() && $pubKey->getPoint()->getY() == $Q->getY()) {
                     return $i;
                 }
@@ -954,7 +953,7 @@ class BitcoinLib
 
     /**
      * verify a signed message
-     * 
+     *
      * @param $address
      * @param $signature
      * @param $message
@@ -1029,7 +1028,7 @@ class BitcoinLib
 
     /**
      * helper function to ensure a hex has all it's preceding 0's (which PHP tends to trim off)
-     * 
+     *
      * @param      $hex
      * @param null $length
      * @return string
