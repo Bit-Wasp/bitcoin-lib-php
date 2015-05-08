@@ -576,7 +576,7 @@ class RawTransaction
         $info = array();
         $info['txid'] = $txid;
         $info['version'] = $math->hexDec(self::_return_bytes($raw_transaction, 4, true), 16);
-        if (!in_array($info['version'], array('1'))) {
+        if (!in_array($info['version'], array('0', '1'))) {
             throw new \InvalidArgumentException("Invalid transaction version");
         }
 
