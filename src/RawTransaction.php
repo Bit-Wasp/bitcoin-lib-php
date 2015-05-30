@@ -211,6 +211,7 @@ class RawTransaction
      */
     public static function _decode_script($script)
     {
+        $math = EccFactory::getAdapter();
         $pos = 0;
         $data = array();
         while ($pos < strlen($script)) {
@@ -226,7 +227,7 @@ class RawTransaction
                 $pos += $code * 2;
             } elseif ($code <= 78) {
                 // In this range, 2^($code-76) is the number of bytes to take for the *next* number onto the stack.
-                $szsz = 2 ^ ($code - 76); // decimal number of bytes.
+                $szsz = pow(2, $code - 75); // decimal number of bytes.
                 $sz = hexdec(substr($script, $pos, ($szsz * 2))); // decimal number of bytes to load and push.
                 $pos += $szsz;
                 $push = substr($script, $pos, ($pos + $sz * 2)); // Load the data starting from the new position.
