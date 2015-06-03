@@ -348,7 +348,7 @@ class RawTransaction
      * @param    string $script
      * @return    string
      */
-    public static function _decode_scriptPubKey($script)
+    public static function _decode_scriptPubKey($script, $matchBitcoinCore = false)
     {
         $data = array();
         while (strlen($script) !== 0) {
@@ -357,7 +357,14 @@ class RawTransaction
 
             if (isset(self::$op_code[$byteHex])) {
                 // This checks if the OPCODE is defined from the list of constants.
-                $data[] = self::$op_code[$byteHex];
+
+                if ($matchBitcoinCore && self::$op_code[$byteHex] == "OP_0") {
+                    $data[] = '0';
+                } else if ($matchBitcoinCore && self::$op_code[$byteHex] == "OP_1") {
+                    $data[] = '1';
+                } else {
+                    $data[] = self::$op_code[$byteHex];
+                }
 
             } elseif ($byteInt >= 0x01 && $byteInt <= 0x4b) {
                 // This checks if the OPCODE falls in the PUSHDATA range
@@ -365,7 +372,7 @@ class RawTransaction
 
             } elseif ($byteInt >= 0x51 && $byteInt <= 0x60) {
                 // This checks if the CODE falls in the OP_X range
-                $data[] = 'OP_' . ($byteInt - 0x50);
+                $data[] = $matchBitcoinCore ? ($byteInt - 0x50) : 'OP_' . ($byteInt - 0x50);
             } else {
                 throw new \RuntimeException("Failed to decode scriptPubKey");
             }

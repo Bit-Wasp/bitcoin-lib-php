@@ -530,11 +530,21 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
         $vectors = [
             "51210240852c3c09ee317bd1373a5731a6af9ef8eea52c8c6870072c1c32aa6a36ded52103eb6972fe40be87fdeff93dc56764b3058c0d0fa2d282f680e818f26f558b1a3541049958b1816ebd74ee1a94ab80dd6557c439388ffccbc532bc852568fa0efcf096f0169639ac8103eff80ecea4acce7f7aae528c4ccee393c05000d17edc9e5d3c53ae" =>
                 "OP_1 0240852c3c09ee317bd1373a5731a6af9ef8eea52c8c6870072c1c32aa6a36ded5 03eb6972fe40be87fdeff93dc56764b3058c0d0fa2d282f680e818f26f558b1a35 049958b1816ebd74ee1a94ab80dd6557c439388ffccbc532bc852568fa0efcf096f0169639ac8103eff80ecea4acce7f7aae528c4ccee393c05000d17edc9e5d3c OP_3 OP_CHECKMULTISIG",
-
         ];
 
         foreach ($vectors as $hex => $asm) {
             $this->assertEquals($asm, RawTransaction::_decode_scriptPubKey($hex));
+        }
+    }
+
+    public function testDecodeScriptPubKeyMatchBitcoinCore() {
+        $vectors = [
+            "51210240852c3c09ee317bd1373a5731a6af9ef8eea52c8c6870072c1c32aa6a36ded52103eb6972fe40be87fdeff93dc56764b3058c0d0fa2d282f680e818f26f558b1a3541049958b1816ebd74ee1a94ab80dd6557c439388ffccbc532bc852568fa0efcf096f0169639ac8103eff80ecea4acce7f7aae528c4ccee393c05000d17edc9e5d3c53ae" =>
+                "1 0240852c3c09ee317bd1373a5731a6af9ef8eea52c8c6870072c1c32aa6a36ded5 03eb6972fe40be87fdeff93dc56764b3058c0d0fa2d282f680e818f26f558b1a35 049958b1816ebd74ee1a94ab80dd6557c439388ffccbc532bc852568fa0efcf096f0169639ac8103eff80ecea4acce7f7aae528c4ccee393c05000d17edc9e5d3c 3 OP_CHECKMULTISIG",
+        ];
+
+        foreach ($vectors as $hex => $asm) {
+            $this->assertEquals($asm, RawTransaction::_decode_scriptPubKey($hex, true));
         }
     }
 }
