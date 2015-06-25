@@ -6,10 +6,6 @@ use Mdanter\Ecc\EccFactory;
 
 class RawTransactionTest extends PHPUnit_Framework_TestCase
 {
-    public function __construct()
-    {
-
-    }
 
     public function setup()
     {
@@ -438,9 +434,9 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
             $randomMsgHash = $math->hexDec((string)hash('sha256', 'random' . $i));
             $randomK = $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM)));
 
-            $signer = new \Mdanter\Ecc\Signature\Signer($math);
+            $signer = new \Mdanter\Ecc\Crypto\Signature\Signer($math);
             $sign = $signer->sign($private, $randomMsgHash, $randomK);
-            $this->assertInstanceOf('Mdanter\Ecc\Signature\Signature', $sign);
+            $this->assertInstanceOf('Mdanter\Ecc\Crypto\Signature\Signature', $sign);
 
             $sig = RawTransaction::encode_signature($sign);
             $this->assertTrue(RawTransaction::is_canonical_signature($sig));

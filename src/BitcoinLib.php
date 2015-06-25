@@ -3,14 +3,11 @@
 namespace BitWasp\BitcoinLib;
 
 use Mdanter\Ecc\EccFactory;
-use Mdanter\Ecc\GeneratorPoint;
-use Mdanter\Ecc\NumberTheory;
-use Mdanter\Ecc\Point;
-use Mdanter\Ecc\PointInterface;
-use Mdanter\Ecc\PrivateKey;
-use Mdanter\Ecc\PublicKey;
-use Mdanter\Ecc\Signature\Signature;
-use Mdanter\Ecc\Signature\Signer;
+use Mdanter\Ecc\Primitives\GeneratorPoint;
+use Mdanter\Ecc\Primitives\PointInterface;
+use Mdanter\Ecc\Crypto\Signature\Signature;
+use Mdanter\Ecc\Crypto\Signature\Signer;
+use Mdanter\Ecc\Crypto\Key\PublicKey;
 
 /**
  * BitcoinLib
@@ -958,6 +955,7 @@ class BitcoinLib
      * @param $signature
      * @param $message
      * @return bool
+     * @throws \Exception
      */
     public static function verifyMessage($address, $signature, $message)
     {
