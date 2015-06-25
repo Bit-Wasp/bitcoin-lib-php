@@ -1007,7 +1007,7 @@ class RawTransaction
      * Outputs: Each output is a key in the array: address => $value.
      *
      * @param   array  $inputs
-     * @param   array  $outputs
+     * @param   array  $outputs     [address => value, ] or [[address, value], ] or [['address' => address, 'value' => value], ]
      * @param   string $magic_byte
      * @param   string $magic_p2sh_byte
      * @return  string|FALSE
@@ -1037,7 +1037,26 @@ class RawTransaction
 
         // Outputs is the set of [address/amount]
         $tx_array['vout'] = array();
-        foreach ($outputs as $address => $value) {
+        foreach ($outputs as $k => $v) {
+            if (is_numeric($k)) {
+                if (!is_array($v)) {
+                    throw new \InvalidArgumentException("outputs should be [address => value, ] or [[address, value], ] or [['address' => address, 'value' => value], ]");
+                }
+
+                if (isset($v['address']) && isset($v['value'])) {
+                    $address = $v['address'];
+                    $value = $v['value'];
+                } else if (count($v) == 2 && isset($v[0]) && isset($v[1])) {
+                    $address = $v[0];
+                    $value = $v[1];
+                } else {
+                    throw new \InvalidArgumentException("outputs should be [address => value, ] or [[address, value], ] or [['address' => address, 'value' => value], ]");
+                }
+            } else {
+                $address = $k;
+                $value = $v;
+            }
+
             if (!BitcoinLib::validate_address($address, $magic_byte, $magic_p2sh_byte)) {
                 throw new \InvalidArgumentException("Invalid address [{$address}]");
             }
