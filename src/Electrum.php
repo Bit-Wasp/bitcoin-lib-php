@@ -131,8 +131,7 @@ class Electrum
         $math = EccFactory::getAdapter();
         $gen = EccFactory::getSecgCurves($math)->generator256k1();
         // Generate the curve, and the generator point.
-        $curve = $gen->getCurve();
-
+        
         // Prepare the input values, by converting the MPK to X and Y coordinates
         $x = $math->hexDec(substr($mpk, 0, 64));
         $y = $math->hexDec(substr($mpk, 64, 64));
@@ -141,7 +140,7 @@ class Electrum
         $z = $math->hexDec(hash('sha256', hash('sha256', "$iteration:$change:" . pack('H*', $mpk), true)));
 
         // Add the Point defined by $x and $y, to the result of EC multiplication of $z by $gen
-        $pt = new Point($math, $curve, $x, $y, $gen->getOrder());
+        $pt = $gen->getCurve()->getPoint($x, $y, $gen->getOrder());
         $pt = $pt->add($gen->mul($z));
 
         // Generate the uncompressed public key.
