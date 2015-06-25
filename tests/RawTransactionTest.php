@@ -516,7 +516,7 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
         $this->assertEquals($txId, RawTransaction::txid_from_raw(RawTransaction::encode($tx)));
     }
 
-        public function testTxDecodeNonStandard() {
+    public function testTxDecodeNonStandard() {
         $txId = "e0c354620324422f59c9d62464a62240879cfb63856ebc60601da051522865ed";
         $raw = "0000000001e58a2b3e662984ec5a26c9d3bfbeab17c8bcb144d7b841ca2779b43f57424e23010000006b48304502210097166be10ed2660070929b68ea975e60ba4701bd5dbc2eb53290ce9ab6e5f9c502200222033604f63a4a7f97a29cd2039e97b4f9407544ced5ea6ec6371a223f2e98012103619344fbff8e9e203909cf9912c699f9d7ede4f3aa18b7545bfae16dd4c6df2effffffff020000000000000000216a1f4343484e01017b226d223a22746c222c2264223a7b2263223a223f63227d7d4847f50200000000226d784b4e7a3667583675627253457872326b66387556614539396d7a43536d78756900000000";
 
@@ -524,5 +524,27 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals($raw, RawTransaction::encode($tx));
         $this->assertEquals($txId, RawTransaction::txid_from_raw(RawTransaction::encode($tx)));
+    }
+
+    public function testDecodeScriptPubKey() {
+        $vectors = [
+            "51210240852c3c09ee317bd1373a5731a6af9ef8eea52c8c6870072c1c32aa6a36ded52103eb6972fe40be87fdeff93dc56764b3058c0d0fa2d282f680e818f26f558b1a3541049958b1816ebd74ee1a94ab80dd6557c439388ffccbc532bc852568fa0efcf096f0169639ac8103eff80ecea4acce7f7aae528c4ccee393c05000d17edc9e5d3c53ae" =>
+                "OP_1 0240852c3c09ee317bd1373a5731a6af9ef8eea52c8c6870072c1c32aa6a36ded5 03eb6972fe40be87fdeff93dc56764b3058c0d0fa2d282f680e818f26f558b1a35 049958b1816ebd74ee1a94ab80dd6557c439388ffccbc532bc852568fa0efcf096f0169639ac8103eff80ecea4acce7f7aae528c4ccee393c05000d17edc9e5d3c OP_3 OP_CHECKMULTISIG",
+        ];
+
+        foreach ($vectors as $hex => $asm) {
+            $this->assertEquals($asm, RawTransaction::_decode_scriptPubKey($hex));
+        }
+    }
+
+    public function testDecodeScriptPubKeyMatchBitcoinCore() {
+        $vectors = [
+            "51210240852c3c09ee317bd1373a5731a6af9ef8eea52c8c6870072c1c32aa6a36ded52103eb6972fe40be87fdeff93dc56764b3058c0d0fa2d282f680e818f26f558b1a3541049958b1816ebd74ee1a94ab80dd6557c439388ffccbc532bc852568fa0efcf096f0169639ac8103eff80ecea4acce7f7aae528c4ccee393c05000d17edc9e5d3c53ae" =>
+                "1 0240852c3c09ee317bd1373a5731a6af9ef8eea52c8c6870072c1c32aa6a36ded5 03eb6972fe40be87fdeff93dc56764b3058c0d0fa2d282f680e818f26f558b1a35 049958b1816ebd74ee1a94ab80dd6557c439388ffccbc532bc852568fa0efcf096f0169639ac8103eff80ecea4acce7f7aae528c4ccee393c05000d17edc9e5d3c 3 OP_CHECKMULTISIG",
+        ];
+
+        foreach ($vectors as $hex => $asm) {
+            $this->assertEquals($asm, RawTransaction::_decode_scriptPubKey($hex, true));
+        }
     }
 }

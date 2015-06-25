@@ -33,11 +33,21 @@ class RawTransaction
      *
      */
     public static $op_code = array(
-        '00' => 'OP_FALSE', '61' => 'OP_NOP', '6a' => 'OP_RETURN',
-        '76' => 'OP_DUP', '87' => 'OP_EQUAL', '88' => 'OP_EQUALVERIFY',
-        '51' => 'OP_TRUE', 'a6' => 'OP_RIPEMD160', 'a7' => 'OP_SHA1',
-        'a8' => 'OP_SHA256', 'a9' => 'OP_HASH160', 'aa' => 'OP_HASH256',
-        'ac' => 'OP_CHECKSIG', 'ae' => 'OP_CHECKMULTISIG');
+        '00' => 'OP_0', // or OP_FALSE
+        '51' => 'OP_1', // or OP_TRUE
+        '61' => 'OP_NOP',
+        '6a' => 'OP_RETURN',
+        '76' => 'OP_DUP',
+        '87' => 'OP_EQUAL',
+        '88' => 'OP_EQUALVERIFY',
+        'a6' => 'OP_RIPEMD160',
+        'a7' => 'OP_SHA1',
+        'a8' => 'OP_SHA256',
+        'a9' => 'OP_HASH160',
+        'aa' => 'OP_HASH256',
+        'ac' => 'OP_CHECKSIG',
+        'ae' => 'OP_CHECKMULTISIG'
+    );
 
     /**
      * Flip Byte Order
@@ -338,23 +348,31 @@ class RawTransaction
      * @param    string $script
      * @return    string
      */
-    public static function _decode_scriptPubKey($script)
+    public static function _decode_scriptPubKey($script, $matchBitcoinCore = false)
     {
         $data = array();
         while (strlen($script) !== 0) {
-            $byte = self::_return_bytes($script, 1);
+            $byteHex = self::_return_bytes($script, 1);
+            $byteInt = hexdec($byteHex);
 
-            if (isset(self::$op_code[$byte])) {
+            if (isset(self::$op_code[$byteHex])) {
                 // This checks if the OPCODE is defined from the list of constants.
-                $data[] = self::$op_code[$byte];
 
-            } elseif (hexdec($byte) >= 0x01 && hexdec($byte) <= 0x4b) {
+                if ($matchBitcoinCore && self::$op_code[$byteHex] == "OP_0") {
+                    $data[] = '0';
+                } else if ($matchBitcoinCore && self::$op_code[$byteHex] == "OP_1") {
+                    $data[] = '1';
+                } else {
+                    $data[] = self::$op_code[$byteHex];
+                }
+
+            } elseif ($byteInt >= 0x01 && $byteInt <= 0x4b) {
                 // This checks if the OPCODE falls in the PUSHDATA range
-                $data[] = self::_return_bytes($script, hexdec($byte));
+                $data[] = self::_return_bytes($script, $byteInt);
 
-            } elseif (hexdec($byte) >= 0x52 && hexdec($byte) <= 0x60) {
+            } elseif ($byteInt >= 0x51 && $byteInt <= 0x60) {
                 // This checks if the CODE falls in the OP_X range
-                $data[] = 'OP_' . ($byte - 0x52);
+                $data[] = $matchBitcoinCore ? ($byteInt - 0x50) : 'OP_' . ($byteInt - 0x50);
             } else {
                 throw new \RuntimeException("Failed to decode scriptPubKey");
             }
