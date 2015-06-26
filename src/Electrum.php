@@ -3,7 +3,6 @@
 namespace BitWasp\BitcoinLib;
 
 use Mdanter\Ecc\EccFactory;
-use Mdanter\Ecc\Point;
 
 /**
  * Electrum Library
@@ -90,6 +89,7 @@ class Electrum
      * @param    string $seed
      * @param    int    $iteration
      * @param    int    $change (optional)
+     * @return   string - hex private key
      */
     public static function generate_private_key($seed, $iteration, $change = 0)
     {
@@ -131,7 +131,6 @@ class Electrum
         $math = EccFactory::getAdapter();
         $gen = EccFactory::getSecgCurves($math)->generator256k1();
         // Generate the curve, and the generator point.
-        $curve = $gen->getCurve();
 
         // Prepare the input values, by converting the MPK to X and Y coordinates
         $x = $math->hexDec(substr($mpk, 0, 64));
@@ -141,7 +140,7 @@ class Electrum
         $z = $math->hexDec(hash('sha256', hash('sha256', "$iteration:$change:" . pack('H*', $mpk), true)));
 
         // Add the Point defined by $x and $y, to the result of EC multiplication of $z by $gen
-        $pt = new Point($math, $curve, $x, $y, $gen->getOrder());
+        $pt = $gen->getCurve()->getPoint($x, $y, $gen->getOrder());
         $pt = $pt->add($gen->mul($z));
 
         // Generate the uncompressed public key.
@@ -159,14 +158,17 @@ class Electrum
      * uses the public_key_from_mpk() function, and converts the result
      * to the bitcoin address.
      *
-     * @param    string $mpk
-     * @param    int    $iteration
+     * @param    string $mpk - master public key
+     * @param    int    $sequence - pubkey sequence # to derive
+     * @param    string $magic_byte for address
+     * @param    int    $change - 0 for regular sequence, 1 for change sequence
+     * @param    bool   $compressed - return the compressed address
      * @return    string
      */
-    public static function address_from_mpk($mpk, $iteration, $magic_byte, $change = 0, $compressed = false)
+    public static function address_from_mpk($mpk, $sequence, $magic_byte, $change = 0, $compressed = false)
     {
         $change = ($change == 0) ? 0 : 1;
-        $public_key = self::public_key_from_mpk($mpk, $iteration, $change, $compressed);
+        $public_key = self::public_key_from_mpk($mpk, $sequence, $change, $compressed);
         $address = BitcoinLib::public_key_to_address($public_key, $magic_byte);
         return $address;
     }

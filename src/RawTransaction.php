@@ -3,11 +3,9 @@
 namespace BitWasp\BitcoinLib;
 
 use Mdanter\Ecc\EccFactory;
-use Mdanter\Ecc\Point;
-use Mdanter\Ecc\PrivateKey;
-use Mdanter\Ecc\PublicKey;
-use Mdanter\Ecc\Signature\Signature;
-use Mdanter\Ecc\Signature\Signer;
+use Mdanter\Ecc\Crypto\Key\PublicKey;
+use Mdanter\Ecc\Crypto\Signature\Signature;
+use Mdanter\Ecc\Crypto\Signature\Signer;
 
 /**
  * Raw Transaction Library
@@ -221,7 +219,6 @@ class RawTransaction
      */
     public static function _decode_script($script)
     {
-        $math = EccFactory::getAdapter();
         $pos = 0;
         $data = array();
         while ($pos < strlen($script)) {
@@ -345,7 +342,8 @@ class RawTransaction
      * This function takes $script (hex) as an argument, and decodes an
      * script hex into an assembled human readable string.
      *
-     * @param    string $script
+     * @param     string $script
+     * @param     bool $matchBitcoinCore
      * @return    string
      */
     public static function _decode_scriptPubKey($script, $matchBitcoinCore = false)
@@ -485,7 +483,7 @@ class RawTransaction
      */
     public static function _decode_outputs(&$tx, $output_count, $magic_byte = null, $magic_p2sh_byte = null)
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $math = EccFactory::getAdapter();
 
         $magic_byte = BitcoinLib::magicByte($magic_byte);
         $magic_p2sh_byte = BitcoinLib::magicP2SHByte($magic_p2sh_byte);
@@ -494,7 +492,7 @@ class RawTransaction
         for ($i = 0; $i < $output_count; $i++) {
             // Pop 8 bytes (flipped) from the $tx string, convert to decimal,
             // and then convert to Satoshis.
-            $satoshis = $math->hexDec(self::_return_bytes($tx, 8, true), 16, 10);
+            $satoshis = $math->hexDec(self::_return_bytes($tx, 8, true));
 
             // Decode the varint for the length of the scriptPubKey
             $script_length = self::_get_vint($tx); // decimal number of bytes
@@ -577,7 +575,7 @@ class RawTransaction
      */
     public static function decode($raw_transaction, $magic_byte = null, $magic_p2sh_byte = null)
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $math = EccFactory::getAdapter();
 
         $magic_byte = BitcoinLib::magicByte($magic_byte);
         $magic_p2sh_byte = BitcoinLib::magicP2SHByte($magic_p2sh_byte);
@@ -594,7 +592,7 @@ class RawTransaction
 
         $info = array();
         $info['txid'] = $txid;
-        $info['version'] = $math->hexDec(self::_return_bytes($raw_transaction, 4, true), 16);
+        $info['version'] = $math->hexDec(self::_return_bytes($raw_transaction, 4, true));
         if (!in_array($info['version'], array('0', '1'))) {
             throw new \InvalidArgumentException("Invalid transaction version");
         }
@@ -746,8 +744,8 @@ class RawTransaction
      */
     public static function _check_sig($sig, $hash, $key)
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
-        $generator = \Mdanter\Ecc\EccFactory::getSecgCurves()->generator256k1();
+        $math = EccFactory::getAdapter();
+        $generator = EccFactory::getSecgCurves()->generator256k1();
         $curve = $generator->getCurve();
 
         $hash = $math->hexDec($hash);
@@ -783,7 +781,7 @@ class RawTransaction
      */
     public static function decode_redeem_script($redeem_script, $data = array())
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $math = EccFactory::getAdapter();
 
         // If there is no more work to be done (script is fully parsed, return the array)
         if (strlen($redeem_script) == 0) {
@@ -857,7 +855,7 @@ class RawTransaction
      */
     public static function create_redeem_script($m, $public_keys = array())
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $math = EccFactory::getAdapter();
 
         if (count($public_keys) == 0) {
             throw new \InvalidArgumentException("No public keys provided");
@@ -1091,8 +1089,8 @@ class RawTransaction
      */
     public static function sign($wallet, $raw_transaction, $inputs, $magic_byte = null, $magic_p2sh_byte = null)
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
-        $generator = \Mdanter\Ecc\EccFactory::getSecgCurves($math)->generator256k1();
+        $math = EccFactory::getAdapter();
+        $generator = EccFactory::getSecgCurves($math)->generator256k1();
 
         $magic_byte = BitcoinLib::magicByte($magic_byte);
         $magic_p2sh_byte = BitcoinLib::magicP2SHByte($magic_p2sh_byte);
@@ -1298,7 +1296,7 @@ class RawTransaction
      */
     public static function decode_signature($signature)
     {
-        $math = \Mdanter\Ecc\EccFactory::getAdapter();
+        $math = EccFactory::getAdapter();
 
         $r_start = 8;
         $r_length = $math->hexDec(substr($signature, 6, 2)) * 2;

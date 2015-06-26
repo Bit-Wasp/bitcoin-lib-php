@@ -103,8 +103,9 @@ class Jsonrpcclient
      * Performs a jsonRCP request and gets the results as an array
      *
      * @param string $method
-     * @param array  $params
-     * @return array
+     * @param array $params
+     * @return bool
+     * @throws \Exception
      */
     public function __call($method, $params)
     {
