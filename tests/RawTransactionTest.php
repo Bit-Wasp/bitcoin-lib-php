@@ -253,6 +253,37 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(BitcoinLib::toSatoshi(0.01373172), $tx['vout'][1]['value']);
     }
 
+    public function testCreateRawOpReturn()
+    {
+        /*
+         * struct 2:
+         * [['address' => address, 'value' => value], ]
+         */
+        $inputs = [
+            [
+                "txid" => "5a373fd13679fc55f479f08bef25d5e808031f97331a48f950ced89d7e99c269",
+                "vout" => 31,
+                "scriptPubKey" => "76a914d17e062579b71bfe199a80991a253d929f8bd35b88ac"
+            ],
+        ];
+        $outputs = [
+            ['address' => "15XjXdS1qTBy3i8vCCriWSAbm1qx5JgJVz", 'value' => BitcoinLib::toSatoshi(0.14750000)],
+            ['scriptPubKey' => "6a" /* OP_RETURN */ . "04" /* PUSH4 */ . bin2hex("TEST"), 'value' => 0]
+        ];
+
+        $raw = RawTransaction::create($inputs, $outputs);
+        $tx = RawTransaction::decode($raw);
+
+        $this->assertEquals("010000000169c2997e9dd8ce50f9481a33971f0308e8d525ef8bf079f455fc7936d13f375a1f00000000ffffffff023011e100000000001976a91431b07b8df3c19573388bb688b4fd89f6233f5d7988ac0000000000000000066a045445535400000000", $raw);
+        $this->assertEquals("15XjXdS1qTBy3i8vCCriWSAbm1qx5JgJVz", $tx['vout'][0]['scriptPubKey']['addresses'][0]);
+        $this->assertEquals(BitcoinLib::toSatoshi(0.14750000), $tx['vout'][0]['value']);
+
+        $script = explode(" ", $tx['vout'][1]['scriptPubKey']['asm']);
+        $this->assertEquals(2, count($script));
+        $this->assertEquals("OP_RETURN", $script[0]);
+        $this->assertEquals("TEST", hex2bin($script[1]));
+    }
+
     public function testCreateRawMultipleOutputsSameAddress()
     {
         /*
