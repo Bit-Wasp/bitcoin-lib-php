@@ -1007,7 +1007,9 @@ class RawTransaction
      * Outputs: Each output is a key in the array: address => $value.
      *
      * @param   array  $inputs
-     * @param   array  $outputs     [address => value, ] or [[address, value], ] or [['address' => address, 'value' => value], ]
+     * @param   array  $outputs [address => value, ] or [[address, value], ]
+     *                          or [['address' => address, 'value' => value], ]
+     *                          or [['scriptPubKey' => scriptPubKey, 'value' => value], ]
      * @param   string $magic_byte
      * @param   string $magic_p2sh_byte
      * @return  string|FALSE
@@ -1028,58 +1030,69 @@ class RawTransaction
                 throw new \InvalidArgumentException("Invalid input [{$i}]");
             }
 
-            $tx_array['vin'][] = array('txid' => $input['txid'],
+            $tx_array['vin'][] = [
+                'txid' => $input['txid'],
                 'vout' => $input['vout'],
                 'sequence' => (isset($input['sequence'])) ? $input['sequence'] : 4294967295,
-                'scriptSig' => array('hex' => '')
-            );
+                'scriptSig' => ['hex' => '']
+            ];
         }
 
         // Outputs is the set of [address/amount]
         $tx_array['vout'] = array();
         foreach ($outputs as $k => $v) {
+            $address = null;
+            $scriptPubKey = null;
+
             if (is_numeric($k)) {
                 if (!is_array($v)) {
-                    throw new \InvalidArgumentException("outputs should be [address => value, ] or [[address, value], ] or [['address' => address, 'value' => value], ]");
+                    throw new \InvalidArgumentException("outputs should be [address => value, ] or [[address, value], ]" .
+                        "or [['address' => address, 'value' => value], ] or [['scriptPubKey' => scriptPubKey, 'value' => value], ]");
                 }
 
-                if (isset($v['address']) && isset($v['value'])) {
+                if (isset($v['scriptPubKey']) && isset($v['value'])) {
+                    $scriptPubKey = $v['scriptPubKey'];
+                    $value = $v['value'];
+                } else if (isset($v['address']) && isset($v['value'])) {
                     $address = $v['address'];
                     $value = $v['value'];
                 } else if (count($v) == 2 && isset($v[0]) && isset($v[1])) {
                     $address = $v[0];
                     $value = $v[1];
                 } else {
-                    throw new \InvalidArgumentException("outputs should be [address => value, ] or [[address, value], ] or [['address' => address, 'value' => value], ]");
+                    throw new \InvalidArgumentException("outputs should be [address => value, ] or [[address, value], ]" .
+                        "or [['address' => address, 'value' => value], ] or [['scriptPubKey' => scriptPubKey, 'value' => value], ]");
                 }
             } else {
                 $address = $k;
                 $value = $v;
             }
 
-            if (!BitcoinLib::validate_address($address, $magic_byte, $magic_p2sh_byte)) {
-                throw new \InvalidArgumentException("Invalid address [{$address}]");
-            }
-
             if (!is_int($value)) {
                 throw new \InvalidArgumentException("Values should be in Satoshis [{$value}]");
             }
+            if (!$scriptPubKey) {
+                if (!BitcoinLib::validate_address($address, $magic_byte, $magic_p2sh_byte)) {
+                    throw new \InvalidArgumentException("Invalid address [{$address}]");
+                }
 
-            $decode_address = BitcoinLib::base58_decode($address);
-            $version = substr($decode_address, 0, 2);
-            $hash = substr($decode_address, 2, 40);
+                $decode_address = BitcoinLib::base58_decode($address);
+                $version = substr($decode_address, 0, 2);
+                $hash = substr($decode_address, 2, 40);
 
-            if ($version == $magic_p2sh_byte) {
-                // OP_HASH160 <scriptHash> OP_EQUAL
-                $scriptPubKey = "a914{$hash}87";
-            } else {
-                // OP_DUP OP_HASH160 <pubKeyHash> OP_EQUALVERIFY OP_CHECKSIG
-                $scriptPubKey = "76a914{$hash}88ac";
+                if ($version == $magic_p2sh_byte) {
+                    // OP_HASH160 <scriptHash> OP_EQUAL
+                    $scriptPubKey = "a914{$hash}87";
+                } else {
+                    // OP_DUP OP_HASH160 <pubKeyHash> OP_EQUALVERIFY OP_CHECKSIG
+                    $scriptPubKey = "76a914{$hash}88ac";
+                }
             }
 
-            $tx_array['vout'][] = array('value' => $value,
-                'scriptPubKey' => array('hex' => $scriptPubKey)
-            );
+            $tx_array['vout'][] = [
+                'value' => $value,
+                'scriptPubKey' => ['hex' => $scriptPubKey]
+            ];
         }
 
         $tx_array['locktime'] = 0;
