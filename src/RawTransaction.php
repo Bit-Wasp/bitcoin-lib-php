@@ -25,6 +25,12 @@ use Mdanter\Ecc\Crypto\Signature\Signer;
  */
 class RawTransaction
 {
+    /**
+     * used in _check_sig to determine if we want to fail on high S values
+     *
+     * @var bool
+     */
+    const ALLOW_HIGH_S = true;
 
     /**
      * Some of the defined OP CODES available in Bitcoins script.
@@ -740,17 +746,25 @@ class RawTransaction
      * @param    string $sig
      * @param    string $hash
      * @param    string $key
-     * @return    boolean
+     * @param    bool   $allowHighS
+     * @return bool
      */
-    public static function _check_sig($sig, $hash, $key)
+    public static function _check_sig($sig, $hash, $key, $allowHighS = self::ALLOW_HIGH_S)
     {
         $math = EccFactory::getAdapter();
         $generator = EccFactory::getSecgCurves()->generator256k1();
         $curve = $generator->getCurve();
 
         $hash = $math->hexDec($hash);
-        $signature = self::decode_signature($sig);
-        $test_signature = new Signature($math->hexDec($signature['r']), $math->hexDec($signature['s']));
+        $decodedSignature = self::decode_signature($sig);
+        $signature = new Signature($math->hexDec($decodedSignature['r']), $math->hexDec($decodedSignature['s']));
+
+        if (!$allowHighS) {
+            // if S is > half then someone should have fixed it
+            if (self::check_signature_is_high_s($signature)) {
+                return false;
+            }
+        }
 
         if (strlen($key) == '66') {
             $decompress = BitcoinLib::decompress_public_key($key);
@@ -765,7 +779,20 @@ class RawTransaction
         $signer = new Signer($math);
         $public_key = new PublicKey($math, $generator, $public_key_point);
 
-        return $signer->verify($public_key, $test_signature, $hash) == true;
+        return $signer->verify($public_key, $signature, $hash) == true;
+    }
+
+    public static function check_signature_is_high_s(Signature $signature)
+    {
+        $math = EccFactory::getAdapter();
+        $generator = EccFactory::getSecgCurves()->generator256k1();
+
+        $n = $generator->getOrder();
+        $against = $n;
+        $against = $math->rightShift($against, 1);
+
+        // if S is > half then someone should have substracted N
+        return $math->cmp($signature->getS(), $against) > 0;
     }
 
     /**
@@ -935,9 +962,10 @@ class RawTransaction
      * @param    string $json_string
      * @param    string $magic_byte
      * @param    string $magic_p2sh_byte
-     * @return    boolean
+     * @param    bool   $allowHighS
+     * @return bool
      */
-    public static function validate_signed_transaction($raw_tx, $json_string, $magic_byte = null, $magic_p2sh_byte = null)
+    public static function validate_signed_transaction($raw_tx, $json_string, $magic_byte = null, $magic_p2sh_byte = null, $allowHighS = self::ALLOW_HIGH_S)
     {
         $magic_byte = BitcoinLib::magicByte($magic_byte);
         $magic_p2sh_byte = BitcoinLib::magicP2SHByte($magic_p2sh_byte);
@@ -958,7 +986,7 @@ class RawTransaction
                 $signature = $scripts[0];
 
                 $public_key = $scripts[1];
-                $o = self::_check_sig($signature, $message_hash[$i], $public_key);
+                $o = self::_check_sig($signature, $message_hash[$i], $public_key, $allowHighS);
                 $outcome = $outcome && $o;
 
             } elseif ($type_info['type'] == 'scripthash') {
@@ -984,7 +1012,7 @@ class RawTransaction
                 foreach ($scripts as $signature) {
                     // Test each signature with the public keys in the redeemScript.
                     foreach ($redeemScript['keys'] as $public_key) {
-                        if (self::_check_sig($signature, $message_hash[$i], $public_key) == true) {
+                        if (self::_check_sig($signature, $message_hash[$i], $public_key, $allowHighS) == true) {
                             $pubkey_found = true;
                             break 2;
                         }
@@ -1046,8 +1074,10 @@ class RawTransaction
 
             if (is_numeric($k)) {
                 if (!is_array($v)) {
-                    throw new \InvalidArgumentException("outputs should be [address => value, ] or [[address, value], ]" .
-                        "or [['address' => address, 'value' => value], ] or [['scriptPubKey' => scriptPubKey, 'value' => value], ]");
+                    throw new \InvalidArgumentException(
+                        "outputs should be [address => value, ] or [[address, value], ]" .
+                        "or [['address' => address, 'value' => value], ] or [['scriptPubKey' => scriptPubKey, 'value' => value], ]"
+                    );
                 }
 
                 if (isset($v['scriptPubKey']) && isset($v['value'])) {
@@ -1060,8 +1090,10 @@ class RawTransaction
                     $address = $v[0];
                     $value = $v[1];
                 } else {
-                    throw new \InvalidArgumentException("outputs should be [address => value, ] or [[address, value], ]" .
-                        "or [['address' => address, 'value' => value], ] or [['scriptPubKey' => scriptPubKey, 'value' => value], ]");
+                    throw new \InvalidArgumentException(
+                        "outputs should be [address => value, ] or [[address, value], ]" .
+                        "or [['address' => address, 'value' => value], ] or [['scriptPubKey' => scriptPubKey, 'value' => value], ]"
+                    );
                 }
             } else {
                 $address = $k;
@@ -1243,6 +1275,15 @@ class RawTransaction
      */
     public static function encode_signature(Signature $signature)
     {
+        $math = EccFactory::getAdapter();
+        $generator = EccFactory::getSecgCurves($math)->generator256k1();
+
+        // if S is > half then we substract from N
+        if (self::check_signature_is_high_s($signature)) {
+            $n = $generator->getOrder();
+            $signature = new Signature($signature->getR(), $math->sub($n, $signature->getS()));
+        }
+
         $rBin = pack("H*", BitcoinLib::hex_encode($signature->getR()));
         $sBin = pack("H*", BitcoinLib::hex_encode($signature->getS()));
 

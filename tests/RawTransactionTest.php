@@ -369,7 +369,7 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
 
         for ($i = 0; $i < $cnt; $i++) {
             $sign = RawTransaction::sign($wallet, $raw_transaction, $json_inputs);
-            $this->assertTrue(RawTransaction::validate_signed_transaction($sign['hex'], $json_inputs));
+            $this->assertTrue(RawTransaction::validate_signed_transaction($sign['hex'], $json_inputs, null, null, /* allowHighS */ false));
         }
     }
 
@@ -580,8 +580,28 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
             }
 
             $this->fail('Failed testing for case: ' . $test[0]);
-
         }
+    }
+
+    public function testSigLowS()
+    {
+        $rawWithHighS = "01000000011c615595ac93432de87bcc519f2ddffce1a5f88bd4ec3e586c56e05b35e13767000000006c493046022100e1dcb3bd5ed0cdaede2ebcab940b3c93a9cd76dbb715a31e14b1a7ca25be74a7022100ff271e52db90a34e432d9993328eb580070a895795a067ede23201a97de13c1e012102b8caae0de72e5d1904366d3393b4f81d2504da3ab2906c440deab0c442461846ffffffff01983a0000000000001976a914f444a269154eb560bebd424c2b406f1789ed49d688ac00000000";
+        $json_inputs = json_encode(
+            array(
+                array(
+                    'txid' => '6737e1355be0566c583eecd48bf8a5e1fcdf2d9f51cc7be82d4393ac9555611c',
+                    'vout' => 0,
+                    // OP_DUP OP_HASH160 push14bytes PkHash OP_EQUALVERIFY OP_CHECKSIG
+                    'scriptPubKey' => '76a914' . '7e3f939e8ded8c0d93695310d6d481ae5da39616' . '88ac'
+                )
+            )
+        );
+
+        // allowHighS = false
+        $this->assertFalse(RawTransaction::validate_signed_transaction($rawWithHighS, $json_inputs, null, null, false));
+
+        // allowHighS = true
+        $this->assertTrue(RawTransaction::validate_signed_transaction($rawWithHighS, $json_inputs, null, null, true));
     }
 
     public function testSignAndIsCanonical()
