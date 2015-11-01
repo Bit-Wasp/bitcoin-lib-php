@@ -1,9 +1,11 @@
 bitcoin-lib-php
 ===============
 
+PHP libraries implementing bitcoin key functions, as well as BIP32 and electrum.
+
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Bit-Wasp/bitcoin-lib-php?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-PHP libraries implementing bitcoin key functions, as well as BIP32 and electrum.
+> NB: This library is outdated, and no longer maintained. BC breaks will not be accepted for this reason. For a newer library, please see https://github.com/Bit-Wasp/bitcoin-php
 
 The library intends to expose a lot of general functionality which isn't 
 available using the RPC (like deterministic addresses). 
