@@ -29,7 +29,7 @@ Installation
 ============
 
 Installing via Composer (recommended)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------
 
 1. Install Composer in your project:
 
