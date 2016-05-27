@@ -1105,11 +1105,6 @@ class BitcoinLib
         $generator = EccFactory::getSecgCurves($math)->generator256k1();
 
         // extract parameters
-        $address = substr(hex2bin(self::base58_decode($address)), 0, -4);
-        if (strlen($address) != 21 || $address[0] != hex2bin(self::magicByte())) {
-            throw new \InvalidArgumentException('invalid Bitcoin address');
-        }
-
         $signature = base64_decode($signature, true);
         if ($signature === false) {
             throw new \InvalidArgumentException('invalid base64 signature');
