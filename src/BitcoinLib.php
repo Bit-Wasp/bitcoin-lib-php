@@ -1088,4 +1088,81 @@ class BitcoinLib
     {
         return bcmul(sprintf("%.8f", (float)$btc), 100000000, 0);
     }
+    
+    
+    /**
+     * derive the public address of the key used to verify a signed message
+     * functionally identical to verifyMessage function but different return value
+     *
+     * @param $signature
+     * @param $message
+     * @return string
+     * @throws \Exception
+     */
+    public static function deriveAddressFromMessage($signature, $message)
+    {
+        $math = EccFactory::getAdapter();
+        $generator = EccFactory::getSecgCurves($math)->generator256k1();
+
+        // extract parameters
+        $address = substr(hex2bin(self::base58_decode($address)), 0, -4);
+        if (strlen($address) != 21 || $address[0] != hex2bin(self::magicByte())) {
+            throw new \InvalidArgumentException('invalid Bitcoin address');
+        }
+
+        $signature = base64_decode($signature, true);
+        if ($signature === false) {
+            throw new \InvalidArgumentException('invalid base64 signature');
+        }
+
+        if (strlen($signature) != 65) {
+            throw new \InvalidArgumentException('invalid signature length');
+        }
+
+        $recoveryFlags = ord($signature[0]) - 27;
+
+        if ($recoveryFlags < 0 || $recoveryFlags > 7) {
+            throw new \InvalidArgumentException('invalid signature type');
+        }
+
+        $isCompressed = ($recoveryFlags & 4) != 0;
+
+        // message is <varInt><prefix><varInt><message>
+        $messageHash = "\x18Bitcoin Signed Message:\n" . hex2bin(RawTransaction::_encode_vint(strlen($message))) . $message;
+        $messageHash = hash('sha256', hash('sha256', $messageHash, true), true);
+
+        try {
+            $pubkey = self::recoverPubKey(
+                $math->hexDec(bin2hex(substr($signature, 1, 32))),
+                $math->hexDec(bin2hex(substr($signature, 33, 32))),
+                $math->hexDec(bin2hex($messageHash)),
+                $recoveryFlags,
+                $generator
+            );
+        } catch (\Exception $e) {
+            throw new \Exception("unable to recover key", 0, $e);
+        }
+
+        if ($pubkey === false) {
+            throw new \Exception('unable to recover key');
+        }
+
+        $point = $pubkey->getPoint();
+
+        // see that the key we recovered is for the address given
+        if (!$isCompressed) {
+            $pubBinStr =
+                "\x04" .
+                str_pad(hex2bin(self::padHex($math->decHex($point->getX()))), 32, "\x00", STR_PAD_LEFT) .
+                str_pad(hex2bin(self::padHex($math->decHex($point->getY()))), 32, "\x00", STR_PAD_LEFT);
+        } else {
+            $pubBinStr =
+                (($math->mod($point->getY(), 2) == 0) ? "\x02" : "\x03") .
+                str_pad(hex2bin(self::padHex($math->decHex($point->getX()))), 32, "\x00", STR_PAD_LEFT);
+        }
+
+        $derivedAddress = hex2bin(self::magicByte()) . hash('ripemd160', hash('sha256', $pubBinStr, true), true);
+
+        return $derivedAddress;
+    }    
 }
