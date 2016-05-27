@@ -1091,15 +1091,14 @@ class BitcoinLib
     
     
     /**
-     * derive the public address of the key used to verify a signed message
-     * functionally identical to verifyMessage function but different return value
+     * derive the public btc address of the key used to verify a signed message
      *
      * @param $signature
      * @param $message
      * @return string
      * @throws \Exception
      */
-    public static function deriveAddressFromMessage($signature, $message)
+    public static function deriveAddressFromSignature($signature, $message)
     {
         $math = EccFactory::getAdapter();
         $generator = EccFactory::getSecgCurves($math)->generator256k1();
@@ -1155,9 +1154,9 @@ class BitcoinLib
                 (($math->mod($point->getY(), 2) == 0) ? "\x02" : "\x03") .
                 str_pad(hex2bin(self::padHex($math->decHex($point->getX()))), 32, "\x00", STR_PAD_LEFT);
         }
-
-        $derivedAddress = hex2bin(self::magicByte()) . hash('ripemd160', hash('sha256', $pubBinStr, true), true);
-
+        
+        $derivedAddress = self::public_key_to_address(bin2hex($pubBinStr));
+        
         return $derivedAddress;
     }    
 }
