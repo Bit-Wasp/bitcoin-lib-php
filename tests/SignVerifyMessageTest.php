@@ -132,4 +132,19 @@ class SignVerifyMessageTest extends PHPUnit_Framework_TestCase
             $this->assertTrue($rpc->verifymessage($row['address'], $signature, $row['address']));
         }
     }
+    
+    
+    public function testDeriveAddressFromSignature()
+    {
+        $k = "40830342147156906673307227534819286677883886097095155210766904187107130350230"; // fixed K value for testing
+
+        $WIF = "KxuKf1nB3nZ5eYVFVuCgvH5EFM8iUSWqmqJ9bAQukekYgPbju4FL";
+        $privKey = BitcoinLib::WIF_to_private_key($WIF);
+        $test_message = 'this is a test';
+        $true_address = '12XJYLMM9ZoDZjmBZ1SeFANhgCVjwNYgVm';
+        $test_sig = BitcoinLib::signMessage($test_message, $privKey, $k);
+        $derived = BitcoinLib::deriveAddressFromSignature($test_sig, $test_message);
+        
+        $this->assertEquals($true_address, $derived);
+    }    
 }
