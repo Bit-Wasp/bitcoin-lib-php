@@ -369,11 +369,9 @@ class RawTransaction
                 } else {
                     $data[] = self::$op_code[$byteHex];
                 }
-
             } elseif ($byteInt >= 0x01 && $byteInt <= 0x4b) {
                 // This checks if the OPCODE falls in the PUSHDATA range
                 $data[] = self::_return_bytes($script, $byteInt);
-
             } elseif ($byteInt >= 0x51 && $byteInt <= 0x60) {
                 // This checks if the CODE falls in the OP_X range
                 $data[] = $matchBitcoinCore ? ($byteInt - 0x50) : 'OP_' . ($byteInt - 0x50);
@@ -528,7 +526,6 @@ class RawTransaction
                 'value' => $satoshis,
                 'vout' => $i,
                 'scriptPubKey' => $scriptPubKey);
-
         }
         return $outputs;
     }
@@ -723,7 +720,6 @@ class RawTransaction
                 // and calculate a double sha256 hash for this input.
                 $hash[] = hash('sha256', hash('sha256', pack("H*", self::encode($copy) . $sighashcode), true));
             }
-
         } else {
             // Return a message hash for the specified output.
             $copy = $decode;
@@ -825,7 +821,6 @@ class RawTransaction
             $data['m'] = $math->sub($math->hexDec(substr($redeem_script, 0, 2)), $math->hexDec('50'));
             $data['keys'] = array();
             $redeem_script = substr($redeem_script, 2);
-
         } elseif (count($data['keys']) == 0 && !isset($data['next_key_charlen'])) {
             // Next is to find out the length of the following public key.
             $hex = substr($redeem_script, 0, 2);
@@ -988,7 +983,6 @@ class RawTransaction
                 $public_key = $scripts[1];
                 $o = self::_check_sig($signature, $message_hash[$i], $public_key, $allowHighS);
                 $outcome = $outcome && $o;
-
             } elseif ($type_info['type'] == 'scripthash') {
                 // Pay-to-script-hash. Check OP_FALSE <sig> ... <redeemScript>
                 $redeem_script_found = false;
@@ -1572,7 +1566,6 @@ class RawTransaction
                     'address' => BitcoinLib::hash160_to_address($scripthash, $magic_p2sh_byte),
                     'public_keys' => $decode['keys'],
                     'keys' => $keys);
-
             }
         }
     }
