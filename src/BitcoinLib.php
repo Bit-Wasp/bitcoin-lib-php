@@ -660,7 +660,6 @@ class BitcoinLib
 
             $y_coordinate = str_pad($math->decHex($y), 64, '0', STR_PAD_LEFT);
             $point = $curve->getPoint($x, $y);
-
         } catch (\Exception $e) {
             throw new \InvalidArgumentException("Invalid public key");
         }
@@ -706,7 +705,6 @@ class BitcoinLib
             } catch (\Exception $e) {
                 return false;
             }
-
         }
 
         return false;
@@ -1049,7 +1047,7 @@ class BitcoinLib
     public static function deriveAddressFromSignature($signature, $message, $as_bin = false)
     {
         $pubkey = self::derivePubKeyFromSignature($signature, $message, $as_bin);
-        if($as_bin){
+        if ($as_bin) {
             return hex2bin(self::magicByte()) . hash('ripemd160', hash('sha256', $pubkey, true), true);
         }
         return self::public_key_to_address($pubkey);
@@ -1064,7 +1062,7 @@ class BitcoinLib
      * @param false $as_bin
      * @return string
      * @throws \Exception
-     */    
+     */
     public static function derivePubKeyFromSignature($signature, $message, $as_bin = false)
     {
         $math = EccFactory::getAdapter();
@@ -1122,7 +1120,7 @@ class BitcoinLib
                 str_pad(hex2bin(self::padHex($math->decHex($point->getX()))), 32, "\x00", STR_PAD_LEFT);
         }
         
-        if(!$as_bin){
+        if (!$as_bin) {
             return bin2hex($pubBinStr);
         }
         
