@@ -959,67 +959,14 @@ class BitcoinLib
      */
     public static function verifyMessage($address, $signature, $message)
     {
-        $math = EccFactory::getAdapter();
-        $generator = EccFactory::getSecgCurves($math)->generator256k1();
-
         // extract parameters
         $address = substr(hex2bin(self::base58_decode($address)), 0, -4);
         if (strlen($address) != 21 || $address[0] != hex2bin(self::magicByte())) {
             throw new \InvalidArgumentException('invalid Bitcoin address');
         }
-
-        $signature = base64_decode($signature, true);
-        if ($signature === false) {
-            throw new \InvalidArgumentException('invalid base64 signature');
-        }
-
-        if (strlen($signature) != 65) {
-            throw new \InvalidArgumentException('invalid signature length');
-        }
-
-        $recoveryFlags = ord($signature[0]) - 27;
-
-        if ($recoveryFlags < 0 || $recoveryFlags > 7) {
-            throw new \InvalidArgumentException('invalid signature type');
-        }
-
-        $isCompressed = ($recoveryFlags & 4) != 0;
-
-        // message is <varInt><prefix><varInt><message>
-        $messageHash = "\x18Bitcoin Signed Message:\n" . hex2bin(RawTransaction::_encode_vint(strlen($message))) . $message;
-        $messageHash = hash('sha256', hash('sha256', $messageHash, true), true);
-
-        try {
-            $pubkey = self::recoverPubKey(
-                $math->hexDec(bin2hex(substr($signature, 1, 32))),
-                $math->hexDec(bin2hex(substr($signature, 33, 32))),
-                $math->hexDec(bin2hex($messageHash)),
-                $recoveryFlags,
-                $generator
-            );
-        } catch (\Exception $e) {
-            throw new \Exception("unable to recover key", 0, $e);
-        }
-
-        if ($pubkey === false) {
-            throw new \Exception('unable to recover key');
-        }
-
-        $point = $pubkey->getPoint();
-
-        // see that the key we recovered is for the address given
-        if (!$isCompressed) {
-            $pubBinStr =
-                "\x04" .
-                str_pad(hex2bin(self::padHex($math->decHex($point->getX()))), 32, "\x00", STR_PAD_LEFT) .
-                str_pad(hex2bin(self::padHex($math->decHex($point->getY()))), 32, "\x00", STR_PAD_LEFT);
-        } else {
-            $pubBinStr =
-                (($math->mod($point->getY(), 2) == 0) ? "\x02" : "\x03") .
-                str_pad(hex2bin(self::padHex($math->decHex($point->getX()))), 32, "\x00", STR_PAD_LEFT);
-        }
-
-        $derivedAddress = hex2bin(self::magicByte()) . hash('ripemd160', hash('sha256', $pubBinStr, true), true);
+        
+        //figure out what address signed this message - as binary data
+        $derivedAddress = self::deriveAddressFromSignature($signature, $message, true);
 
         return $address === $derivedAddress;
     }
@@ -1091,14 +1038,34 @@ class BitcoinLib
     
     
     /**
-     * derive the public btc address of the key used to verify a signed message
+     * get the pubkey used to create a signed message, convert it to public btc address
      *
      * @param $signature
      * @param $message
+     * @param false $as_bin
      * @return string
      * @throws \Exception
      */
-    public static function deriveAddressFromSignature($signature, $message)
+    public static function deriveAddressFromSignature($signature, $message, $as_bin = false)
+    {
+        $pubkey = self::derivePubKeyFromSignature($signature, $message, $as_bin);
+        if($as_bin){
+            return hex2bin(self::magicByte()) . hash('ripemd160', hash('sha256', $pubkey, true), true);
+        }
+        return self::public_key_to_address($pubkey);
+    }
+    
+    
+    /**
+     * derive the pubkey of the keypair used to create a signed message
+     *
+     * @param $signature
+     * @param $message
+     * @param false $as_bin
+     * @return string
+     * @throws \Exception
+     */    
+    public static function derivePubKeyFromSignature($signature, $message, $as_bin = false)
     {
         $math = EccFactory::getAdapter();
         $generator = EccFactory::getSecgCurves($math)->generator256k1();
@@ -1155,8 +1122,10 @@ class BitcoinLib
                 str_pad(hex2bin(self::padHex($math->decHex($point->getX()))), 32, "\x00", STR_PAD_LEFT);
         }
         
-        $derivedAddress = self::public_key_to_address(bin2hex($pubBinStr));
+        if(!$as_bin){
+            return bin2hex($pubBinStr);
+        }
         
-        return $derivedAddress;
-    }    
+        return $pubBinStr;
+    }
 }
