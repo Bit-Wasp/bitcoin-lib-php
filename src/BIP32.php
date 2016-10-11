@@ -199,7 +199,6 @@ class BIP32
             $private_key_dec = $math->hexDec($private_key);
             $key_dec = $math->mod($math->add($Il_dec, $private_key_dec), $n);
             $key = str_pad(BitcoinLib::hex_encode($key_dec), 64, '0', STR_PAD_LEFT);
-
         } else if ($previous['type'] == 'public') {
             // newPoint + parentPubkeyPoint
             $decompressed = BitcoinLib::decompress_public_key($public_key); // Can return false. Throw exception?

@@ -161,7 +161,6 @@ class Jsonrpcclient
             }
 
             return $response['result'];
-
         } else {
             return true;
         }
