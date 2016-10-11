@@ -372,6 +372,22 @@ class BitcoinLib
     }
 
     /**
+     * Generate a 32 byte string of random data.
+     *
+     * This function can be overridden if you have a more sophisticated
+     * random number generator, such as a hardware based random number
+     * generator, or a system capable of delivering lot's of entropy for
+     * MCRYPT_DEV_RANDOM. Do not override this if you do not know what
+     * you are doing!
+     *
+     * @return string
+     */
+    protected static function get_random()
+    {
+        return mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM);
+    }
+
+    /**
      * Public Key To Address
      *
      * This function accepts the $public_key, and $address_version (used
@@ -403,9 +419,9 @@ class BitcoinLib
         $math = EccFactory::getAdapter();
         $g = EccFactory::getSecgCurves($math)->generator256k1();
 
-        $privKey = gmp_strval(gmp_init(bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM)), 16));
+        $privKey = gmp_strval(gmp_init(bin2hex(self::get_random()), 16));
         while ($math->cmp($privKey, $g->getOrder()) !== -1) {
-            $privKey = gmp_strval(gmp_init(bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM)), 16));
+            $privKey = gmp_strval(gmp_init(bin2hex(self::get_random()), 16));
         }
 
         $privKeyHex = $math->dechex($privKey);
@@ -819,7 +835,7 @@ class BitcoinLib
         $_publicKey = new PublicKey($math, $generator, $point);
         $_privateKey = $generator->getPrivateKeyFrom($key_dec);
         $signer = new Signer($math);
-        $sign = $signer->sign($_privateKey, $messageHash, $k ?: $math->hexDec((string)bin2hex(mcrypt_create_iv(32, \MCRYPT_DEV_URANDOM))));
+        $sign = $signer->sign($_privateKey, $messageHash, $k ?: $math->hexDec((string)bin2hex(self::get_random())));
 
         // calculate the recovery param
         //  there should be a way to get this when signing too, but idk how ...
