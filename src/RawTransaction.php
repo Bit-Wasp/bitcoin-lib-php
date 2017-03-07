@@ -147,7 +147,6 @@ class RawTransaction
         // Num_bytes is 0: Just return the decimal
         // Otherwise, return $num_bytes bytes (order flipped) and converted to decimal
         return ($num_bytes == 0) ? $decimal : hexdec(self::_return_bytes($string, $num_bytes, true));
-
     }
 
     /**
@@ -647,7 +646,6 @@ class RawTransaction
         $encoded_locktime = self::_dec_to_bytes($raw_transaction_array['locktime'], 4, true);
 
         return $encoded_version . $encoded_inputs . $encoded_outputs . $encoded_locktime;
-
     }
 
     /**
@@ -1130,7 +1128,6 @@ class RawTransaction
         $tx_array['locktime'] = 0;
 
         return self::encode($tx_array);
-
     }
 
     /**
@@ -1484,7 +1481,6 @@ class RawTransaction
         }
 
         return true;
-
     }
 
     /**
