@@ -986,7 +986,7 @@ class RawTransaction
             } elseif ($type_info['type'] == 'scripthash') {
                 // Pay-to-script-hash. Check OP_FALSE <sig> ... <redeemScript>
                 $redeem_script_found = false;
-                $pubkey_found = false;
+                $pubkey_found = 0;
 
                 $scripts = explode(" ", $vin['scriptSig']['asm']);
 
@@ -998,23 +998,26 @@ class RawTransaction
                     $redeem_script_found = true;
                 }
 
-                unset($scripts[(count($scripts) - 1)]); // Unset redeemScript
-                unset($scripts[0]); // Unset '0';
+                if ($redeem_script_found) {
+                    unset($scripts[(count($scripts) - 1)]); // Unset redeemScript
+                    unset($scripts[0]); // Unset '0';
 
-                // Extract signatures, remove the "0" byte, and redeemScript.
-                // Loop through the remaining values - the signatures
-                foreach ($scripts as $signature) {
-                    // Test each signature with the public keys in the redeemScript.
-                    foreach ($redeemScript['keys'] as $public_key) {
-                        if (self::_check_sig($signature, $message_hash[$i], $public_key, $allowHighS) == true) {
-                            $pubkey_found = true;
-                            break 2;
+                    // Extract signatures, remove the "0" byte, and redeemScript.
+                    // Loop through the remaining values - the signatures
+                    foreach ($scripts as $signature) {
+                        // Test each signature with the public keys in the redeemScript.
+                        foreach ($redeemScript['keys'] as $public_key) {
+                            if (self::_check_sig($signature, $message_hash[$i], $public_key) == true) {
+                                $pubkey_found++;
+                            }
                         }
                     }
                 }
-                $outcome = $outcome && ($redeem_script_found && $pubkey_found);
+
+                $outcome = $outcome && ($redeem_script_found && $pubkey_found == $redeemScript['m']);
             }
         }
+
         return $outcome;
     }
 
@@ -1214,13 +1217,14 @@ class RawTransaction
 
         // If the transaction isn't fully signed, return false.
         // If it's fully signed, perform signature verification, return true if valid, or invalid if signatures are incorrect.
-        $complete = ((($req_sigs - $sign_count) <= 0)
-            ? ((self::validate_signed_transaction($new_raw, $inputs, $magic_byte, $magic_p2sh_byte) == true) ? 'true' : 'false')
-            : 'false');
+        $complete = false;
+        if ($req_sigs - $sign_count == 0) {
+            $complete = self::validate_signed_transaction($new_raw, $inputs, $magic_byte, $magic_p2sh_byte);
+        }
 
         return array(
             'hex' => $new_raw,
-            'complete' => $complete,
+            'complete' => $complete ? 'true' : 'false',
             'sign_count' => $sign_count,
             'req_sigs' => $req_sigs
         );
