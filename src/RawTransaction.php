@@ -816,7 +816,7 @@ class RawTransaction
 
         // First step is to get m, the required number of signatures
         if (!isset($data['m']) || count($data) == 0) {
-            $data['m'] = $math->sub($math->hexDec(substr($redeem_script, 0, 2)), $math->hexDec('50'));
+            $data['m'] = (int) $math->sub($math->hexDec(substr($redeem_script, 0, 2)), $math->hexDec('50'));
             $data['keys'] = array();
             $redeem_script = substr($redeem_script, 2);
         } elseif (count($data['keys']) == 0 && !isset($data['next_key_charlen'])) {
@@ -846,7 +846,7 @@ class RawTransaction
                 && in_array($math->cmp($math->hexDec($next_op), $math->hexDec('60')), array(-1, 0))
             ) {
                 // Finish the script - obtain n
-                $data['n'] = $math->sub($math->hexDec($next_op), $math->hexDec('50'));
+                $data['n'] = (int) $math->sub($math->hexDec($next_op), $math->hexDec('50'));
                 if ($redeem_script !== 'ae') {
                     throw new \InvalidArgumentException("Redeem script should be 'ae'");
                 }
@@ -1015,7 +1015,7 @@ class RawTransaction
                     }
                 }
 
-                $outcome = $outcome && ($redeem_script_found && $pubkey_found == $redeemScript['m']);
+                $outcome = $outcome && ($redeem_script_found && $pubkey_found === $redeemScript['m']);
             }
         }
 
