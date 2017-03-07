@@ -1009,6 +1009,9 @@ class RawTransaction
                         foreach ($redeemScript['keys'] as $public_key) {
                             if (self::_check_sig($signature, $message_hash[$i], $public_key) == true) {
                                 $pubkey_found++;
+                                if ($pubkey_found == $redeemScript['m']) {
+                                    break 2;
+                                }
                             }
                         }
                     }
