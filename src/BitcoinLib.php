@@ -247,7 +247,6 @@ class BitcoinLib
             $return = "0" . $return;
         }
         return $return;
-
     }
 
     /**
@@ -631,7 +630,6 @@ class BitcoinLib
 
         $parity = $math->mod($y, 2);
         return (($parity == 0) ? '02' : '03') . $x_hex;
-
     }
 
     /**
