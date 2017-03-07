@@ -79,6 +79,7 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
         RawTransaction::private_keys_to_wallet($wallet, array("cV2BRcdtWoZMSovYCpoY9gyvjiVK5xufpAwdAFk1jdonhGZq1cCm"));
         RawTransaction::redeem_scripts_to_wallet($wallet, array($redeem_script));
         $sign = RawTransaction::sign($wallet, $raw_transaction, json_encode($inputs));
+        $this->assertFalse(RawTransaction::validate_signed_transaction($sign['hex'], json_encode($inputs)));
         $this->assertEquals(2, $sign['req_sigs']);
         $this->assertEquals(1, $sign['sign_count']);
         $this->assertEquals('false', $sign['complete']);
@@ -93,17 +94,7 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(2, $sign['req_sigs']);
         $this->assertEquals(2, $sign['sign_count']);
         $this->assertEquals('true', $sign['complete']);
-
-        /*
-         * sign with third key
-         */
-        $wallet = array();
-        RawTransaction::private_keys_to_wallet($wallet, array("cNn72iUvQhuzZCWg3TC31fvyNDYttL8emHgMcFJzhF4xnFo8LYCk"));
-        RawTransaction::redeem_scripts_to_wallet($wallet, array($redeem_script));
-        $sign = RawTransaction::sign($wallet, $sign['hex'], json_encode($inputs));
-        $this->assertEquals(2, $sign['req_sigs']);
-        $this->assertEquals(3, $sign['sign_count']);
-        $this->assertEquals('true', $sign['complete']);
+        $this->assertTrue(RawTransaction::validate_signed_transaction($sign['hex'], json_encode($inputs)));
 
         BitcoinLib::setMagicByteDefaults('bitcoin');
     }
@@ -394,7 +385,6 @@ class RawTransactionTest extends PHPUnit_Framework_TestCase
 
 
         foreach ($data as $test) {
-
             $this->assertTrue(RawTransaction::validate_signed_transaction($test['tx'], json_encode($test['inputs']), '00'));
         }
     }
