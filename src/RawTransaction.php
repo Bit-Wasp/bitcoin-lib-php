@@ -817,6 +817,9 @@ class RawTransaction
         // First step is to get m, the required number of signatures
         if (!isset($data['m']) || count($data) == 0) {
             $data['m'] = (int) $math->sub($math->hexDec(substr($redeem_script, 0, 2)), $math->hexDec('50'));
+            if ($data['m'] < 0 || $data['m'] > 20) {
+                throw new \RuntimeException("Invalid redeem script - m must be >0 and <=20");
+            }
             $data['keys'] = array();
             $redeem_script = substr($redeem_script, 2);
         } elseif (count($data['keys']) == 0 && !isset($data['next_key_charlen'])) {
@@ -847,6 +850,9 @@ class RawTransaction
             ) {
                 // Finish the script - obtain n
                 $data['n'] = (int) $math->sub($math->hexDec($next_op), $math->hexDec('50'));
+                if ($data['n'] < 0 || $data['n'] > 20) {
+                    throw new \RuntimeException("Invalid redeem script - n must be >0 and <=20");
+                }
                 if ($redeem_script !== 'ae') {
                     throw new \InvalidArgumentException("Redeem script should be 'ae'");
                 }
