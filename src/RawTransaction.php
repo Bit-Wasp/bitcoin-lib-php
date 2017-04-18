@@ -30,7 +30,7 @@ class RawTransaction
      *
      * @var bool
      */
-    const ALLOW_HIGH_S = true;
+    const ALLOW_HIGH_S = false;
 
     /**
      * Some of the defined OP CODES available in Bitcoins script.
@@ -595,7 +595,7 @@ class RawTransaction
         $info = array();
         $info['txid'] = $txid;
         $info['version'] = $math->hexDec(self::_return_bytes($raw_transaction, 4, true));
-        if (!in_array($info['version'], array('0', '1'))) {
+        if (!in_array($info['version'], array('0', '1', '2'))) {
             throw new \InvalidArgumentException("Invalid transaction version");
         }
 
