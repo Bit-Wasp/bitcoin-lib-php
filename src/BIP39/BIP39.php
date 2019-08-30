@@ -20,7 +20,7 @@ class BIP39
             throw new \InvalidArgumentException("Entropy must be in a multiple of 32");
         }
 
-        return bin2hex(mcrypt_create_iv($size / 8, \MCRYPT_DEV_URANDOM));
+        return bin2hex(random_bytes($size / 8));
     }
 
     /**
